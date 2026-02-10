@@ -10,42 +10,56 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      # 1. 下载仓库代码
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: setup node
+      # 2. 安装 Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: install pnpm
+      # 3. 安装 pnpm
+      - name: Install pnpm
         run: npm install -g pnpm
 
-      - name: install dependencies
+      # 4. 安装项目所有依赖 (前端 + Tauri)
+      - name: Install dependencies
         run: pnpm install
 
-      - name: setup rust
+      # 5. 设置 Rust 环境 (添加安卓编译目标)
+      - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-linux-android, armv7-linux-androideabi, x86_64-linux-android, i686-linux-android
 
+      # 6. 设置 Rust 缓存 (加速以后的编译)
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: "src-tauri -> target"
 
-      - name: setup java
+      # 7. 设置 Java (安卓编译必须)
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: setup android sdk
+      # 8. 设置 Android SDK
+      - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: build android
-        run: pnpm tauri android build --debug
+      # 9. 关键：初始化并编译安卓项目
+      # 这里先运行 init 生成 gen/android 目录，再运行 build
+      - name: Initialize and Build Android
+        run: |
+          pnpm tauri android init
+          pnpm tauri android build --debug
 
-      - name: upload artifact
+      # 10. 上传生成的 APK 文件
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: iTermX-Debug-APK
