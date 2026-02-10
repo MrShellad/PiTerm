@@ -1,7 +1,27 @@
-# Tauri + React + Typescript
+# iTermX
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+iTermX 是一款基于 **Tauri + Rust** 构建的跨平台桌面终端应用，前端使用 **xterm.js** 实现高性能终端渲染，旨在提供轻量、安全、可扩展的本地 Shell 体验。
 
-## Recommended IDE Setup
+与传统 Electron 终端应用不同，SHELL 通过 Tauri 将 Web UI 与原生能力紧密结合，在保持现代化界面体验的同时，大幅降低资源占用，并强化对系统权限与安全边界的控制。
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+## 核心特性
+
+- 🖥️ 基于 **xterm.js** 的高性能终端渲染
+- ⚡ 轻量级架构：Tauri + Rust，启动快、占用低
+- 🔒 安全优先：Rust 后端 + Tauri 权限模型
+- 🧩 前后端解耦：终端 UI 与系统逻辑职责清晰
+- 🎨 现代化界面：支持主题、自定义样式与扩展
+- 🌍 跨平台支持：Windows / macOS / Linux（依赖 Tauri）
+## 开发环境
+
+- Node.js >= 18
+- pnpm
+- Rust (stable)
+- Tauri CLI
+
+## 本地开发
+
+```bash
+pnpm install
+pnpm tauri dev
+****
