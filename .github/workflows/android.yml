@@ -24,6 +24,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      # 🔍 第一关：先试着单独编译前端网页
+      # 如果这里报错，说明是 TypeScript 或 Vite 的问题，和 Rust 无关
+      - name: Build Frontend (Check)
+        run: pnpm build
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -38,13 +43,21 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Build Android
+      # 🔍 第二关：正式编译安卓
+      # 开启了 RUST_BACKTRACE=1，如果报错会打印详细原因
+      - name: Initialize and Build Android
+        env:
+          RUST_BACKTRACE: 1
         run: |
           pnpm tauri android init
+          
+          # 确保 NDK 路径正确
           export ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.2.9519653
+          
           pnpm tauri android build --debug
 
       - name: Upload APK
+        if: success() # 只有成功了才上传
         uses: actions/upload-artifact@v4
         with:
           name: iTermX-Debug-APK
