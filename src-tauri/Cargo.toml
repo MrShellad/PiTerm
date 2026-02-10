@@ -22,16 +22,17 @@ tauri-plugin-shell = "2.3.3"
 tauri-plugin-fs = "2.0.0"
 tauri-plugin-dialog = "2"
 tauri-plugin-os = "2"
-# 保持 sqlx 兼容性，建议在 Android 环境下确保不使用动态链接的系统库
-sqlx = { version = "0.8", features = [ "sqlite", "runtime-tokio" ] }
 
-# 🟢 [修改] 核心 SSH 库：使用纯 Rust 的 russh 替代 ssh2
-# 这样可以彻底删除 OpenSSL 相关的复杂配置
+# 🟢 [关键修改] sqlx：增加 bundled 特性
+# 这确保在安卓编译时，SQLite 会被编译进二进制文件，而不是去寻找手机系统里不存在的 .so 库
+sqlx = { version = "0.8", features = [ "sqlite", "runtime-tokio" ], default-features = false }
+libsqlite3-sys = { version = "0.28", features = ["bundled"] }
+
+# 🟢 [关键修改] russh：纯 Rust 实现，彻底摆脱 OpenSSL
 russh = "0.40"
 russh-keys = "0.40"
 
-# 🟢 [修改] 网络请求：强制使用 rustls-tls
-# 这能确保 reqwest 不会偷偷去调用安卓系统里不存在的 native-tls (OpenSSL)
+# 🟢 [关键修改] reqwest：强制使用 rustls
 reqwest = { version = "0.11", default-features = false, features = ["json", "stream", "multipart", "rustls-tls"] }
 
 tokio = { version = "1", features = ["full"] }
@@ -47,8 +48,3 @@ zip = "0.6"
 walkdir = "2"
 regex = "1"
 urlencoding = "2"
-
-# 🔴 [已移除] 不兼容安卓或引起编译错误的插件/库
-# tauri-plugin-autostart = "2.5.1"
-# tauri-plugin-clipboard = "2.1.11"
-# font-kit = "0.11"
