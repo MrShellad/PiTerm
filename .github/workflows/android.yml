@@ -24,9 +24,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      # 🔍 第一关：先试着单独编译前端网页
-      # 如果这里报错，说明是 TypeScript 或 Vite 的问题，和 Rust 无关
-      - name: Build Frontend (Check)
+      # 🔍 第一步：手动编译前端 (最容易报错的地方)
+      # 如果这里红了，点击这个步骤查看日志，你会看到具体的 TypeScript 错误
+      - name: Build Frontend Manually
         run: pnpm build
 
       - name: Setup Rust
@@ -43,21 +43,19 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      # 🔍 第二关：正式编译安卓
-      # 开启了 RUST_BACKTRACE=1，如果报错会打印详细原因
-      - name: Initialize and Build Android
+      # 🔍 第二步：编译安卓 (跳过前端编译)
+      # 因为第一步已经生成了 ../dist，这里我们强制跳过前端构建，防止重复报错
+      - name: Build Android APK
         env:
-          RUST_BACKTRACE: 1
+          # 这是一个特殊的 Tauri 环境变量，告诉 Rust "前端我已经编好了，别管了"
+          TAURI_SKIP_BEFORE_BUILD_COMMAND: "true" 
         run: |
           pnpm tauri android init
-          
-          # 确保 NDK 路径正确
           export ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.2.9519653
-          
           pnpm tauri android build --debug
 
       - name: Upload APK
-        if: success() # 只有成功了才上传
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: iTermX-Debug-APK
