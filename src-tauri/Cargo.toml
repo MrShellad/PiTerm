@@ -37,7 +37,7 @@ sha2 = "0.10"
 rand = "0.8"
 base64 = "0.21"
 sqlx = { version = "0.8", features = [ "sqlite", "runtime-tokio" ] }
-tauri-plugin-autostart = "2.5.1"
+#tauri-plugin-autostart = "2.5.1"
 chrono = { version = "0.4", features = ["serde"] }
 # font-kit = "0.11"
 reqwest = { version = "0.11", default-features = false, features = ["json", "stream", "multipart", "rustls-tls"] }
@@ -46,4 +46,4 @@ walkdir = "2"
 regex = "1"
 urlencoding = "2"
 tauri-plugin-os = "2"
-tauri-plugin-clipboard = "2.1.11"
+#tauri-plugin-clipboard = "2.1.11"
