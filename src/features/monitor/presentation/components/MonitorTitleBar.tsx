@@ -11,7 +11,11 @@ interface Props {
 export const MonitorTitleBar = ({ children }: Props) => {
   const handleMinimize = () => appWindow.minimize();
   const handleMaximize = () => appWindow.toggleMaximize();
-  const handleClose = () => appWindow.close();
+  
+  // 🟢 [核心修复] 改为 hide()，保持窗口句柄存活，防止主窗口通信报错
+  const handleClose = async () => {
+      await appWindow.hide();
+  };
 
   const windowControlClass = clsx(
     "h-full w-12 flex items-center justify-center",
@@ -28,15 +32,12 @@ export const MonitorTitleBar = ({ children }: Props) => {
         "bg-slate-100/80 dark:bg-black/20 backdrop-blur-sm",
         "border-b border-slate-200 dark:border-white/10"
       )}
-      // 1. 让最外层支持拖拽
       data-tauri-drag-region
     >
-      {/* 左侧占位 (红绿灯区域) */}
+      {/* 左侧占位 */}
       <div className="w-20 h-full shrink-0" data-tauri-drag-region />
 
-      {/* 🟢 [核心修复] 给这个 flex-1 容器加上 data-tauri-drag-region 
-         这样 Tabs 右边的空白区域也能用来拖动窗口
-      */}
+      {/* 中间内容 */}
       <div 
         className="flex-1 min-w-0 h-full relative z-20 flex overflow-hidden" 
         data-tauri-drag-region

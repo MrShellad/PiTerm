@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { formatBytes } from "@/utils/format";
 import { MonitorCard } from "../MonitorCard";
 import { BaseMonitorCardProps } from "../types";
-import { InterfaceInfo } from "@/store/useMonitorStore"; // 🟢 引入接口定义
+import { InterfaceInfo } from "@/store/useMonitorStore";
 import { clsx } from "clsx";
 
 const IpItem = ({ ip, label }: { ip: string; label: string }) => {
@@ -22,7 +22,8 @@ const IpItem = ({ ip, label }: { ip: string; label: string }) => {
       onClick={handleCopy}
       className="flex items-center justify-between group cursor-pointer hover:bg-slate-200/50 dark:hover:bg-white/5 p-1 px-1.5 rounded transition-colors"
     >
-      <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">{label}: {ip}</span>
+      {/* 🟢 [优化] text-[10px] -> text-[11px] */}
+      <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">{label}: {ip}</span>
       {copied ? (
         <Check className="w-3 h-3 text-green-500" />
       ) : (
@@ -44,25 +45,25 @@ export const NetworkCard = ({ id, data, isExpanded, onToggle, icon, color = "ora
       color={color}
       isExpanded={isExpanded}
       onToggle={onToggle}
-      // 🟢 Header 详情：展示 TCP 连接数
       detail={
-        <div className="flex items-center gap-2 text-[11px] font-semibold text-slate-400">
-           <Activity className="w-3 h-3" />
+        // 🟢 [优化] text-[12px] -> text-xs (12px 标准)
+        <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
+           <Activity className="w-3 h-3 opacity-70" />
            <span>{netData?.tcpConnections || 0} {t('monitor.network.tcp_conns', 'TCP Connections')}</span>
         </div>
       }
       usage={0}
       usageDisplay={
-        <div className="flex items-baseline gap-4">
+        <div className="flex items-center gap-4">
           <div className="flex items-center gap-1 text-emerald-500 dark:text-emerald-400">
             <ArrowDown className="w-4 h-4 shrink-0 stroke-[2.5]" />
-            <span className="text-lg font-semibold tracking-tighter tabular-nums">
+            <span className="text-xl font-semibold tracking-tighter tabular-nums">
               {netData ? formatBytes(netData.rxSpeed) : "0 B"}/s
             </span>
           </div>
           <div className="flex items-center gap-1 text-blue-500 dark:text-blue-400">
             <ArrowUp className="w-4 h-4 shrink-0 stroke-[2.5]" />
-            <span className="text-lg font-semibold tracking-tighter tabular-nums">
+            <span className="text-xl font-semibold tracking-tighter tabular-nums">
               {netData ? formatBytes(netData.txSpeed) : "0 B"}/s
             </span>
           </div>
@@ -74,28 +75,32 @@ export const NetworkCard = ({ id, data, isExpanded, onToggle, icon, color = "ora
         {/* 1. 总流量概览 */}
         <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-slate-100/50 dark:bg-white/5 border border-slate-200/50 dark:border-white/5 shadow-sm">
           <div className="flex flex-col gap-1">
-            <span className="text-[9px] uppercase text-slate-500 font-semibold tracking-widest">{t('monitor.network.rx_total', 'Rx Total')}</span>
+            {/* 🟢 [优化] text-[10px] -> text-[11px] */}
+            <span className="text-[11px] uppercase text-slate-500 font-semibold tracking-widest">{t('monitor.network.rx_total', 'Rx Total')}</span>
             <div className="flex items-center gap-2">
                <ArrowDown className="w-3 h-3 text-emerald-500" />
-               <span className="text-[13px] font-semibold text-slate-700 dark:text-slate-200 tabular-nums">{formatBytes(netData?.totalRx || 0)}</span>
+               {/* 🟢 [优化] text-[13px] -> text-sm (14px) */}
+               <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 tabular-nums">{formatBytes(netData?.totalRx || 0)}</span>
             </div>
           </div>
           <div className="flex flex-col gap-1 border-l border-slate-200 dark:border-white/10 pl-3">
-            <span className="text-[9px] uppercase text-slate-500 font-semibold tracking-widest">{t('monitor.network.tx_total', 'Tx Total')}</span>
+            {/* 🟢 [优化] text-[10px] -> text-[11px] */}
+            <span className="text-[11px] uppercase text-slate-500 font-semibold tracking-widest">{t('monitor.network.tx_total', 'Tx Total')}</span>
             <div className="flex items-center gap-2">
                <ArrowUp className="w-3 h-3 text-blue-500" />
-               <span className="text-[13px] font-semibold text-slate-700 dark:text-slate-200 tabular-nums">{formatBytes(netData?.totalTx || 0)}</span>
+               {/* 🟢 [优化] text-[13px] -> text-sm (14px) */}
+               <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 tabular-nums">{formatBytes(netData?.totalTx || 0)}</span>
             </div>
           </div>
         </div>
 
         {/* 2. 网卡详细列表 */}
         <div className="flex flex-col gap-3">
-          <span className="text-[9px] uppercase text-slate-400 font-semibold tracking-widest px-1">
+          {/* 🟢 [优化] text-[10px] -> text-[11px] */}
+          <span className="text-[11px] uppercase text-slate-400 font-semibold tracking-widest px-1">
             {t('monitor.network.interfaces', 'Interface Detail')}
           </span>
           <div className="space-y-3">
-            {/* 🟢 显式指定 iface 和 idx 的类型以修复报错 */}
             {netData?.interfaces.map((iface: InterfaceInfo, idx: number) => (
               <div key={idx} className="p-3 rounded-xl bg-slate-100/80 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 flex flex-col gap-3">
                 <div className="flex items-center justify-between">
@@ -104,32 +109,41 @@ export const NetworkCard = ({ id, data, isExpanded, onToggle, icon, color = "ora
                         "w-2 h-2 rounded-full shadow-[0_0_8px]",
                         iface.status === "UP" ? "bg-emerald-500 shadow-emerald-500/50" : "bg-slate-300 dark:bg-slate-700 shadow-transparent"
                     )} />
-                    <span className="text-[12px] font-semibold text-slate-700 dark:text-slate-200">{iface.name}</span>
+                    {/* 🟢 [优化] text-[12px] -> text-sm */}
+                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{iface.name}</span>
                     <span className={clsx(
-                        "text-[8px] font-bold px-1 py-0.5 rounded uppercase tracking-tighter",
+                        // 🟢 [优化] text-[8px] -> text-[10px]
+                        "text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-tighter",
                         iface.status === "UP" ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20" : "bg-slate-200 text-slate-500 dark:bg-white/10"
                     )}>
                         {iface.status}
                     </span>
                   </div>
-                  {iface.mac && <span className="text-[9px] font-medium text-slate-400 font-mono tracking-tight">{iface.mac}</span>}
+                  {/* 🟢 [优化] text-[9px] -> text-[11px] */}
+                  {iface.mac && <span className="text-[11px] font-medium text-slate-400 font-mono tracking-tight">{iface.mac}</span>}
                 </div>
 
                 {/* 单网卡实时速率与流量 */}
                 <div className="grid grid-cols-2 gap-4 bg-white/40 dark:bg-black/20 p-2 rounded-lg border border-slate-200/30 dark:border-white/5">
                    <div className="flex flex-col gap-1">
                       <div className="flex items-center justify-between">
-                         <span className="text-[8px] font-semibold text-slate-400 uppercase tracking-widest">Down</span>
-                         <span className="text-[10px] font-semibold text-emerald-500 tabular-nums">{formatBytes(iface.rxSpeed)}/s</span>
+                         {/* 🟢 [优化] text-[8px] -> text-[10px] */}
+                         <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Down</span>
+                         {/* 🟢 [优化] text-[10px] -> text-xs */}
+                         <span className="text-xs font-semibold text-emerald-500 tabular-nums">{formatBytes(iface.rxSpeed)}/s</span>
                       </div>
-                      <span className="text-[9px] font-medium text-slate-500 dark:text-slate-400 text-right opacity-70">Vol: {formatBytes(iface.totalRx)}</span>
+                      {/* 🟢 [优化] text-[9px] -> text-[10px] */}
+                      <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 text-right opacity-70">Vol: {formatBytes(iface.totalRx)}</span>
                    </div>
                    <div className="flex flex-col gap-1 border-l border-slate-200 dark:border-white/10 pl-3">
                       <div className="flex items-center justify-between">
-                         <span className="text-[8px] font-semibold text-slate-400 uppercase tracking-widest">Up</span>
-                         <span className="text-[10px] font-semibold text-blue-500 tabular-nums">{formatBytes(iface.txSpeed)}/s</span>
+                         {/* 🟢 [优化] text-[8px] -> text-[10px] */}
+                         <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Up</span>
+                         {/* 🟢 [优化] text-[10px] -> text-xs */}
+                         <span className="text-xs font-semibold text-blue-500 tabular-nums">{formatBytes(iface.txSpeed)}/s</span>
                       </div>
-                      <span className="text-[9px] font-medium text-slate-500 dark:text-slate-400 text-right opacity-70">Vol: {formatBytes(iface.totalTx)}</span>
+                      {/* 🟢 [优化] text-[9px] -> text-[10px] */}
+                      <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 text-right opacity-70">Vol: {formatBytes(iface.totalTx)}</span>
                    </div>
                 </div>
 

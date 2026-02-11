@@ -32,7 +32,7 @@ export interface RemoteOsInfo { uptime: number; distro: string; kernel: string; 
 export interface ChartData { time: number; usage: number; }
 
 // 单个 Session 的数据结构
-interface SessionMonitorData {
+export interface SessionMonitorData {
   cpu: RemoteCpuInfo | null;
   mem: RemoteMemInfo | null;
   disk: RemoteDiskInfo | null;

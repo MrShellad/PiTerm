@@ -16,10 +16,11 @@ export interface MonitorCardProps {
   detail?: React.ReactNode;
   color?: MonitorColorVariant;
   subTitle?: string;
-  subTitleClassName?: string; // 🟢 [新增]
+  subTitleClassName?: string;
   isExpanded: boolean;
   onToggle: (id: string) => void;
-  children?: React.ReactNode; 
+  children?: React.ReactNode;
+  className?: string; // 🟢 [新增] 允许传入自定义样式（如 col-span-full）
 }
 
 export const MonitorCard = ({
@@ -32,14 +33,17 @@ export const MonitorCard = ({
   detail,
   color = "blue",
   subTitle,
-  subTitleClassName, // 🟢 [接收]
+  subTitleClassName,
   isExpanded,
   onToggle,
   children,
+  className, // 🟢 [接收]
 }: MonitorCardProps) => {
   const { t } = useTranslation();
-  const theme = MONITOR_COLOR_MAP[color];
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // 🟢 [核心修复] 安全获取主题：如果颜色未定义（如 'slate'），则回退到 'blue'，防止崩溃
+  const theme = MONITOR_COLOR_MAP[color] || MONITOR_COLOR_MAP['blue'];
 
   useEffect(() => {
     if (isExpanded && containerRef.current) {
@@ -66,6 +70,7 @@ export const MonitorCard = ({
         "relative w-full overflow-hidden backdrop-blur-xl", 
         "border", 
         "transition-colors duration-300", 
+        className, // 🟢 [应用] 将传入的 className 应用到最外层
 
         isExpanded 
           ? [
@@ -99,7 +104,7 @@ export const MonitorCard = ({
           detail={detail || t('monitor.loading', 'Loading...')}
           theme={theme}
           subTitle={subTitle || t('monitor.usage', 'Usage')}
-          subTitleClassName={subTitleClassName} // 🟢 [透传]
+          subTitleClassName={subTitleClassName}
         />
       </motion.div>
 

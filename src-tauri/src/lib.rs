@@ -40,13 +40,7 @@ use commands::vault::{
 // [新增] 引入 snippet 命令模块
 use commands::snippet::*;
 
-use commands::monitor::{
-    get_ssh_cpu_info,
-    get_ssh_mem_info,
-    get_ssh_disk_info,
-    get_ssh_os_info,
-    get_ssh_network_info,
-};
+use commands::monitor::*;
 
 use commands::proxy::{add_proxy, get_all_proxies, update_proxy, delete_proxy};
 
@@ -83,7 +77,7 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
         .plugin(tauri_plugin_os::init())
-        .plugin(tauri_plugin_clipboard::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
         // 状态管理
         .manage(SshState::default())
         .manage(MonitorCache::new())
@@ -191,7 +185,7 @@ pub fn run() {
             get_ssh_disk_info,
             get_ssh_os_info,
             get_ssh_network_info,
-            
+            get_ssh_process_list,
             // 文件管理
             list_ssh_files,
             sftp_mkdir,

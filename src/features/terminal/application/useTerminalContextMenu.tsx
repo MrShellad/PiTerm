@@ -4,9 +4,11 @@ import { invoke } from '@tauri-apps/api/core';
 import { toast } from "sonner";
 import { Copy, Clipboard, Trash2 } from "lucide-react";
 import { ContextMenuItem } from "@/components/common/ContextMenu";
+// 🟢 导入 Tauri 剪贴板插件 API
+import { readText, writeText } from '@tauri-apps/plugin-clipboard-manager';
+
 
 export const useTerminalContextMenu = (
-  // 🟢 [修复] 将类型修改为 RefObject<HTMLDivElement | null> 以兼容 useRef(null)
   containerRef: RefObject<HTMLDivElement | null>,
   termRef: RefObject<Terminal | null>,
   sessionId: string
@@ -15,34 +17,21 @@ export const useTerminalContextMenu = (
     x: 0, y: 0, visible: false
   });
 
-  // 1. Native Event Capture
   useEffect(() => {
     const handleNativeContextMenu = (e: MouseEvent) => {
       e.preventDefault(); 
       e.stopPropagation(); 
-      
-      setMenuConfig({
-        x: e.clientX,
-        y: e.clientY,
-        visible: true
-      });
-      
+      setMenuConfig({ x: e.clientX, y: e.clientY, visible: true });
       return false;
     };
 
     const el = containerRef.current;
-    if (el) {
-      el.addEventListener('contextmenu', handleNativeContextMenu, true);
-    }
-
+    if (el) el.addEventListener('contextmenu', handleNativeContextMenu, true);
     return () => {
-      if (el) {
-        el.removeEventListener('contextmenu', handleNativeContextMenu, true);
-      }
+      if (el) el.removeEventListener('contextmenu', handleNativeContextMenu, true);
     };
-  }, []); 
+  }, [containerRef]); 
 
-  // 2. Actions
   const handleClose = () => setMenuConfig(p => ({ ...p, visible: false }));
 
   const menuItems: ContextMenuItem[] = [
@@ -54,8 +43,9 @@ export const useTerminalContextMenu = (
       onClick: async () => {
         const text = termRef.current?.getSelection();
         if (text) {
-             await navigator.clipboard.writeText(text);
-             toast.success("已复制到剪贴板");
+          // 🟢 使用插件 API 写入剪贴板
+          await writeText(text);
+          toast.success("已复制到剪贴板");
         }
         termRef.current?.focus();
       }
@@ -66,11 +56,12 @@ export const useTerminalContextMenu = (
       shortcut: "Ctrl+Shift+V",
       onClick: async () => {
         try {
-          const text = await navigator.clipboard.readText();
+          // 🟢 使用插件 API 读取剪贴板
+          const text = await readText();
           if (text) invoke('write_ssh', { id: sessionId, data: text });
         } catch (err) { 
-            console.error(err);
-            toast.error("无法读取剪贴板");
+          console.error(err);
+          toast.error("无法读取剪贴板");
         }
         termRef.current?.focus();
       }
@@ -81,15 +72,11 @@ export const useTerminalContextMenu = (
       shortcut: "Ctrl+L",
       danger: true,
       onClick: () => {
-          termRef.current?.clear();
-          termRef.current?.focus();
+        termRef.current?.clear();
+        termRef.current?.focus();
       }
     }
   ];
 
-  return {
-    menuConfig,
-    menuItems,
-    handleClose
-  };
+  return { menuConfig, menuItems, handleClose };
 };

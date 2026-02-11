@@ -26,6 +26,10 @@
     "core:webview:allow-create-webview-window",
     "core:window:allow-show",
     "core:window:allow-set-focus",
-    "core:window:allow-destroy"
+    "core:window:allow-destroy",
+    "core:window:allow-hide",
+    "core:window:allow-unminimize",
+    "clipboard-manager:allow-read-text",
+    "clipboard-manager:allow-write-text"
   ]
 }

@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
 import { invoke } from '@tauri-apps/api/core';
+// 🟢 [新增] 引入 emit 用于广播设置变更
+import { emit } from '@tauri-apps/api/event';
 import { 
   mkdir, 
   readTextFile, 
@@ -8,7 +10,6 @@ import {
   BaseDirectory, 
   exists 
 } from '@tauri-apps/plugin-fs'; 
-// 🟢 [新增] 引入获取系统信息和版本的 API
 import { type as getOsType } from '@tauri-apps/plugin-os';
 import { getVersion } from '@tauri-apps/api/app';
 import { v4 as uuidv4 } from 'uuid';
@@ -21,7 +22,7 @@ import {
 import { SETTING_ITEMS } from '../domain/constants';
 
 // =========================================================
-// 🟢 [核心修改] 自定义文件存储适配器
+// 自定义文件存储适配器
 // 支持元数据包装: { meta: {...}, state: {...} }
 // =========================================================
 const createDiskStorage = (filename: string): StateStorage => ({
@@ -36,7 +37,7 @@ const createDiskStorage = (filename: string): StateStorage => ({
       
       try {
         const json = JSON.parse(content);
-        // 🟢 [逻辑] 检查是否为包含元数据的新格式
+        // 检查是否为包含元数据的新格式
         if (json && json.meta && json.state) {
           // 只把 state 部分还给 Zustand
           return JSON.stringify(json.state);
@@ -60,7 +61,7 @@ const createDiskStorage = (filename: string): StateStorage => ({
         await mkdir('', { baseDir: BaseDirectory.AppConfig, recursive: true });
       }
 
-      // 🟢 [新增] 获取元数据
+      // 获取元数据
       let platform = 'unknown';
       let appVersion = 'unknown';
       
@@ -76,7 +77,7 @@ const createDiskStorage = (filename: string): StateStorage => ({
         console.warn('Metadata fetch failed (ignoring):', err);
       }
 
-      // 🟢 [新增] 构造带元数据的文件内容
+      // 构造带元数据的文件内容
       const fileContent = {
         meta: {
           platform,
@@ -154,13 +155,25 @@ export const useSettingsStore = create<SettingsState>()(
       setActiveCategory: (category) => set({ activeCategory: category, searchQuery: '' }),
       setSearchQuery: (query) => set({ searchQuery: query }),
       
-      updateSetting: (id, value) => set((state) => ({
-        settings: { ...state.settings, [id]: value }
-      })),
+      // 🟢 [修改] 更新单个设置并广播事件
+      updateSetting: (id, value) => {
+        set((state) => {
+          const newSettings = { ...state.settings, [id]: value };
+          // 广播设置变更事件，不阻塞 UI
+          emit('app:settings-change', newSettings).catch(e => console.error('Failed to emit settings change:', e));
+          return { settings: newSettings };
+        });
+      },
 
-      updateSettings: (newSettings) => set((state) => ({
-        settings: { ...state.settings, ...newSettings }
-      })),
+      // 🟢 [修改] 批量更新设置并广播事件
+      updateSettings: (newSettingsPartial) => {
+        set((state) => {
+          const newSettings = { ...state.settings, ...newSettingsPartial };
+          // 广播设置变更事件
+          emit('app:settings-change', newSettings).catch(e => console.error('Failed to emit settings change:', e));
+          return { settings: newSettings };
+        });
+      },
 
       // --- Themes ---
       addCustomTheme: (theme) => set((state) => ({
@@ -185,7 +198,8 @@ export const useSettingsStore = create<SettingsState>()(
       updateHighlightRule: (rule) => set((state) => ({
         highlightRules: state.highlightRules.map(r => r.id === rule.id ? rule : r)
       })),
-      // 🟢 [新增] 初始化设备身份的方法
+      
+      // 初始化设备身份的方法
       initDeviceIdentity: async () => {
         const settings = get().settings;
         const updates: Record<string, any> = {};
@@ -210,6 +224,7 @@ export const useSettingsStore = create<SettingsState>()(
           get().updateSettings(updates);
         }
       },
+      
       // --- Proxies (DB) ---
       loadProxies: async () => {
         try {

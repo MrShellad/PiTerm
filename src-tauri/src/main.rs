@@ -4,5 +4,5 @@
 fn main() {
     // 调用 lib.rs 中的 run 函数
     // 注意：这里的 "ishell_lib" 必须与 Cargo.toml 中 [lib] 的 name 一致
-    ishell_lib::run();
+    itermx_lib::run();
 }

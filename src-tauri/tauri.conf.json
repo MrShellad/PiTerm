@@ -10,7 +10,7 @@
     "frontendDist": "../dist"
   },
   "app": {
-    "withGlobalTauri": false,
+    "withGlobalTauri": true,
     "windows": [
       {
         "title": "iTermX",
@@ -21,7 +21,7 @@
         "decorations": false,  
         "transparent": true,   
         "resizable": true,
-        "devtools": false
+        "devtools": true
       }
     ],
     "security": {
