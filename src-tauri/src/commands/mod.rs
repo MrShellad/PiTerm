@@ -8,3 +8,4 @@ pub mod proxy;
 pub mod system;
 pub mod backup;
 pub mod history;
+pub mod highlight;

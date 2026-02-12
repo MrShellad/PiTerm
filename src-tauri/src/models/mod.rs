@@ -1,4 +1,5 @@
 pub mod backup;
+pub mod highlight;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 

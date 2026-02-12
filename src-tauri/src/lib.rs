@@ -45,7 +45,16 @@ use commands::proxy::{add_proxy, get_all_proxies, update_proxy, delete_proxy};
 
 // [新增] 引入 System 模块 (字体相关)
 use commands::system::*;
-
+use commands::highlight::{
+    get_highlight_sets,
+    create_highlight_set,
+    get_all_highlight_styles,
+    get_rules_by_set_id,
+    save_highlight_rule,
+    delete_highlight_rule,
+    save_highlight_style,
+    delete_highlight_style
+};
 // ==============================================================================
 // 🟢 [修改 2] 定义窗口配置状态
 // ==============================================================================
@@ -242,6 +251,17 @@ pub fn run() {
 
             // 注册更新配置命令
             update_app_config,
+
+            // 高亮规则相关命令
+                get_highlight_sets,
+                create_highlight_set,
+                get_all_highlight_styles,
+                get_rules_by_set_id,
+                save_highlight_rule,
+                delete_highlight_rule,
+                save_highlight_style,
+                delete_highlight_style
+
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

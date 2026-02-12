@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
 import { invoke } from '@tauri-apps/api/core';
-// 🟢 [新增] 引入 emit 用于广播设置变更
 import { emit } from '@tauri-apps/api/event';
 import { 
   mkdir, 
@@ -16,36 +15,30 @@ import { v4 as uuidv4 } from 'uuid';
 import { 
   SettingCategory, 
   CustomTheme, 
+  ProxyItem,
   HighlightRule, 
-  ProxyItem 
+  HighlightRuleSet, 
+  HighlightStyle
 } from '../domain/types';
 import { SETTING_ITEMS } from '../domain/constants';
 
 // =========================================================
-// 自定义文件存储适配器
-// 支持元数据包装: { meta: {...}, state: {...} }
+// 自定义文件存储适配器 (保持不变)
 // =========================================================
 const createDiskStorage = (filename: string): StateStorage => ({
   getItem: async (_name: string): Promise<string | null> => {
     try {
       const fileExists = await exists(filename, { baseDir: BaseDirectory.AppConfig });
-      if (!fileExists) {
-        return null;
-      }
+      if (!fileExists) return null;
       
       const content = await readTextFile(filename, { baseDir: BaseDirectory.AppConfig });
-      
       try {
         const json = JSON.parse(content);
-        // 检查是否为包含元数据的新格式
         if (json && json.meta && json.state) {
-          // 只把 state 部分还给 Zustand
           return JSON.stringify(json.state);
         }
-        // 旧格式（纯 State），直接返回
         return content;
       } catch (e) {
-        // 解析失败或格式不对，尝试直接返回内容
         return content;
       }
     } catch (e) {
@@ -61,33 +54,23 @@ const createDiskStorage = (filename: string): StateStorage => ({
         await mkdir('', { baseDir: BaseDirectory.AppConfig, recursive: true });
       }
 
-      // 获取元数据
       let platform = 'unknown';
       let appVersion = 'unknown';
-      
       try {
-        // 并行获取系统信息，避免阻塞太久
-        const [osType, ver] = await Promise.all([
-          getOsType(), // 'linux' | 'macos' | 'windows'
-          getVersion()
-        ]);
+        const [osType, ver] = await Promise.all([getOsType(), getVersion()]);
         platform = osType;
         appVersion = ver;
-      } catch (err) {
-        console.warn('Metadata fetch failed (ignoring):', err);
-      }
+      } catch (err) {}
 
-      // 构造带元数据的文件内容
       const fileContent = {
         meta: {
           platform,
           version: appVersion,
-          lastUpdated: new Date().toISOString(), // ISO 格式时间
+          lastUpdated: new Date().toISOString(),
         },
-        state: JSON.parse(value) // 将 persist 传来的 JSON 字符串还原为对象放入 state
+        state: JSON.parse(value)
       };
 
-      // 写入格式化后的 JSON，方便人类阅读 (null, 2)
       await writeTextFile(filename, JSON.stringify(fileContent, null, 2), { baseDir: BaseDirectory.AppConfig });
     } catch (e) {
       console.error('Failed to write settings file:', e);
@@ -104,13 +87,18 @@ interface SettingsState {
   activeCategory: SettingCategory;
   searchQuery: string;
   
-  // === Data State ===
+  // === Data State (Settings.json) ===
   settings: Record<string, any>;
   customThemes: Record<string, CustomTheme>;
-  highlightRules: HighlightRule[];          
   proxies: ProxyItem[];                      
 
-  // === Actions ===
+  // === 高亮系统状态 (SQLite Data) ===
+  highlightSets: HighlightRuleSet[];       // 所有规则集 (Profile)
+  activeSetId: string | null;              // 当前选中的规则集 ID
+  currentSetRules: HighlightRule[];        // 当前集下的规则列表
+  savedStyles: HighlightStyle[];           // 可复用的样式库
+
+  // === UI Actions ===
   setActiveCategory: (category: SettingCategory) => void;
   setSearchQuery: (query: string) => void;
   
@@ -121,9 +109,21 @@ interface SettingsState {
   removeCustomTheme: (id: string) => void;
   updateCustomTheme: (theme: CustomTheme) => void;
 
-  addHighlightRule: (rule: HighlightRule) => void;
-  removeHighlightRule: (id: string) => void;
-  updateHighlightRule: (rule: HighlightRule) => void;
+  // === 高亮系统 Actions (Async / DB) ===
+  
+  // Profile (Rule Sets)
+  loadHighlightSets: () => Promise<void>;
+  createHighlightSet: (name: string, description?: string) => Promise<void>;
+  
+  // Rules
+  loadRulesBySet: (setId: string) => Promise<void>;
+  saveRule: (rule: { set_id: string; style_id: string; pattern: string; is_regex: boolean; is_case_sensitive: boolean; priority: number }) => Promise<void>;
+  deleteRule: (id: string) => Promise<void>;
+
+  // Styles (🟢 新增部分)
+  loadStyles: () => Promise<void>;
+  saveStyle: (style: { id?: string; name: string; foreground?: string | null; background?: string | null; is_bold: boolean; is_italic: boolean; is_underline: boolean }) => Promise<void>;
+  deleteStyle: (id: string) => Promise<void>;
 
   // === Proxy Actions (Async / DB) ===
   loadProxies: () => Promise<void>;
@@ -148,29 +148,30 @@ export const useSettingsStore = create<SettingsState>()(
       searchQuery: '',
       settings: defaultSettings,
       customThemes: {}, 
-      highlightRules: [],
       proxies: [], 
 
-      // --- Actions ---
+      // 高亮初始状态
+      highlightSets: [],
+      activeSetId: null,
+      currentSetRules: [],
+      savedStyles: [],
+
+      // --- UI Actions ---
       setActiveCategory: (category) => set({ activeCategory: category, searchQuery: '' }),
       setSearchQuery: (query) => set({ searchQuery: query }),
       
-      // 🟢 [修改] 更新单个设置并广播事件
       updateSetting: (id, value) => {
         set((state) => {
           const newSettings = { ...state.settings, [id]: value };
-          // 广播设置变更事件，不阻塞 UI
-          emit('app:settings-change', newSettings).catch(e => console.error('Failed to emit settings change:', e));
+          emit('app:settings-change', newSettings).catch(e => console.error(e));
           return { settings: newSettings };
         });
       },
 
-      // 🟢 [修改] 批量更新设置并广播事件
       updateSettings: (newSettingsPartial) => {
         set((state) => {
           const newSettings = { ...state.settings, ...newSettingsPartial };
-          // 广播设置变更事件
-          emit('app:settings-change', newSettings).catch(e => console.error('Failed to emit settings change:', e));
+          emit('app:settings-change', newSettings).catch(e => console.error(e));
           return { settings: newSettings };
         });
       },
@@ -188,33 +189,106 @@ export const useSettingsStore = create<SettingsState>()(
         customThemes: { ...state.customThemes, [theme.id]: theme }
       })),
 
-      // --- Highlights ---
-      addHighlightRule: (rule) => set((state) => ({
-        highlightRules: [...state.highlightRules, rule]
-      })),
-      removeHighlightRule: (id) => set((state) => ({
-        highlightRules: state.highlightRules.filter(r => r.id !== id)
-      })),
-      updateHighlightRule: (rule) => set((state) => ({
-        highlightRules: state.highlightRules.map(r => r.id === rule.id ? rule : r)
-      })),
+      // =========================================================
+      // 高亮系统 Actions 实现
+      // =========================================================
       
-      // 初始化设备身份的方法
+      // --- Rule Sets ---
+      loadHighlightSets: async () => {
+        try {
+            const sets = await invoke<HighlightRuleSet[]>('get_highlight_sets');
+            set({ highlightSets: sets });
+            
+            // UX 优化：如果当前没有选中任何 Set，且列表不为空，可选逻辑：
+            // if (sets.length > 0 && !get().activeSetId) { ... }
+        } catch (e) { console.error("Failed to load highlight sets", e); }
+      },
+
+      createHighlightSet: async (name, description) => {
+          try {
+              await invoke('create_highlight_set', { name, description });
+              get().loadHighlightSets(); // 刷新列表
+          } catch (e) { console.error("Failed to create set", e); }
+      },
+
+      // --- Rules ---
+      loadRulesBySet: async (setId) => {
+          set({ activeSetId: setId });
+          try {
+              const rules = await invoke<HighlightRule[]>('get_rules_by_set_id', { setId });
+              set({ currentSetRules: rules });
+          } catch (e) { console.error("Failed to load rules", e); }
+      },
+
+      saveRule: async (ruleDto) => {
+          try {
+              await invoke('save_highlight_rule', { rule: ruleDto });
+              // 保存成功后，刷新当前选中 Set 的规则列表
+              const currentSetId = get().activeSetId;
+              if (currentSetId) {
+                  get().loadRulesBySet(currentSetId);
+              }
+          } catch (e) { console.error("Failed to save rule", e); }
+      },
+
+      deleteRule: async (id) => {
+          try {
+              await invoke('delete_highlight_rule', { id });
+              // 删除后刷新
+              const currentSetId = get().activeSetId;
+              if (currentSetId) {
+                  get().loadRulesBySet(currentSetId);
+              }
+          } catch (e) { console.error("Failed to delete rule", e); }
+      },
+
+      // --- Styles (🟢 新增) ---
+      loadStyles: async () => {
+          try {
+              const styles = await invoke<HighlightStyle[]>('get_all_highlight_styles');
+              set({ savedStyles: styles });
+          } catch (e) { console.error("Failed to load styles", e); }
+      },
+
+      saveStyle: async (styleDto) => {
+          try {
+              await invoke('save_highlight_style', { style: styleDto });
+              get().loadStyles(); // 刷新样式库列表
+              
+              // 关键：如果修改了样式，可能影响当前正在展示的规则列表（因为规则包含了样式快照）
+              // 所以如果有选中的 Set，也刷新一下规则列表
+              const currentSetId = get().activeSetId;
+              if (currentSetId) {
+                  get().loadRulesBySet(currentSetId);
+              }
+          } catch (e) { console.error("Failed to save style", e); }
+      },
+
+      deleteStyle: async (id) => {
+          try {
+              await invoke('delete_highlight_style', { id });
+              get().loadStyles();
+          } catch (e) { 
+              console.error("Failed to delete style", e); 
+              // 可以在这里通过 toast 提示用户（如果后端拒绝删除被引用的样式）
+          }
+      },
+
+      // =========================================================
+      // Identity & Proxies
+      // =========================================================
+      
       initDeviceIdentity: async () => {
         const settings = get().settings;
         const updates: Record<string, any> = {};
         
-        // 1. 如果没有 deviceId，生成一个永久的 UUID
         if (!settings['general.deviceId']) {
           updates['general.deviceId'] = uuidv4();
         }
 
-        // 2. 如果没有 deviceName，尝试获取系统主机名或给个默认值
         if (!settings['general.deviceName']) {
           let hostname = 'Unknown Device';
           try {
-             // 如果你有 tauri-plugin-os，可以用 platform() 或 hostname()
-             // hostname = await type(); 
              hostname = 'Local Device'; 
           } catch(e) {}
           updates['general.deviceName'] = hostname;
@@ -225,7 +299,6 @@ export const useSettingsStore = create<SettingsState>()(
         }
       },
       
-      // --- Proxies (DB) ---
       loadProxies: async () => {
         try {
             const list = await invoke<any[]>('get_all_proxies');
@@ -255,7 +328,7 @@ export const useSettingsStore = create<SettingsState>()(
       partialize: (state) => ({ 
         settings: state.settings,
         customThemes: state.customThemes,
-        highlightRules: state.highlightRules,
+        // 排除 DB 数据，不存入 JSON
       }),
     }
   )

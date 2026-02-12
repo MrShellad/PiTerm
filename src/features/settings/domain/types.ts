@@ -4,6 +4,7 @@ export type SettingCategory =
   | 'general' 
   | 'appearance' 
   | 'terminal' 
+  | 'highlights'
   | 'connection' 
   | 'security'
   | 'backup' 
@@ -12,8 +13,8 @@ export type SettingCategory =
 export type SettingItemType = 
   | 'switch' | 'input' | 'select' | 'info' | 'button' 
   | 'theme-manager'     
-  | 'highlight-manager' // 🛑 注意：这里去掉了分号，改为换行继续
-  | 'proxy-manager'    // ✅ 这里才是结束
+  | 'highlight-manager'
+  | 'proxy-manager' 
   | 'background-manager'
   | 'font-selector'
   | 'image'
@@ -32,7 +33,7 @@ export interface ProxyItem {
   port: number;
   // 敏感字段 (加密存储)
   encryptedAuth?: string; 
-  // 🟢 [新增] 必须添加此字段以匹配 Rust 后端
+  //[新增] 必须添加此字段以匹配 Rust 后端
   createdAt: number; 
   updatedAt: number;
 }
@@ -69,10 +70,36 @@ export interface CategoryMeta {
 
 export interface HighlightRule {
   id: string;
-  keyword: string;
-  color: string;
+  setId: string;
+  styleId: string;
+  pattern: string;
   isRegex: boolean;
   isCaseSensitive: boolean;
+  priority: number;
+  style?: HighlightStyle; 
+  createdAt?: number; // 新增
+  updatedAt?: number; // 新增
+}
+
+export interface HighlightRuleSet {
+  id: string;
+  name: string;
+  description?: string;
+  isDefault: boolean;
+  updatedAt: number;
+  createdAt?: number; // 🟢 补全这个字段
+}
+
+export interface HighlightStyle {
+  id: string;
+  name: string;
+  foreground?: string;
+  background?: string;
+  isBold: boolean;
+  isItalic: boolean;
+  isUnderline: boolean;
+  createdAt?: number; // 新增
+  updatedAt?: number; // 新增
 }
 
 export interface CustomTheme {

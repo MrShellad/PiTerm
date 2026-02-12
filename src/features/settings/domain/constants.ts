@@ -6,6 +6,7 @@ import { terminalItems } from "./items/terminal";
 import { connectionItems } from "./items/connection";
 import { aboutItems } from "./items/about";
 import { securityItems } from "./items/security";
+import { highlightItems } from './items/highlights';
 // 重新导出 CATEGORIES 供 Sidebar 使用
 export { CATEGORIES };
 
@@ -23,6 +24,7 @@ export const SETTING_ITEMS: SettingItem[] = [
   ...generalItems,
   ...appearanceItems,
   ...terminalItems,
+  ...highlightItems,
   ...connectionItems,
   ...securityItems,
   ...backupItems,

@@ -1,4 +1,4 @@
-name: Build macOS Intel
+name: Build macOS Intel (x86_64)
 
 on:
   push:
@@ -6,8 +6,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-macos:
-    runs-on: macos-latest   # 默认就是 Intel runner
+  build-macos-intel:
+    # macos-13 = Intel runner（关键）
+    runs-on: macos-13
 
     steps:
       - uses: actions/checkout@v4
@@ -17,20 +18,28 @@ jobs:
         with:
           node-version: 20
 
-      - run: npm install -g pnpm
+      - name: Install pnpm
+        run: npm install -g pnpm
 
-      # Rust
+      # Rust + Intel target
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-apple-darwin
 
-      # 安装依赖
-      - run: pnpm install
+      # 确认当前架构（可删）
+      - name: Check runner arch
+        run: uname -m
 
-      # 构建 mac Intel（默认）
-      - name: Build Tauri mac Intel
-        run: pnpm tauri build
+      # 安装前端依赖
+      - name: Install dependencies
+        run: pnpm install
+
+      # 构建 macOS Intel
+      - name: Build Tauri macOS x86_64
+        run: pnpm tauri build --target x86_64-apple-darwin
 
       # 上传构建产物
       - uses: actions/upload-artifact@v4
         with:
-          name: macos-intel-build
-          path: src-tauri/target/release/bundle/
+          name: macos-x86_64-build
+          path: src-tauri/target/x86_64-apple-darwin/release/bundle/

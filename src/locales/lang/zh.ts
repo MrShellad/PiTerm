@@ -20,7 +20,17 @@ export const zh = {
       collapse: "收起侧边栏",
       expand: "展开侧边栏"
     },
-
+    "backup": {
+      "progress": {
+        "preparing": "正在准备...",
+        "compressing": "正在压缩数据...",
+        "uploading": "正在上传至云端...",
+        "downloading": "正在下载备份...",
+        "analyzing": "正在解析备份文件...",
+        "extracting": "正在解压并恢复...",
+        "complete": "操作完成！"
+      }
+  },
     app: {
       title: "我的终端"
     },
@@ -687,12 +697,14 @@ keys: {
       noBackups: "未找到备份",
       configureFirst: "请先配置 WebDAV",
       restoreSuccess: "恢复成功，请重启应用",
-      restoreFailed: "恢复失败，错误代码：${e}",
+      restoreFailed: "恢复失败，错误代码：{{error}}",
       backupSuccess: "备份成功",
-      backupFailed: "备份失败，错误代码：${e}",
-      loadHistoryFailed: "载入备份历史失败，错误代码：${e}",
+      backupFailed: "备份失败，错误代码：{{error}}",
+      loadHistoryFailed: "载入备份历史失败，错误代码：{{error}}",
       savefile: "保存为 .zip 文件",
       restorefile: "从 .zip 文件恢复",
+      exportFailed: "导出失败：{{error}}",
+
     },
     about: {
       version: "当前版本"

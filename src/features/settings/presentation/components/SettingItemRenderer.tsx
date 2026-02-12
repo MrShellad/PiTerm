@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 import { SettingItem } from "../../domain/types";
 import { useSettingsStore } from "../../application/useSettingsStore";
-import { useThemeSyncLogic } from "../../application/useThemeSyncLogic"; // 🟢 引入逻辑 Hook
+import { useThemeSyncLogic } from "../../application/useThemeSyncLogic"; // 引入逻辑 Hook
 
 // Sub Components
 import { BackgroundManager } from "./BackgroundManager";
@@ -14,9 +14,11 @@ import { BackupManager } from "./BackupManager";
 import { FontSelector } from "./FontSelector";
 import { ThemeManager } from "./ThemeManager"; 
 import { ProxyManager } from "./ProxyManager";
-import { SliderItemRenderer } from "./SliderItemRenderer"; // 🟢 拆分
-import { ImageItemRenderer } from "./ImageItemRenderer";   // 🟢 拆分
+import { SliderItemRenderer } from "./SliderItemRenderer"; 
+import { ImageItemRenderer } from "./ImageItemRenderer";   
 import { ShortcutInput } from "./ShortcutInput";
+import { HighlightManager } from "./HighlightManager";
+
 interface Props {
   item: SettingItem;
   value: any;
@@ -47,10 +49,9 @@ export const SettingItemRenderer = ({ item, value, onChange }: Props) => {
   // 2. 特殊组件分发
   if (item.type === 'proxy-manager') return <ProxyManager />;
   if (item.type === 'theme-manager') return <ThemeManager />;
-  if (item.type === 'highlight-manager') return null;
   if (item.type === 'background-manager') return <BackgroundManager />;
   if (item.type === 'backup-manager') return <BackupManager />;
-
+  if (item.type === 'highlight-manager') return <HighlightManager />;
   if (item.type === 'font-selector') {
       return (
         <div className={clsx(containerClass, "!items-start")}>

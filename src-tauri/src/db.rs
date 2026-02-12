@@ -189,5 +189,54 @@ sqlx::query(
     sqlx::query("CREATE INDEX IF NOT EXISTS idx_events_timeline ON command_events(server_id, executed_at DESC);")
         .execute(&pool).await.map_err(|e| e.to_string())?;
 
+    // 7.1 规则集合 (Profile)
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS highlight_rule_sets (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            description TEXT,
+            is_default BOOLEAN DEFAULT 0,
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL
+        );"
+    ).execute(&pool).await.map_err(|e| e.to_string())?;
+
+    // 7.2 样式定义 (Style)
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS highlight_styles (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            foreground TEXT,
+            background TEXT,
+            is_bold BOOLEAN DEFAULT 0,
+            is_italic BOOLEAN DEFAULT 0,
+            is_underline BOOLEAN DEFAULT 0,
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL
+        );"
+    ).execute(&pool).await.map_err(|e| e.to_string())?;
+
+    // 7.3 规则本体 (Rule)
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS highlight_rules (
+            id TEXT PRIMARY KEY,
+            set_id TEXT NOT NULL,
+            style_id TEXT NOT NULL,
+            pattern TEXT NOT NULL,
+            is_regex BOOLEAN DEFAULT 0,
+            is_case_sensitive BOOLEAN DEFAULT 0,
+            priority INTEGER DEFAULT 0,
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL,
+            FOREIGN KEY(set_id) REFERENCES highlight_rule_sets(id) ON DELETE CASCADE,
+            FOREIGN KEY(style_id) REFERENCES highlight_styles(id)
+        );"
+    ).execute(&pool).await.map_err(|e| e.to_string())?;
+
+    // 索引优化
+    sqlx::query("CREATE INDEX IF NOT EXISTS idx_highlight_rules_set_id ON highlight_rules(set_id);")
+        .execute(&pool).await.map_err(|e| e.to_string())?;
+    
+
     Ok(pool)
 }
