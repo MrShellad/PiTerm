@@ -1,0 +1,38 @@
+name: Build macOS ARM
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-macos-arm:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm install -g pnpm
+
+      # Rust
+      - uses: dtolnay/rust-toolchain@stable
+
+      # 安装 ARM target
+      - name: Add macOS ARM target
+        run: rustup target add aarch64-apple-darwin
+
+      # 安装依赖
+      - run: pnpm install
+
+      # 构建 ARM
+      - name: Build Tauri mac ARM
+        run: pnpm tauri build --target aarch64-apple-darwin
+
+      # 上传
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-arm-build
+          path: src-tauri/target/aarch64-apple-darwin/release/bundle/

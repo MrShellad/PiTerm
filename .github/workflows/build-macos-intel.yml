@@ -1,0 +1,36 @@
+name: Build macOS Intel
+
+on:
+  push:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    runs-on: macos-latest   # 默认就是 Intel runner
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm install -g pnpm
+
+      # Rust
+      - uses: dtolnay/rust-toolchain@stable
+
+      # 安装依赖
+      - run: pnpm install
+
+      # 构建 mac Intel（默认）
+      - name: Build Tauri mac Intel
+        run: pnpm tauri build
+
+      # 上传构建产物
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-intel-build
+          path: src-tauri/target/release/bundle/
