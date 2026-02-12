@@ -1,45 +1,38 @@
-name: Build macOS ARM (Unsigned)
+name: Build macOS ARM
 
 on:
   workflow_dispatch:
 
 jobs:
   build-macos-arm:
-    runs-on: macos-14 # 直接使用 M1/M2 实例，速度最快
+    runs-on: macos-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v2
-        with:
-          version: 8
-
+      # Node
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
 
+      - run: npm install -g pnpm
+
+      # Rust
       - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-apple-darwin
 
-      # 强烈建议保留缓存，Tauri 编译 Rust 真的很吃时间
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri -> target
+      # 安装 ARM target
+      - name: Add macOS ARM target
+        run: rustup target add aarch64-apple-darwin
 
-      - name: Install dependencies
-        run: pnpm install
+      # 安装依赖
+      - run: pnpm install
 
-      - name: Build Tauri
-        # 使用 --target 确保输出 aarch64 架构
+      # 构建 ARM
+      - name: Build Tauri mac ARM
         run: pnpm tauri build --target aarch64-apple-darwin
 
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+      # 上传
+      - uses: actions/upload-artifact@v4
         with:
-          name: macos-arm-bundle
-          # 这样写会包含 dmg 和 app，方便你自己选
-          path: |
-            src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
-            src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app
+          name: macos-arm-build
+          path: src-tauri/target/aarch64-apple-darwin/release/bundle/

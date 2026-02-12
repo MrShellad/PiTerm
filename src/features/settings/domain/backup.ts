@@ -27,7 +27,25 @@ export interface BackupState {
   // 数据
   backupList: CloudBackupFile[];
   selectedBackup: CloudBackupFile | null;
-  // 🟢 [新增] 本地操作状态
+  //[新增] 本地操作状态
   isExporting: boolean;
   isImporting: boolean;
+  //[新增] 进度条相关的状态
+  progressValue: number;
+  progressText: string;
+  isProgressVisible: boolean;
+  restorePreview: RestorePreview | null;
+}
+  //[新增] 对应后端的结构
+export interface BackupMetadata {
+  version: string;
+  deviceId: string;
+  deviceName: string;
+  timestamp: number;
+  platform: string;
+}
+
+export interface RestorePreview {
+  tempFilePath: string;
+  metadata?: BackupMetadata;
 }

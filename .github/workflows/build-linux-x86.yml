@@ -7,33 +7,28 @@ on:
 
 jobs:
   build-linux:
-    runs-on: ubuntu-22.04 # 保持 22.04 以获得更好的系统兼容性
+    runs-on: ubuntu-22.04
 
     steps:
+      # 1️⃣ 拉代码
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 使用官方 action 安装 pnpm，自带缓存支持
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
-
+      # 2️⃣ 安装 Node
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
 
+      # 3️⃣ 安装 pnpm（你在用 pnpm）
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      # 4️⃣ 安装 Rust
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      # 增加 Rust 缓存，Linux 下的编译速度提升最明显
-      - name: Rust Cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri -> target
-
+      # 5️⃣ 安装 Linux 构建依赖（Tauri 必须）
       - name: Install system dependencies
         run: |
           sudo apt update
@@ -42,21 +37,23 @@ jobs:
             libappindicator3-dev \
             librsvg2-dev \
             patchelf \
+            build-essential \
+            curl \
+            wget \
             libssl-dev \
-            libgtk-3-dev \
-            pkg-config
+            libgtk-3-dev
 
+      # 6️⃣ 安装前端依赖
       - name: Install frontend dependencies
         run: pnpm install
 
+      # 7️⃣ 构建 Tauri
       - name: Build Tauri app
         run: pnpm tauri build
 
+      # 8️⃣ 上传构建产物
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: tauri-linux-build
-          # 这样写可以同时拿到 .deb 和 .AppImage，并排除掉不需要的中间产物
-          path: |
-            src-tauri/target/release/bundle/deb/*.deb
-            src-tauri/target/release/bundle/appimage/*.AppImage
+          path: src-tauri/target/release/bundle/

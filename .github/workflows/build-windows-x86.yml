@@ -1,0 +1,44 @@
+name: Build Tauri Windows
+
+on:
+  push:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      # 1️⃣ 拉代码
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2️⃣ 安装 Node
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 3️⃣ 安装 pnpm
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      # 4️⃣ 安装 Rust
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      # 5️⃣ 安装前端依赖
+      - name: Install frontend dependencies
+        run: pnpm install
+
+      # 6️⃣ 构建 Tauri Windows
+      - name: Build Tauri app
+        run: pnpm tauri build
+
+      # 7️⃣ 上传构建产物
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: iTermX-windows-build
+          path: src-tauri/target/release/bundle/

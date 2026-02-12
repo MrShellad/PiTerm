@@ -2,7 +2,8 @@ pub mod commands;
 pub mod models;
 pub mod db;
 pub mod state;
-
+pub mod services;
+pub mod utils;
 // 🟢 [修改 1] 更新引用列表，确保包含所有需要的类型
 use tauri::{
     menu::{Menu, MenuEvent, MenuItem},
@@ -21,7 +22,8 @@ use tauri_plugin_autostart::MacosLauncher;
 // ================================
 use commands::fs::*;
 use commands::server::*;
-use commands::backup::*;
+use commands::backup::{
+    check_webdav, create_cloud_backup, get_backup_list, delete_cloud_backup, prepare_cloud_restore, apply_restore_file, export_local_backup, import_local_backup, save_webdav_password};
 // ================================
 // 引入 SSH 命令
 // ================================
@@ -228,7 +230,7 @@ pub fn run() {
             create_cloud_backup,
             get_backup_list,
             delete_cloud_backup,
-            restore_cloud_backup,
+            prepare_cloud_restore, apply_restore_file,
             export_local_backup,
             import_local_backup,
             // 历史记录相关命令

@@ -6,42 +6,31 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-macos-intel:
-    # 使用 macOS 14 (ARM) 来编译 Intel 版本，速度比 macos-13 快很多
-    runs-on: macos-14 
+  build-macos:
+    runs-on: macos-latest   # 默认就是 Intel runner
 
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v2
-        with:
-          version: 8
-
+      # Node
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
 
+      - run: npm install -g pnpm
+
+      # Rust
       - uses: dtolnay/rust-toolchain@stable
-        with:
-          # 必须显式添加 Intel 目标架构
-          targets: x86_64-apple-darwin
 
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri -> target
-
+      # 安装依赖
       - run: pnpm install
 
+      # 构建 mac Intel（默认）
       - name: Build Tauri mac Intel
-        # 必须显式指定 target 为 x86_64
-        run: pnpm tauri build --target x86_64-apple-darwin
+        run: pnpm tauri build
 
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+      # 上传构建产物
+      - uses: actions/upload-artifact@v4
         with:
           name: macos-intel-build
-          # 路径会因为指定了 target 而多出一层
-          path: |
-            src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
-            src-tauri/target/x86_64-apple-darwin/release/bundle/macos/*.app
+          path: src-tauri/target/release/bundle/
