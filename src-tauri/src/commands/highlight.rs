@@ -2,7 +2,7 @@
 use tauri::{State, command};
 use crate::state::AppState; // 🟢 引入你定义的 AppState
 use crate::services::highlight::HighlightService;
-use crate::models::highlight::{HighlightRuleSet, HighlightRule, HighlightStyle, CreateRuleDto,SaveStyleDto};
+use crate::models::highlight::{HighlightRuleSet, HighlightRule, HighlightStyle, CreateRuleDto,SaveStyleDto, HighlightAssignment};
 
 #[command]
 pub async fn get_highlight_sets(state: State<'_, AppState>) -> Result<Vec<HighlightRuleSet>, String> {
@@ -63,4 +63,24 @@ pub async fn reorder_highlight_rules(rule_ids: Vec<String>, state: State<'_, App
 #[tauri::command]
 pub async fn toggle_highlight_rule(state: State<'_, AppState>, id: String, enabled: bool) -> Result<(), String> {
     HighlightService::toggle_rule_enabled(&state.db, &id, enabled).await
+}
+
+#[tauri::command]
+pub async fn get_highlight_assignments(state: State<'_, AppState>) -> Result<Vec<HighlightAssignment>, String> {
+    HighlightService::get_assignments(&state.db).await
+}
+
+#[tauri::command]
+pub async fn assign_highlight_set(
+    state: State<'_, AppState>, 
+    target_id: String, 
+    target_type: String, 
+    set_id: String
+) -> Result<(), String> {
+    HighlightService::assign_set(&state.db, &target_id, &target_type, &set_id).await
+}
+
+#[tauri::command]
+pub async fn unassign_highlight_set(state: State<'_, AppState>, target_id: String) -> Result<(), String> {
+    HighlightService::unassign_set(&state.db, &target_id).await
 }

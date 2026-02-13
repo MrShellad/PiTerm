@@ -14,6 +14,7 @@ export type SettingItemType =
   | 'switch' | 'input' | 'select' | 'info' | 'button' 
   | 'theme-manager'     
   | 'highlight-manager'
+  | 'highlight-assigner'
   | 'proxy-manager' 
   | 'background-manager'
   | 'font-selector'
@@ -100,7 +101,11 @@ export interface HighlightStyle {
   createdAt?: number; // 新增
   updatedAt?: number; // 新增
 }
-
+export interface HighlightAssignment {
+  targetId: string;
+  targetType: 'global' | 'server';
+  setId: string;
+}
 export interface CustomTheme {
   id: string;
   name: string;

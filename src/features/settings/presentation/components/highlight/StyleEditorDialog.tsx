@@ -71,6 +71,7 @@ interface ColorPickerProps {
 }
 
 const ColorPickerInput = ({ label, value, onChange, placeholder }: ColorPickerProps) => {
+    const { t } = useTranslation(); // 🟢 引入本地化
     const solidColor = useMemo(() => getSolidHex(value) || "#000000", [value]);
     const alpha = useMemo(() => getAlphaFromHex(value), [value]);
 
@@ -138,7 +139,7 @@ const ColorPickerInput = ({ label, value, onChange, placeholder }: ColorPickerPr
                             {/* 2. 透明度滑块 */}
                             <div className="space-y-2">
                                 <div className="flex justify-between text-xs">
-                                    <span className="text-slate-500">Opacity</span>
+                                    <span className="text-slate-500">{t('settings.highlights.opacity', 'Opacity')}</span>
                                     <span className="font-mono">{alpha}%</span>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -160,7 +161,7 @@ const ColorPickerInput = ({ label, value, onChange, placeholder }: ColorPickerPr
                                 className="w-full h-7 text-xs border-dashed text-slate-500 hover:text-red-500"
                                 onClick={handleClear}
                             >
-                                Clear Color (Transparent)
+                                {t('settings.highlights.clearColor', 'Clear Color (Transparent)')}
                             </CustomButton>
                         </div>
                     </PopoverContent>
@@ -183,7 +184,7 @@ const ColorPickerInput = ({ label, value, onChange, placeholder }: ColorPickerPr
 // 主弹窗组件
 // ----------------------------------------------------------------------
 export const StyleEditorDialog = ({ open, onOpenChange, styleToEdit }: Props) => {
-    const { t } = useTranslation();
+    const { t } = useTranslation(); // 🟢 引入本地化
     const { saveStyle } = useSettingsStore();
     const [isLoading, setIsLoading] = useState(false);
 
@@ -236,12 +237,12 @@ export const StyleEditorDialog = ({ open, onOpenChange, styleToEdit }: Props) =>
                     color: foreground || 'inherit',
                     backgroundColor: background || 'transparent',
                 }} className="text-lg px-4 py-2 rounded transition-all font-mono">
-                    Preview Text 123
+                    {t('settings.highlights.previewText', 'Preview Text 123')}
                 </span>
             </div>
 
             <div className="absolute bottom-1 right-2 text-[9px] text-slate-400 opacity-50">
-                Live Preview
+                {t('settings.highlights.livePreview', 'Live Preview')}
             </div>
         </div>
     );
@@ -268,23 +269,23 @@ export const StyleEditorDialog = ({ open, onOpenChange, styleToEdit }: Props) =>
         >
             <div className="space-y-5 py-2">
                 <CustomInput 
-                    label="Style Name" 
+                    label={t('settings.highlights.styleName', 'Style Name')} 
                     value={name} 
                     onChange={e => setName(e.target.value)} 
-                    placeholder="e.g. Error Red"
+                    placeholder={t('settings.highlights.styleNamePlaceholder', 'e.g. Error Red')}
                     required
                 />
 
                 <div className="grid grid-cols-2 gap-5">
                     <ColorPickerInput 
-                        label="Foreground"
+                        label={t('settings.highlights.foreground', 'Foreground')}
                         value={foreground}
                         onChange={setForeground}
                         placeholder="#FFFFFF"
                     />
                     
                     <ColorPickerInput 
-                        label="Background"
+                        label={t('settings.highlights.background', 'Background')}
                         value={background}
                         onChange={setBackground}
                         placeholder="#00000080"

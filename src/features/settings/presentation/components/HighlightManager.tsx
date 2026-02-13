@@ -11,13 +11,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button"; 
 import { Switch } from "@/components/ui/switch";
 import { CustomButton } from "@/components/common/CustomButton";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog"; // 🟢 引入公共确认弹窗
 
 import { RuleEditorDialog } from "./highlight/RuleEditorDialog";
 import { StyleManagerDialog } from "./highlight/StyleManagerDialog";
 import { HighlightRule, HighlightRuleSet } from "../../domain/types";
 
 // =========================================================
-// SortableRuleItem：高对比度 & 标准排版优化版
+// SortableRuleItem：高对比度 & 标准排版 & 本地化
 // =========================================================
 interface SortableRuleItemProps {
   rule: HighlightRule;
@@ -26,9 +27,11 @@ interface SortableRuleItemProps {
 }
 
 const SortableRuleItem = ({ rule, onEdit, onDelete }: SortableRuleItemProps) => {
+  const { t } = useTranslation(); // 🟢 引入本地化
   const controls = useDragControls();
   const toggleRuleEnabled = useSettingsStore((s) => s.toggleRuleEnabled);
   const isChecked = rule.isEnabled ?? true;
+
   return (
     <Reorder.Item
       value={rule}
@@ -47,7 +50,7 @@ const SortableRuleItem = ({ rule, onEdit, onDelete }: SortableRuleItemProps) => 
         <GripVertical className="w-4 h-4" />
       </div>
 
-      {/* 2. 操作按钮组 (高对比度优化) */}
+      {/* 2. 操作按钮组 */}
       <div className="flex items-center gap-2 mr-5 flex-shrink-0">
         <div className="flex items-center justify-center">
           <Switch
@@ -57,7 +60,7 @@ const SortableRuleItem = ({ rule, onEdit, onDelete }: SortableRuleItemProps) => 
           />
         </div>
 
-        {/* 编辑按钮：明亮模式白底灰边，暗色模式深底亮边 */}
+        {/* 编辑按钮 */}
         <Button
           variant="ghost"
           size="icon"
@@ -67,7 +70,7 @@ const SortableRuleItem = ({ rule, onEdit, onDelete }: SortableRuleItemProps) => 
           <Edit2 className="w-3.5 h-3.5" />
         </Button>
 
-        {/* 删除按钮：明亮模式白底灰边，暗色模式深底亮边 */}
+        {/* 删除按钮 (将触发外层的弹窗) */}
         <Button
           variant="ghost"
           size="icon"
@@ -81,7 +84,7 @@ const SortableRuleItem = ({ rule, onEdit, onDelete }: SortableRuleItemProps) => 
       {/* 3. 内容展示区 */}
       <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5">
         
-        {/* 🟢 [优化] 描述字段：标准主色，非斜体，类似标题 */}
+        {/* 描述字段 */}
         {rule.description && (
           <div className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate leading-none">
             {rule.description}
@@ -89,19 +92,16 @@ const SortableRuleItem = ({ rule, onEdit, onDelete }: SortableRuleItemProps) => 
         )}
 
         <div className="flex items-center gap-3">
-          {/* 🟢 [优化] Pattern：暗色模式高对比度 (slate-950 背景 + slate-700 边框) */}
+          {/* Pattern */}
           <div
             className={clsx(
               "px-2.5 py-1 rounded text-xs font-mono truncate transition-colors",
-              "w-[200px]", // 固定宽度
-              // 明亮模式：浅灰背景 + 浅边框
+              "w-[200px]", 
               "bg-slate-50 border border-slate-200 text-slate-700",
-              // 暗色模式：深黑背景 (Input感) + 清晰边框
               "dark:bg-slate-950 dark:border-slate-700 dark:text-slate-300",
               !isChecked && "grayscale opacity-70"
             )}
             style={{
-              // 如果用户自定义了颜色，则覆盖默认文本色
               color: rule.style?.foreground || undefined,
               backgroundColor: rule.style?.background || undefined,
             }}
@@ -110,17 +110,16 @@ const SortableRuleItem = ({ rule, onEdit, onDelete }: SortableRuleItemProps) => 
             {rule.pattern}
           </div>
 
-          {/* 元数据标记：移除斜体 */}
+          {/* 元数据标记 */}
           <div className="hidden xl:flex gap-2 text-[12px] text-slate-400 items-center overflow-hidden opacity-70 group-hover:opacity-100 transition-opacity">
-            {rule.isRegex && <span className="flex-shrink-0 text-purple-600 dark:text-purple-400 font-bold font-mono">RE</span>}
-            {rule.isCaseSensitive && <span className="flex-shrink-0 text-amber-600 dark:text-amber-400 font-bold font-mono">Aa</span>}
+            {rule.isRegex && <span className="flex-shrink-0 text-purple-600 dark:text-purple-400 font-bold font-mono">{t('settings.highlights.regexShort', 'RE')}</span>}
+            {rule.isCaseSensitive && <span className="flex-shrink-0 text-amber-600 dark:text-amber-400 font-bold font-mono">{t('settings.highlights.caseShort', 'Aa')}</span>}
             
             {(rule.isRegex || rule.isCaseSensitive) && (
                  <span className="w-px h-3 bg-slate-300 dark:bg-slate-700 flex-shrink-0 mx-1" />
             )}
             
-            {/* 样式名称：标准字体，非斜体 */}
-            <span className="truncate font-medium">{rule.style?.name || 'Default Style'}</span>
+            <span className="truncate font-medium">{rule.style?.name || t('settings.highlights.defaultStyle', 'Default Style')}</span>
           </div>
         </div>
       </div>
@@ -150,9 +149,13 @@ export const HighlightManager = () => {
   const [newSetName, setNewSetName] = useState("");
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  
   const [isRuleDialogOpen, setIsRuleDialogOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<HighlightRule | null>(null);
   const [isStyleManagerOpen, setIsStyleManagerOpen] = useState(false);
+
+  // 🟢 删除确认状态：记录当前要删除的对象类型与 ID
+  const [itemToDelete, setItemToDelete] = useState<{ type: 'set' | 'rule', id: string } | null>(null);
 
   useEffect(() => {
     loadHighlightSets();
@@ -206,7 +209,7 @@ export const HighlightManager = () => {
       {/* 左侧 Profile 列表 */}
       <div className="w-[220px] border-r border-slate-200 dark:border-slate-800 flex flex-col bg-white/50 dark:bg-black/20">
         <div className="p-3 border-b border-slate-200/50 dark:border-slate-800/50 flex justify-between items-center">
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Profiles</span>
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('settings.highlights.profiles', 'Profiles')}</span>
           <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsCreatingSet(true)} disabled={!!renamingId}>
             <Plus className="w-3.5 h-3.5" />
           </Button>
@@ -220,7 +223,7 @@ export const HighlightManager = () => {
                   value={newSetName}
                   onChange={(e) => setNewSetName(e.target.value)}
                   className="h-7 text-xs px-2 border-none bg-transparent focus-visible:ring-0"
-                  placeholder="Name..."
+                  placeholder={t('common.namePlaceholder', 'Name...')}
                   autoFocus
                   onKeyDown={(e) => e.key === "Enter" && handleCreateSet()}
                 />
@@ -270,8 +273,17 @@ export const HighlightManager = () => {
 
                   <div className={clsx("flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity", isActive ? "text-blue-100" : "text-slate-400")}>
                     <button onClick={(e) => handleStartRename(e, set)} className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded"><Edit2 className="w-3 h-3" /></button>
+                    {/* 🟢 修改：点击删除时唤起弹窗 */}
                     {!set.isDefault && (
-                      <button onClick={(e) => { e.stopPropagation(); if (confirm("Delete profile?")) deleteHighlightSet(set.id); }} className="p-1 hover:bg-red-500/20 hover:text-red-500 rounded"><Trash2 className="w-3 h-3" /></button>
+                      <button 
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          setItemToDelete({ type: 'set', id: set.id }); 
+                        }} 
+                        className="p-1 hover:bg-red-500/20 hover:text-red-500 rounded"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
                     )}
                   </div>
                 </div>
@@ -286,18 +298,22 @@ export const HighlightManager = () => {
         <div className="h-[50px] px-4 border-b border-slate-200/50 dark:border-slate-800/50 flex justify-between items-center bg-white/40 dark:bg-white/5 backdrop-blur-sm">
           <div className="flex items-center gap-3">
             <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-              {highlightSets.find((s) => s.id === activeSetId)?.name || "Select a Profile"}
+              {highlightSets.find((s) => s.id === activeSetId)?.name || t('settings.highlights.selectProfile', 'Select a Profile')}
             </span>
             {activeSetId && (
               <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-mono">
-                {currentSetRules.length} rules
+                {currentSetRules.length} {t('settings.highlights.rulesCount', 'rules')}
               </Badge>
             )}
           </div>
           {activeSetId && (
             <div className="flex items-center gap-2">
-              <CustomButton size="sm" variant="outline" className="h-7 text-xs gap-1.5 bg-transparent border-slate-200/60 dark:border-slate-700/60" onClick={() => setIsStyleManagerOpen(true)} icon={Palette}>Styles</CustomButton>
-              <CustomButton size="sm" className="h-7 text-xs bg-blue-600 hover:bg-blue-700 text-white gap-1.5 shadow-sm" onClick={handleOpenAdd} icon={Plus}>Add Rule</CustomButton>
+              <CustomButton size="sm" variant="outline" className="h-7 text-xs gap-1.5 bg-transparent border-slate-200/60 dark:border-slate-700/60" onClick={() => setIsStyleManagerOpen(true)} icon={Palette}>
+                {t('settings.highlights.styles', 'Styles')}
+              </CustomButton>
+              <CustomButton size="sm" className="h-7 text-xs bg-blue-600 hover:bg-blue-700 text-white gap-1.5 shadow-sm" onClick={handleOpenAdd} icon={Plus}>
+                {t('settings.highlights.addRule', 'Add Rule')}
+              </CustomButton>
             </div>
           )}
         </div>
@@ -306,12 +322,12 @@ export const HighlightManager = () => {
           {!activeSetId ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 gap-3">
               <div className="p-4 rounded-full bg-slate-100 dark:bg-white/5"><Highlighter className="w-8 h-8 opacity-40" /></div>
-              <p className="text-sm">Select or create a profile to manage rules</p>
+              <p className="text-sm">{t('settings.highlights.selectOrCreateProfile', 'Select or create a profile to manage rules')}</p>
             </div>
           ) : currentSetRules.length === 0 ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 gap-2">
               <Search className="w-6 h-6 opacity-30" />
-              <span className="text-xs">No highlight rules found</span>
+              <span className="text-xs">{t('settings.highlights.noRulesFound', 'No highlight rules found')}</span>
             </div>
           ) : (
             <ScrollArea className="h-full">
@@ -326,7 +342,8 @@ export const HighlightManager = () => {
                     key={rule.id}
                     rule={rule}
                     onEdit={handleOpenEdit}
-                    onDelete={deleteRule}
+                    // 🟢 修改：传给子组件的删除方法，改为打开弹窗
+                    onDelete={(id) => setItemToDelete({ type: 'rule', id })}
                   />
                 ))}
               </Reorder.Group>
@@ -334,6 +351,40 @@ export const HighlightManager = () => {
           )}
         </div>
       </div>
+
+      {/* 🟢 删除 Profile 确认弹窗 */}
+      <ConfirmDialog
+        open={itemToDelete?.type === 'set'}
+        onOpenChange={(open) => !open && setItemToDelete(null)}
+        title={t('settings.highlights.deleteProfileTitle', 'Delete Profile')}
+        description={t('settings.highlights.deleteProfileDesc', 'Are you sure you want to delete this profile? All rules inside will be removed.')}
+        cancelText={t('common.cancel', 'Cancel')}
+        confirmText={t('common.delete', 'Delete')}
+        variant="destructive"
+        onConfirm={async () => {
+          if (itemToDelete?.id) {
+            await deleteHighlightSet(itemToDelete.id);
+          }
+          setItemToDelete(null);
+        }}
+      />
+
+      {/* 🟢 删除 Rule 确认弹窗 */}
+      <ConfirmDialog
+        open={itemToDelete?.type === 'rule'}
+        onOpenChange={(open) => !open && setItemToDelete(null)}
+        title={t('settings.highlights.deleteRuleTitle', 'Delete Rule')}
+        description={t('settings.highlights.deleteRuleDesc', 'Are you sure you want to delete this rule?')}
+        cancelText={t('common.cancel', 'Cancel')}
+        confirmText={t('common.delete', 'Delete')}
+        variant="destructive"
+        onConfirm={async () => {
+          if (itemToDelete?.id) {
+            await deleteRule(itemToDelete.id);
+          }
+          setItemToDelete(null);
+        }}
+      />
 
       {activeSetId && (
         <RuleEditorDialog

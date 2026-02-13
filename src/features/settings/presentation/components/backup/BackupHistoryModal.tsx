@@ -72,9 +72,8 @@ export const BackupHistoryModal = ({
             onClose={onClose}
             title={t('settings.backup.historyTitle', 'Cloud Backup History')}
             icon={<History className="w-5 h-5 text-amber-500" />}
-            className="max-w-md h-[550px]"
+            className="max-w-md h-[550px] z-[45]"
             // 确保层级低于 ConfirmDialog
-            zIndex={45} 
             footer={
                 <Button variant="outline" size="sm" onClick={onClose}>
                     {t('common.close', 'Close')}

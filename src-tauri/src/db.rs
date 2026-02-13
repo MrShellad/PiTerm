@@ -239,6 +239,15 @@ sqlx::query(
     sqlx::query("CREATE INDEX IF NOT EXISTS idx_highlight_rules_set_id ON highlight_rules(set_id);")
         .execute(&pool).await.map_err(|e| e.to_string())?;
     
-
+    sqlx::query(
+    "CREATE TABLE IF NOT EXISTS highlight_assignments (
+        target_id TEXT PRIMARY KEY, -- 'global' 或者 proxy 的 UUID
+        target_type TEXT NOT NULL,  -- 'global' 或 'proxy'
+        set_id TEXT NOT NULL,       -- 绑定的规则集 ID
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY(set_id) REFERENCES highlight_rule_sets(id) ON DELETE CASCADE
+    );"
+).execute(&pool).await.map_err(|e| e.to_string())?;
+    
     Ok(pool)
 }

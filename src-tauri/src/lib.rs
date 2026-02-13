@@ -58,6 +58,9 @@ use commands::highlight::{
     delete_highlight_set,
     reorder_highlight_rules,
     toggle_highlight_rule,
+    get_highlight_assignments,
+    assign_highlight_set,
+    unassign_highlight_set,
 };
 // ==============================================================================
 // 🟢 [修改 2] 定义窗口配置状态
@@ -269,7 +272,9 @@ pub fn run() {
                 delete_highlight_set,
                 reorder_highlight_rules,
                 toggle_highlight_rule,
-
+                get_highlight_assignments,
+                assign_highlight_set,
+                unassign_highlight_set,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

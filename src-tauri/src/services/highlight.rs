@@ -2,7 +2,7 @@
 use sqlx::{Pool, Sqlite};
 use uuid::Uuid;
 use std::time::{SystemTime, UNIX_EPOCH};
-use crate::models::highlight::{HighlightRule, HighlightRuleSet, HighlightStyle, CreateRuleDto, SaveStyleDto};
+use crate::models::highlight::{HighlightRule, HighlightRuleSet, HighlightStyle, CreateRuleDto, SaveStyleDto, HighlightAssignment};
 
 pub struct HighlightService;
 
@@ -221,6 +221,53 @@ impl HighlightService {
             .await
             .map_err(|e| e.to_string())?;
             
+        Ok(())
+    }
+
+    //[新增 1] 获取所有分配记录
+    pub async fn get_assignments(pool: &sqlx::Pool<sqlx::Sqlite>) -> Result<Vec<HighlightAssignment>, String> {
+        let assignments = sqlx::query_as::<_, HighlightAssignment>(
+            "SELECT * FROM highlight_assignments"
+        )
+        .fetch_all(pool)
+        .await
+        .map_err(|e| e.to_string())?;
+        
+        Ok(assignments)
+    }
+
+    //[新增 2] 为目标分配规则集 (使用 INSERT OR REPLACE 确保一个 target 只有一条记录)
+    pub async fn assign_set(
+        pool: &sqlx::Pool<sqlx::Sqlite>, 
+        target_id: &str, 
+        target_type: &str, 
+        set_id: &str
+    ) -> Result<(), String> {
+        let now = chrono::Utc::now().timestamp_millis();
+        
+        sqlx::query(
+            "INSERT OR REPLACE INTO highlight_assignments (target_id, target_type, set_id, created_at) 
+             VALUES (?, ?, ?, ?)"
+        )
+        .bind(target_id)
+        .bind(target_type)
+        .bind(set_id)
+        .bind(now)
+        .execute(pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+        Ok(())
+    }
+
+    //[新增 3] 取消目标的规则集分配
+    pub async fn unassign_set(pool: &sqlx::Pool<sqlx::Sqlite>, target_id: &str) -> Result<(), String> {
+        sqlx::query("DELETE FROM highlight_assignments WHERE target_id = ?")
+            .bind(target_id)
+            .execute(pool)
+            .await
+            .map_err(|e| e.to_string())?;
+
         Ok(())
     }
 }

@@ -18,7 +18,7 @@ import { SliderItemRenderer } from "./SliderItemRenderer";
 import { ImageItemRenderer } from "./ImageItemRenderer";   
 import { ShortcutInput } from "./ShortcutInput";
 import { HighlightManager } from "./HighlightManager";
-
+import { HighlightAssigner } from "./highlight/HighlightAssigner";
 interface Props {
   item: SettingItem;
   value: any;
@@ -52,6 +52,7 @@ export const SettingItemRenderer = ({ item, value, onChange }: Props) => {
   if (item.type === 'background-manager') return <BackgroundManager />;
   if (item.type === 'backup-manager') return <BackupManager />;
   if (item.type === 'highlight-manager') return <HighlightManager />;
+  if (item.type === 'highlight-assigner') return <HighlightAssigner />;
   if (item.type === 'font-selector') {
       return (
         <div className={clsx(containerClass, "!items-start")}>

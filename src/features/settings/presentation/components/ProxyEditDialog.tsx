@@ -138,8 +138,7 @@ export const ProxyEditDialog = ({ isOpen, onClose, onSave, initialData }: Props)
       onClose={onClose}
       title={initialData ? t('settings.proxy.edit', 'Edit Proxy') : t('settings.proxy.add', 'Add Proxy')}
       icon={<Network className="w-5 h-5" />} 
-      className="max-w-md" 
-      zIndex={200}
+      className="max-w-md z-[200]" 
     >
       <div className="space-y-5">
         <div className="space-y-4">

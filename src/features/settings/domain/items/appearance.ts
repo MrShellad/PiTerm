@@ -85,12 +85,5 @@ export const appearanceItems: SettingItem[] = [
     type: 'theme-manager',
     labelKey: 'settings.appearance.manageThemes',
     descKey: 'settings.appearance.manageThemesDesc',
-  },
-  {
-    id: 'appearance.highlightManager',
-    categoryId: 'appearance',
-    type: 'highlight-manager',
-    labelKey: 'settings.appearance.highlightRules',
-    descKey: 'settings.appearance.highlightRulesDesc',
-  },
+  }
 ];

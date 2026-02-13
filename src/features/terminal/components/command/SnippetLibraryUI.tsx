@@ -80,8 +80,7 @@ export const SnippetLibraryUI = (props: SnippetLibraryUIProps) => {
       title={t('cmd.library', 'Command Library')}
       icon={<TerminalSquare className="w-5 h-5" />}
       // 🟢 [调整 1] 宽度进一步收窄: max-w-xl (约 576px)
-      className="max-w-xl h-[600px]"
-      zIndex={1000}
+      className="max-w-xl h-[600px] z-[1000]"
       footer={
         <div className="w-full flex justify-between items-center text-xs text-slate-400">
             <span>

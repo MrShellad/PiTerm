@@ -52,7 +52,7 @@ export const SettingsContent = () => {
       <div className={clsx(
           "px-8 shrink-0 z-10 bg-transparent transition-all duration-300",
           showPreviewGlobal && !searchQuery ? "block" : "hidden",
-          isPreviewExpanded ? "pb-8" : "pb-4"
+          isPreviewExpanded ? "pb-1" : "pb-4"
       )}>
           <button 
              onClick={() => setIsPreviewExpanded(!isPreviewExpanded)}
@@ -118,7 +118,7 @@ export const SettingsContent = () => {
                             isActive ? "block z-10" : "hidden z-0"
                         )}
                     >
-                        <div className="max-w-3xl mx-auto space-y-1 pb-10">
+                        <div className="max-w-5xl mx-auto space-y-1 pb-10">
                             {categoryItems.map((item) => (
                                 <SettingItemRenderer
                                     key={item.id}

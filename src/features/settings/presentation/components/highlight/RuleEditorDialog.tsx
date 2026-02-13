@@ -5,10 +5,10 @@ import { BaseModal } from "@/components/common/BaseModal";
 import { CustomInput } from "@/components/common/CustomInput";
 import { CustomButton } from "@/components/common/CustomButton";
 
-// 保留 Select 和 Checkbox
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+// 🟢 移除了原有的 Select 组件，引入统一的 CustomSelect
+import { CustomSelect } from "@/components/common/CustomSelect";
 
 import { useSettingsStore } from "../../../application/useSettingsStore";
 import { HighlightRule } from "../../../domain/types";
@@ -27,7 +27,7 @@ export const RuleEditorDialog = ({ open, onOpenChange, setId, ruleToEdit, onSave
 
     // 表单状态
     const [pattern, setPattern] = useState("");
-    const [description, setDescription] = useState(""); // 🟢 [新增]
+    const [description, setDescription] = useState(""); 
     const [isRegex, setIsRegex] = useState(false);
     const [isCaseSensitive, setIsCaseSensitive] = useState(false);
     const [priority, setPriority] = useState(0);
@@ -44,14 +44,14 @@ export const RuleEditorDialog = ({ open, onOpenChange, setId, ruleToEdit, onSave
         if (open) {
             if (ruleToEdit) {
                 setPattern(ruleToEdit.pattern);
-                setDescription(ruleToEdit.description || ""); // 🟢 [新增] 初始化描述
+                setDescription(ruleToEdit.description || ""); 
                 setIsRegex(ruleToEdit.isRegex);
                 setIsCaseSensitive(ruleToEdit.isCaseSensitive);
                 setPriority(ruleToEdit.priority);
                 setStyleId(ruleToEdit.styleId);
             } else {
                 setPattern("");
-                setDescription(""); // 🟢 [新增] 重置描述
+                setDescription(""); 
                 setIsRegex(false);
                 setIsCaseSensitive(false);
                 setPriority(0);
@@ -67,7 +67,7 @@ export const RuleEditorDialog = ({ open, onOpenChange, setId, ruleToEdit, onSave
         setIsLoading(true);
 
         try {
-            // 1. 编辑模式先删除旧规则 (如果后端支持 update 可以优化这里)
+            // 1. 编辑模式先删除旧规则 
             if (ruleToEdit) {
                 await deleteRule(ruleToEdit.id);
             }
@@ -77,7 +77,7 @@ export const RuleEditorDialog = ({ open, onOpenChange, setId, ruleToEdit, onSave
                 setId: setId,
                 styleId: styleId,
                 pattern: pattern,
-                description: description, // 🟢 [新增] 提交描述
+                description: description, 
                 isRegex: isRegex,
                 isCaseSensitive: isCaseSensitive,
                 priority: priority
@@ -91,6 +91,19 @@ export const RuleEditorDialog = ({ open, onOpenChange, setId, ruleToEdit, onSave
             setIsLoading(false);
         }
     };
+
+    // 🟢 将 savedStyles 转换为 CustomSelect 需要的 options 格式
+    const styleOptions = savedStyles.map(style => ({
+        label: style.name,
+        value: style.id,
+        // 将颜色小圆点作为 icon 传入
+        icon: (
+            <div 
+                className="w-3 h-3 rounded-full border border-black/10 dark:border-white/10 shadow-sm" 
+                style={{ background: style.foreground || 'currentColor' }} 
+            />
+        )
+    }));
 
     // 构建 Footer 按钮组
     const footerContent = (
@@ -124,51 +137,41 @@ export const RuleEditorDialog = ({ open, onOpenChange, setId, ruleToEdit, onSave
             <div className="grid gap-5 py-1">
                 {/* Pattern 输入 */}
                 <CustomInput 
-                    label="Pattern (Keyword or Regex)"
+                    label={t('settings.highlights.patternLabel', 'Pattern (Keyword or Regex)')}
                     value={pattern} 
                     onChange={(e) => setPattern(e.target.value)} 
-                    placeholder="e.g. error, \d{3}, user@host"
+                    placeholder={t('settings.highlights.patternPlaceholder', 'e.g. error, \\d{3}, user@host')}
                     className="font-mono text-sm"
                     startIcon={<Highlighter className="w-4 h-4" />}
                 />
 
-                {/* 🟢 [新增] Description 输入 */}
+                {/* Description 输入 */}
                 <CustomInput 
-                    label="Description (Optional)"
+                    label={t('settings.highlights.descriptionLabel', 'Description (Optional)')}
                     value={description} 
                     onChange={(e) => setDescription(e.target.value)} 
-                    placeholder="e.g. Highlight critical errors"
+                    placeholder={t('settings.highlights.descriptionPlaceholder', 'e.g. Highlight critical errors')}
                     startIcon={<FileText className="w-4 h-4" />}
                 />
 
                 {/* Style Selection */}
                 <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Style</Label>
-                    <Select value={styleId} onValueChange={setStyleId}>
-                        <SelectTrigger className="w-full backdrop-blur-xl bg-white/60 dark:bg-slate-950/40 border-slate-200/80 dark:border-slate-800/80">
-                            <SelectValue placeholder="Select a style" />
-                        </SelectTrigger>
-                        
-                        <SelectContent className="z-[200]">
-                            {savedStyles.length === 0 ? (
-                                <div className="p-2 text-xs text-slate-400 text-center">No styles available</div>
-                            ) : (
-                                savedStyles.map(style => (
-                                    <SelectItem key={style.id} value={style.id}>
-                                        <div className="flex items-center gap-2">
-                                            <div 
-                                                className="w-3 h-3 rounded-full border border-black/10 dark:border-white/10 shadow-sm" 
-                                                style={{ background: style.foreground || 'currentColor' }} 
-                                            />
-                                            <span className="font-medium">{style.name}</span>
-                                        </div>
-                                    </SelectItem>
-                                ))
-                            )}
-                        </SelectContent>
-                    </Select>
+                    <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        {t('settings.highlights.styleLabel', 'Style')}
+                    </Label>
+                    
+                    {/* 🟢 使用 CustomSelect 替换原生 Select */}
+                    <CustomSelect
+                        value={styleId}
+                        onChange={(val) => setStyleId(String(val))}
+                        options={styleOptions}
+                        placeholder={t('settings.highlights.selectStylePlaceholder', 'Select a style')}
+                    />
+
                     {savedStyles.length === 0 && (
-                        <p className="text-[10px] text-red-500">Please create styles in the database first.</p>
+                        <p className="text-[10px] text-red-500">
+                            {t('settings.highlights.createStylesFirst', 'Please create styles in the database first.')}
+                        </p>
                     )}
                 </div>
 
@@ -176,22 +179,26 @@ export const RuleEditorDialog = ({ open, onOpenChange, setId, ruleToEdit, onSave
                 <div className="flex flex-col gap-3 border border-slate-200/60 dark:border-slate-800/60 rounded-lg p-3 bg-slate-50/50 dark:bg-slate-900/30">
                     <div className="flex items-center space-x-2">
                         <Checkbox id="regex" checked={isRegex} onCheckedChange={(v) => setIsRegex(!!v)} />
-                        <Label htmlFor="regex" className="font-normal cursor-pointer text-sm select-none">Regular Expression</Label>
+                        <Label htmlFor="regex" className="font-normal cursor-pointer text-sm select-none">
+                            {t('settings.highlights.regularExpression', 'Regular Expression')}
+                        </Label>
                     </div>
                     <div className="flex items-center space-x-2">
                         <Checkbox id="case" checked={isCaseSensitive} onCheckedChange={(v) => setIsCaseSensitive(!!v)} />
-                        <Label htmlFor="case" className="font-normal cursor-pointer text-sm select-none">Case Sensitive</Label>
+                        <Label htmlFor="case" className="font-normal cursor-pointer text-sm select-none">
+                            {t('settings.highlights.caseSensitive', 'Case Sensitive')}
+                        </Label>
                     </div>
                 </div>
 
                 {/* Priority */}
                 <CustomInput 
-                    label="Priority"
+                    label={t('settings.highlights.priorityLabel', 'Priority')}
                     type="number" 
                     value={priority} 
                     onChange={(e) => setPriority(Number(e.target.value))} 
                     className="font-mono text-sm"
-                    description="Higher numbers match first."
+                    description={t('settings.highlights.priorityDescription', 'Higher numbers match first.')}
                 />
             </div>
         </BaseModal>

@@ -64,3 +64,13 @@ pub struct SaveStyleDto {
     pub foreground: Option<String>,
     pub background: Option<String>,
 }
+
+//[新增] 规则集分配的数据模型
+#[derive(Debug, Serialize, Deserialize, FromRow, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct HighlightAssignment {
+    pub target_id: String,
+    pub target_type: String,
+    pub set_id: String,
+    pub created_at: i64,
+}
