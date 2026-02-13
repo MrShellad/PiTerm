@@ -11,14 +11,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button"; 
 import { Switch } from "@/components/ui/switch";
 import { CustomButton } from "@/components/common/CustomButton";
-import { ConfirmDialog } from "@/components/common/ConfirmDialog"; // 🟢 引入公共确认弹窗
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 
 import { RuleEditorDialog } from "./highlight/RuleEditorDialog";
 import { StyleManagerDialog } from "./highlight/StyleManagerDialog";
 import { HighlightRule, HighlightRuleSet } from "../../domain/types";
 
 // =========================================================
-// SortableRuleItem：高对比度 & 标准排版 & 本地化
+// SortableRuleItem：优化排版，描述优先
 // =========================================================
 interface SortableRuleItemProps {
   rule: HighlightRule;
@@ -27,7 +27,7 @@ interface SortableRuleItemProps {
 }
 
 const SortableRuleItem = ({ rule, onEdit, onDelete }: SortableRuleItemProps) => {
-  const { t } = useTranslation(); // 🟢 引入本地化
+  const { t } = useTranslation();
   const controls = useDragControls();
   const toggleRuleEnabled = useSettingsStore((s) => s.toggleRuleEnabled);
   const isChecked = rule.isEnabled ?? true;
@@ -52,51 +52,45 @@ const SortableRuleItem = ({ rule, onEdit, onDelete }: SortableRuleItemProps) => 
 
       {/* 2. 操作按钮组 */}
       <div className="flex items-center gap-2 mr-5 flex-shrink-0">
-        <div className="flex items-center justify-center">
-          <Switch
-            checked={isChecked}
-            onCheckedChange={(checked) => toggleRuleEnabled(rule.id, checked)}
-            className="scale-75 origin-left"
-          />
-        </div>
+        <Switch
+          checked={isChecked}
+          onCheckedChange={(checked) => toggleRuleEnabled(rule.id, checked)}
+          className="scale-75 origin-left"
+        />
 
-        {/* 编辑按钮 */}
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 dark:hover:border-blue-800 transition-all shadow-sm"
+          className="h-7 w-7 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-blue-600 hover:border-blue-300 transition-all shadow-sm"
           onClick={() => onEdit(rule)}
         >
           <Edit2 className="w-3.5 h-3.5" />
         </Button>
 
-        {/* 删除按钮 (将触发外层的弹窗) */}
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-red-600 hover:border-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 dark:hover:border-red-800 transition-all shadow-sm"
+          className="h-7 w-7 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-red-600 hover:border-red-300 transition-all shadow-sm"
           onClick={() => onDelete(rule.id)}
         >
           <Trash2 className="w-3.5 h-3.5" />
         </Button>
       </div>
 
-      {/* 3. 内容展示区 */}
+      {/* 3. 内容展示区 - 描述优先策略 */}
       <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5">
         
-        {/* 描述字段 */}
-        {rule.description && (
-          <div className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate leading-none">
-            {rule.description}
-          </div>
-        )}
+        {/* 🟢 主标题：显示描述，若无描述则显示回退文本 */}
+        <div className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate leading-none">
+          {rule.description || t('settings.highlights.unnamedRule', 'Unnamed Rule')}
+        </div>
 
         <div className="flex items-center gap-3">
-          {/* Pattern */}
+          {/* Pattern 预览标签 - 限制最大宽度防止溢出 */}
           <div
             className={clsx(
-              "px-2.5 py-1 rounded text-xs font-mono truncate transition-colors",
-              "w-[200px]", 
+              "px-2.5 py-0.5 rounded text-[11px] font-mono truncate transition-colors",
+              "max-w-[250px]", 
               "bg-slate-50 border border-slate-200 text-slate-700",
               "dark:bg-slate-950 dark:border-slate-700 dark:text-slate-300",
               !isChecked && "grayscale opacity-70"
@@ -111,7 +105,7 @@ const SortableRuleItem = ({ rule, onEdit, onDelete }: SortableRuleItemProps) => 
           </div>
 
           {/* 元数据标记 */}
-          <div className="hidden xl:flex gap-2 text-[12px] text-slate-400 items-center overflow-hidden opacity-70 group-hover:opacity-100 transition-opacity">
+          <div className="hidden xl:flex gap-2 text-[11px] text-slate-400 items-center overflow-hidden opacity-70 group-hover:opacity-100 transition-opacity">
             {rule.isRegex && <span className="flex-shrink-0 text-purple-600 dark:text-purple-400 font-bold font-mono">{t('settings.highlights.regexShort', 'RE')}</span>}
             {rule.isCaseSensitive && <span className="flex-shrink-0 text-amber-600 dark:text-amber-400 font-bold font-mono">{t('settings.highlights.caseShort', 'Aa')}</span>}
             
@@ -119,7 +113,11 @@ const SortableRuleItem = ({ rule, onEdit, onDelete }: SortableRuleItemProps) => 
                  <span className="w-px h-3 bg-slate-300 dark:bg-slate-700 flex-shrink-0 mx-1" />
             )}
             
-            <span className="truncate font-medium">{rule.style?.name || t('settings.highlights.defaultStyle', 'Default Style')}</span>
+            {/* 样式名称作为辅助信息显示 */}
+            <span className="truncate font-medium flex items-center gap-1.5">
+               <Palette className="w-3 h-3" />
+               {rule.style?.name || t('settings.highlights.defaultStyle', 'Default Style')}
+            </span>
           </div>
         </div>
       </div>
@@ -154,7 +152,7 @@ export const HighlightManager = () => {
   const [editingRule, setEditingRule] = useState<HighlightRule | null>(null);
   const [isStyleManagerOpen, setIsStyleManagerOpen] = useState(false);
 
-  // 🟢 删除确认状态：记录当前要删除的对象类型与 ID
+  // 删除确认状态
   const [itemToDelete, setItemToDelete] = useState<{ type: 'set' | 'rule', id: string } | null>(null);
 
   useEffect(() => {
@@ -273,7 +271,6 @@ export const HighlightManager = () => {
 
                   <div className={clsx("flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity", isActive ? "text-blue-100" : "text-slate-400")}>
                     <button onClick={(e) => handleStartRename(e, set)} className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded"><Edit2 className="w-3 h-3" /></button>
-                    {/* 🟢 修改：点击删除时唤起弹窗 */}
                     {!set.isDefault && (
                       <button 
                         onClick={(e) => { 
@@ -342,7 +339,6 @@ export const HighlightManager = () => {
                     key={rule.id}
                     rule={rule}
                     onEdit={handleOpenEdit}
-                    // 🟢 修改：传给子组件的删除方法，改为打开弹窗
                     onDelete={(id) => setItemToDelete({ type: 'rule', id })}
                   />
                 ))}
@@ -352,7 +348,7 @@ export const HighlightManager = () => {
         </div>
       </div>
 
-      {/* 🟢 删除 Profile 确认弹窗 */}
+      {/* 删除 Profile 确认弹窗 */}
       <ConfirmDialog
         open={itemToDelete?.type === 'set'}
         onOpenChange={(open) => !open && setItemToDelete(null)}
@@ -369,7 +365,7 @@ export const HighlightManager = () => {
         }}
       />
 
-      {/* 🟢 删除 Rule 确认弹窗 */}
+      {/* 删除 Rule 确认弹窗 */}
       <ConfirmDialog
         open={itemToDelete?.type === 'rule'}
         onOpenChange={(open) => !open && setItemToDelete(null)}

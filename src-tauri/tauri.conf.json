@@ -10,7 +10,7 @@
     "frontendDist": "../dist"
   },
   "app": {
-    "withGlobalTauri": true,
+    "withGlobalTauri": false,
     "windows": [
       {
         "title": "PiTerm",
@@ -21,7 +21,7 @@
         "decorations": false,  
         "transparent": true,   
         "resizable": true,
-        "devtools": true
+        "devtools": false
       }
     ],
     "security": {
