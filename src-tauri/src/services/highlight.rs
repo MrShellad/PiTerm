@@ -157,28 +157,34 @@ impl HighlightService {
     }
 
     pub async fn create_rule(pool: &Pool<Sqlite>, dto: CreateRuleDto) -> Result<String, String> {
-        let id = Uuid::new_v4().to_string();
-        let now = Self::now();
+    let id = Uuid::new_v4().to_string();
+    let now = Self::now();
 
-        sqlx::query(
-            "INSERT INTO highlight_rules (id, set_id, style_id, pattern, is_regex, is_case_sensitive, priority, created_at, updated_at) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-        )
-        .bind(&id)
-        .bind(dto.set_id)
-        .bind(dto.style_id)
-        .bind(dto.pattern)
-        .bind(dto.is_regex)
-        .bind(dto.is_case_sensitive)
-        .bind(dto.priority)
-        .bind(now)
-        .bind(now)
-        .execute(pool)
-        .await
-        .map_err(|e| e.to_string())?;
+    sqlx::query(
+        "INSERT INTO highlight_rules (
+            id, set_id, style_id, pattern, description, 
+            is_regex, is_case_sensitive, is_enabled, -- 🟢 确保包含 is_enabled
+            priority, created_at, updated_at
+        ) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    )
+    .bind(&id)
+    .bind(dto.set_id)
+    .bind(dto.style_id)
+    .bind(dto.pattern)
+    .bind(dto.description)
+    .bind(dto.is_regex)
+    .bind(dto.is_case_sensitive)
+    .bind(true) // 🟢 新规则默认启用
+    .bind(dto.priority)
+    .bind(now)
+    .bind(now)
+    .execute(pool)
+    .await
+    .map_err(|e| e.to_string())?;
 
-        Ok(id)
-    }
+    Ok(id)
+}
 
     pub async fn delete_rule(pool: &Pool<Sqlite>, id: &str) -> Result<(), String> {
         sqlx::query("DELETE FROM highlight_rules WHERE id = ?")

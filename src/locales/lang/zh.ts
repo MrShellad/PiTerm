@@ -38,6 +38,7 @@ export const zh = {
       password: "密码",
       default: "默认",
       unlock: "解锁",
+      unbind: "解绑",
       menu: "菜单",
       search: "搜索",
       filters: "筛选",
@@ -689,7 +690,13 @@ keys: {
       "styleName": "样式名称",
       "styleNamePlaceholder": "例如：错误红色",
       "foreground": "前景色",
-      "background": "背景色"
+      "background": "背景色",
+      "assignments": "规则集分配",
+      "globalTarget": "全局（所有服务器）",
+      "noAssignments": "尚未分配任何规则集。全局流量将使用默认样式。",
+      "selectTarget": "选择服务器 / 全局",
+      "unbindTitle": "移除分配",
+      "unbindDesc": "确定要取消绑定该规则集吗？"
     },
     security: {
       idleTimeout: "空闲自动锁定",
