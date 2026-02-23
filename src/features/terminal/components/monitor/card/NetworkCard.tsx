@@ -22,8 +22,8 @@ const IpItem = ({ ip, label }: { ip: string; label: string }) => {
       onClick={handleCopy}
       className="flex items-center justify-between group cursor-pointer hover:bg-slate-200/50 dark:hover:bg-white/5 p-1 px-1.5 rounded transition-colors"
     >
-      {/* 🟢 [优化] text-[10px] -> text-[11px] */}
-      <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">{label}: {ip}</span>
+      {/* 🟢 [优化] text-[10px] -> text-xs */}
+      <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}: {ip}</span>
       {copied ? (
         <Check className="w-3 h-3 text-green-500" />
       ) : (
@@ -57,13 +57,13 @@ export const NetworkCard = ({ id, data, isExpanded, onToggle, icon, color = "ora
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1 text-emerald-500 dark:text-emerald-400">
             <ArrowDown className="w-4 h-4 shrink-0 stroke-[2.5]" />
-            <span className="text-xl font-semibold tracking-tighter tabular-nums">
+            <span className="text-base font-semibold tracking-tighter tabular-nums">
               {netData ? formatBytes(netData.rxSpeed) : "0 B"}/s
             </span>
           </div>
           <div className="flex items-center gap-1 text-blue-500 dark:text-blue-400">
             <ArrowUp className="w-4 h-4 shrink-0 stroke-[2.5]" />
-            <span className="text-xl font-semibold tracking-tighter tabular-nums">
+            <span className="text-base font-semibold tracking-tighter tabular-nums">
               {netData ? formatBytes(netData.txSpeed) : "0 B"}/s
             </span>
           </div>
@@ -75,8 +75,8 @@ export const NetworkCard = ({ id, data, isExpanded, onToggle, icon, color = "ora
         {/* 1. 总流量概览 */}
         <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-slate-100/50 dark:bg-white/5 border border-slate-200/50 dark:border-white/5 shadow-sm">
           <div className="flex flex-col gap-1">
-            {/* 🟢 [优化] text-[10px] -> text-[11px] */}
-            <span className="text-[11px] uppercase text-slate-500 font-semibold tracking-widest">{t('monitor.network.rx_total', 'Rx Total')}</span>
+            {/* 🟢 [优化] text-[10px] -> text-xs */}
+            <span className="text-xs uppercase text-slate-500 font-semibold tracking-widest">{t('monitor.network.rx_total', 'Rx Total')}</span>
             <div className="flex items-center gap-2">
                <ArrowDown className="w-3 h-3 text-emerald-500" />
                {/* 🟢 [优化] text-[13px] -> text-sm (14px) */}
@@ -84,8 +84,8 @@ export const NetworkCard = ({ id, data, isExpanded, onToggle, icon, color = "ora
             </div>
           </div>
           <div className="flex flex-col gap-1 border-l border-slate-200 dark:border-white/10 pl-3">
-            {/* 🟢 [优化] text-[10px] -> text-[11px] */}
-            <span className="text-[11px] uppercase text-slate-500 font-semibold tracking-widest">{t('monitor.network.tx_total', 'Tx Total')}</span>
+            {/* 🟢 [优化] text-[10px] -> text-xs */}
+            <span className="text-xs uppercase text-slate-500 font-semibold tracking-widest">{t('monitor.network.tx_total', 'Tx Total')}</span>
             <div className="flex items-center gap-2">
                <ArrowUp className="w-3 h-3 text-blue-500" />
                {/* 🟢 [优化] text-[13px] -> text-sm (14px) */}
@@ -96,8 +96,8 @@ export const NetworkCard = ({ id, data, isExpanded, onToggle, icon, color = "ora
 
         {/* 2. 网卡详细列表 */}
         <div className="flex flex-col gap-3">
-          {/* 🟢 [优化] text-[10px] -> text-[11px] */}
-          <span className="text-[11px] uppercase text-slate-400 font-semibold tracking-widest px-1">
+          {/* 🟢 [优化] text-[10px] -> text-xs */}
+          <span className="text-xs uppercase text-slate-400 font-semibold tracking-widest px-1">
             {t('monitor.network.interfaces', 'Interface Detail')}
           </span>
           <div className="space-y-3">
@@ -119,8 +119,8 @@ export const NetworkCard = ({ id, data, isExpanded, onToggle, icon, color = "ora
                         {iface.status}
                     </span>
                   </div>
-                  {/* 🟢 [优化] text-[9px] -> text-[11px] */}
-                  {iface.mac && <span className="text-[11px] font-medium text-slate-400 font-mono tracking-tight">{iface.mac}</span>}
+                  {/* 🟢 [优化] text-[9px] -> text-xs */}
+                  {iface.mac && <span className="text-xs font-medium text-slate-400 font-mono tracking-tight">{iface.mac}</span>}
                 </div>
 
                 {/* 单网卡实时速率与流量 */}

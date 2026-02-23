@@ -45,9 +45,10 @@ export const FsTopBar = ({ sessionId, username }: Props) => {
     setInputPath(currentPath);
   }, [currentPath]);
 
-  const handlePathSubmit = (e: React.KeyboardEvent) => {
+const handlePathSubmit = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      setPath(sessionId, inputPath);
+      // 🟢 增加第三个参数 true，告诉 store 这是手动导航，请关闭跟随
+      setPath(sessionId, inputPath, true);
       (e.target as HTMLInputElement).blur();
     }
   };

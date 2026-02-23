@@ -107,15 +107,15 @@ export const useFileActions = (sessionId: string) => {
     }, [sessionId, t]);
 
     // [修改] 双击逻辑：调用 openEditorWindow
-    const handleDoubleClick = useCallback((file: FileEntry) => {
+const handleDoubleClick = useCallback((file: FileEntry) => {
         if (file.isDir) {
-            setPath(sessionId, file.path);
+            // 🟢 增加第三个参数 true，告诉 store 这是手动导航，请关闭跟随
+            setPath(sessionId, file.path, true);
         } else {
             if (isEditable(file.name)) {
                 openEditorWindow(file);
             } else {
                 console.log('Open file preview:', file.name);
-                // 这里未来可以对接系统默认应用打开等逻辑
             }
         }
     }, [sessionId, setPath, openEditorWindow]);
