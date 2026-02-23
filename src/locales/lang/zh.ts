@@ -475,6 +475,8 @@ keys: {
         cancel: "取消",
         trackingOn: "目录跟随开",
         trackingOff: "目录跟随关",
+        "retryConnection": "重试连接",
+        "forceLoad": "强制加载"
       },
       view: {
         showHidden: "显示隐藏文件",
@@ -502,7 +504,14 @@ keys: {
         error: "错误",
         canceled: "已取消",
         noConnection: "未连接",
-        connectTip: "请连接 SSH 服务器以管理文件"
+        connectTip: "请连接 SSH 服务器以管理文件",
+      "noSftpTitle": "SFTP 不可用",
+      "sftpRejected": "服务器拒绝了 SFTP 连接请求。",
+      "openwrtHint1": "如果这是一个 ",
+      "openwrtHint2": " 设备，你可能需要安装 SFTP 服务：",
+      "timeoutTitle": "连接超时",
+      "timeoutDesc": "SFTP 握手响应时间过长。",
+      "waiting": "正在等待 SFTP 连接..."
       },
       empty: "此文件夹为空"
     },

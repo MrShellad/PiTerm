@@ -30,7 +30,7 @@ export const SliderItemRenderer = ({
   const handleSliderChange = ([val]: number[]) => {
     setLocalValue(val);
     const now = Date.now();
-    // 简单的节流
+    // 简单的节流，防止滑动时过度频繁触发渲染
     if (now - lastUpdateRef.current > 60) {
         onChange(val);
         lastUpdateRef.current = now;
@@ -48,8 +48,9 @@ export const SliderItemRenderer = ({
 
   return (
     <div className={containerClass}>
-      <div className="flex-1 mr-8">
-        <div className="flex justify-between items-center mb-2">
+      {/* 🟢 [优化] 移除了无意义的 mr-8，改为 w-full pr-4 保证和其它设置项右侧对齐 */}
+      <div className="flex-1 w-full pr-1">
+        <div className="flex justify-between items-center mb-3">
             <div className="text-sm font-medium text-slate-900 dark:text-slate-100">{displayLabel}</div>
             <div className="text-xs font-mono font-medium text-slate-500 bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded min-w-[3rem] text-center">
                 {displayValue}
@@ -66,7 +67,7 @@ export const SliderItemRenderer = ({
             className="py-1 cursor-pointer"
         />
         
-         {item.descKey && <div className="text-[10px] text-slate-400 mt-2">{t(item.descKey)}</div>}
+         {item.descKey && <div className="text-[10px] text-slate-400 mt-2.5">{t(item.descKey)}</div>}
       </div>
     </div>
   );

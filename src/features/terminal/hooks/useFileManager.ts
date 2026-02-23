@@ -11,7 +11,7 @@ export const useFileManager = (sessionId?: string) => {
     initSession, 
     setFiles, 
     setLoading: setStoreLoading,
-    setPath // 🟢 [修改 1] 从 Store 中解构出 setPath
+    setPath 
   } = useFileStore();
 
   const connectionId = sessionId;
@@ -31,7 +31,6 @@ export const useFileManager = (sessionId?: string) => {
 
   const [error, setError] = useState<string | null>(null);
   const isMounted = useRef(true);
-  const prevPathRef = useRef(currentPath);
 
   useEffect(() => {
     isMounted.current = true;
@@ -45,26 +44,24 @@ export const useFileManager = (sessionId?: string) => {
   }, [sessionId, initSession]);
 
   // =================================================================
-  // 🟢 [修改 2] 新增：初始化时自动获取并跳转到家目录
+  // 🟢 [关键修复] 初始化时自动获取并跳转到家目录
   // =================================================================
   useEffect(() => {
-    // 只有在连接就绪，且当前处于默认根目录 '/' 时才触发
-    if (sessionId && isConnectionReady && currentPath === '/') {
+    // 修复 Bug: 添加 sessionState?.history.length === 1 限制。
+    // 只有在“真正的初始状态（历史中只有 '/' 这 1 条记录）”时，才自动跳转家目录。
+    // 如果用户是“后退”回来的（此时历史记录长度肯定大于 1），坚决不再跳转！
+    if (sessionId && isConnectionReady && currentPath === '/' && sessionState?.history.length === 1) {
         invoke<string>('sftp_get_home_dir', { id: sessionId })
             .then((homePath) => {
-                // 如果获取到了家目录，且不是根目录，则更新路径
-                // 这会自动触发下面的 fetchFiles，从而加载家目录文件
                 if (homePath && homePath !== '/') {
-                    // console.log("🏠 Home directory detected:", homePath);
                     setPath(sessionId, homePath);
                 }
             })
             .catch(err => {
-                // 获取失败不阻断，只是停留在 /
                 console.warn("Failed to detect home directory:", err);
             });
     }
-  }, [sessionId, isConnectionReady, currentPath, setPath]);
+  }, [sessionId, isConnectionReady, currentPath, setPath, sessionState?.history.length]);
 
   const fetchFiles = useCallback(async () => {
     if (!sessionId || !connectionId || !isValidSession) return;
@@ -98,19 +95,12 @@ export const useFileManager = (sessionId?: string) => {
     }
   }, [sessionId, connectionId, isValidSession, currentPath, setStoreLoading, setFiles]);
 
+  // 🟢 [优化] 合并冗余代码。移除了多余的 prevPathRef 监听
+  // 因为 currentPath 和 reloadTrigger 本就在这里被监听，不需要两个 useEffect
   useEffect(() => {
-    if (!sessionId) return;
-    if (isConnectionReady) {
-        fetchFiles();
-    }
+    if (!sessionId || !isConnectionReady) return;
+    fetchFiles();
   }, [sessionId, isConnectionReady, currentPath, reloadTrigger, fetchFiles]); 
-
-  useEffect(() => {
-      if (prevPathRef.current !== currentPath && isConnectionReady) {
-          fetchFiles();
-      }
-      prevPathRef.current = currentPath;
-  }, [currentPath, isConnectionReady, fetchFiles]);
 
   return {
     isConnectionReady,
