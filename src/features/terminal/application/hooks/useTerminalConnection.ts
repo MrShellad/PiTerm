@@ -7,7 +7,11 @@ import { useSessionCredentialStore } from "@/store/useSessionCredentialStore";
 import { TerminalService } from "../services/terminal.service";
 import { HistoryService } from "../services/history.service";
 
+<<<<<<< HEAD
 // 🟢 1. 引入高亮处理 Hook
+=======
+// 引入高亮处理 Hook
+>>>>>>> fc431dc851e0185ab3264fbab743221afa19769c
 import { useTerminalHighlight } from "./useTerminalHighlight";
 
 export const useTerminalConnection = (
@@ -24,9 +28,21 @@ export const useTerminalConnection = (
   const serverConfig = useServerStore(s => s.servers.find(srv => srv.id === session?.serverId));
   const consumeCredential = useSessionCredentialStore(s => s.consumeCredential);
 
+<<<<<<< HEAD
   // 🟢 2. 获取高亮转换器 (根据当前服务器 ID 自动拉取对应的规则)
   const { applyHighlight } = useTerminalHighlight(serverConfig?.id);
 
+=======
+  // 获取高亮转换器
+  const { applyHighlight } = useTerminalHighlight(serverConfig?.id);
+
+  // 🟢 核心修复：使用 ref 保存最新的高亮函数指针，防止触发重新连接
+  const applyHighlightRef = useRef(applyHighlight);
+  useEffect(() => {
+    applyHighlightRef.current = applyHighlight;
+  }, [applyHighlight]);
+
+>>>>>>> fc431dc851e0185ab3264fbab743221afa19769c
   const connectInternal = useCallback(async (manualPassword?: string) => {
     if (!termRef.current || !serverConfig) return;
     const term = termRef.current;
@@ -86,11 +102,19 @@ export const useTerminalConnection = (
     let unlistenFn: UnlistenFn | null = null;
 
     const setup = async () => {
+<<<<<<< HEAD
       // 🟢 3. 拦截服务端发来的数据
       const unlisten = await listen<string>(`term-data-${sessionId}`, (event) => {
         if (isMounted && termRef.current) {
           // 在写入 xterm 之前，将正则匹配到的关键字替换为带有 ANSI 转义码的字符串
           const highlightedData = applyHighlight(event.payload);
+=======
+      // 拦截服务端发来的数据
+      const unlisten = await listen<string>(`term-data-${sessionId}`, (event) => {
+        if (isMounted && termRef.current) {
+          // 🟢 核心修复：从 ref 读取最新的高亮函数进行处理，确保闭包更新时不重连
+          const highlightedData = applyHighlightRef.current(event.payload);
+>>>>>>> fc431dc851e0185ab3264fbab743221afa19769c
           termRef.current.write(highlightedData);
         }
       });
@@ -137,8 +161,13 @@ export const useTerminalConnection = (
         TerminalService.disconnectSsh(sessionId).catch(console.error);
       }
     };
+<<<<<<< HEAD
   }, [sessionId, serverConfig?.id, session?.connectTimestamp, termRef, applyHighlight]); 
   // 🟢 4. 依赖数组中加入 applyHighlight，保证规则动态切换时能获取最新闭包
+=======
+  // 🟢 核心修复：这里移除了 applyHighlight 依赖
+  }, [sessionId, serverConfig?.id, session?.connectTimestamp, termRef]); 
+>>>>>>> fc431dc851e0185ab3264fbab743221afa19769c
 
   return { isPasswordRequired, setIsPasswordRequired, connectInternal, isConnectionReady, serverConfig };
 };
