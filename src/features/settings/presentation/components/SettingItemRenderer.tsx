@@ -19,6 +19,7 @@ import { ImageItemRenderer } from "./ImageItemRenderer";
 import { ShortcutInput } from "./ShortcutInput";
 import { HighlightManager } from "./HighlightManager";
 import { HighlightAssigner } from "./highlight/HighlightAssigner";
+
 interface Props {
   item: SettingItem;
   value: any;
@@ -86,7 +87,8 @@ export const SettingItemRenderer = ({ item, value, onChange }: Props) => {
       const uniqueBuiltins = options.filter(opt => !customThemes[opt.value]);
       options = [...uniqueBuiltins, ...customOptions];
   }
-if (item.type === 'shortcut') {
+  
+  if (item.type === 'shortcut') {
     return (
       <div className={containerClass}>
         <div className="flex-1 mr-4">
@@ -99,13 +101,14 @@ if (item.type === 'shortcut') {
       </div>
     );
   }
+  
   return (
     <div className={containerClass}>
       <div className="flex-1 mr-4">
         <div className="text-sm font-medium text-slate-900 dark:text-slate-100">{displayLabel}</div>
         {item.descKey && <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">{t(item.descKey)}</div>}
       </div>
-      <div className="shrink-0 w-48 flex justify-end">
+      <div className="shrink-0 w-48 flex justify-end items-center">
         {item.type === 'switch' && (
             <Switch 
                 checked={!!value} 
@@ -118,6 +121,12 @@ if (item.type === 'shortcut') {
             <SelectTrigger className="h-8 w-full bg-transparent border-slate-200/60 dark:border-slate-700/60"><SelectValue /></SelectTrigger>
             <SelectContent>{options.map((opt) => <SelectItem key={opt.value} value={String(opt.value)}>{opt.labelKey ? t(opt.labelKey) : opt.label}</SelectItem>)}</SelectContent>
           </Select>
+        )}
+        {/*[新增] 支持 info 类型，纯文本展示 */}
+        {item.type === 'info' && (
+          <span className="text-sm font-medium text-slate-500 dark:text-slate-400 font-mono">
+            {String(value || '')}
+          </span>
         )}
       </div>
     </div>

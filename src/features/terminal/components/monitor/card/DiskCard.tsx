@@ -45,7 +45,7 @@ export const DiskCard = ({ id, data, isExpanded, onToggle, icon, color = "blue" 
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-tight">{disk.name}</span>
-                  <span className="text-[11px] text-slate-400 border-l border-slate-300 dark:border-white/10 pl-2 font-medium">{formatBytes(disk.total)}</span>
+                  <span className="text-xs text-slate-400 border-l border-slate-300 dark:border-white/10 pl-2 font-medium">{formatBytes(disk.total)}</span>
                 </div>
               </div>
               <div className="flex gap-1.5">
@@ -55,7 +55,7 @@ export const DiskCard = ({ id, data, isExpanded, onToggle, icon, color = "blue" 
               </div>
             </div>
 
-            <div className="flex justify-between items-center px-0.5 text-[11px] font-medium tracking-tight">
+            <div className="flex justify-between items-center px-0.5 text-xs font-medium tracking-tight">
               <div className="flex items-center gap-3">
                 <span className="text-emerald-500 font-semibold flex items-center gap-0.5">
                   <ArrowDown className="w-3 h-3" /> {formatBytes(disk.readSpeed)}/s
@@ -84,7 +84,7 @@ export const DiskCard = ({ id, data, isExpanded, onToggle, icon, color = "blue" 
                         <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest">{p.typeName}</span>
                       </div>
                     </div>
-                    <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 tabular-nums">
+                    <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 tabular-nums">
                       {formatBytes(p.used)} / {formatBytes(p.total)}
                     </span>
                   </div>

@@ -53,7 +53,7 @@ interface FileStore {
   
   triggerReload: (sessionId: string) => void; 
   initSession: (sessionId: string) => void;
-  setPath: (sessionId: string, path: string) => void;
+  setPath: (sessionId: string, path: string, isManual?: boolean) => void;
   setFiles: (sessionId: string, files: FileEntry[]) => void;
   setLoading: (sessionId: string, loading: boolean) => void;
   goBack: (sessionId: string) => void;
@@ -158,7 +158,7 @@ export const useFileStore = create<FileStore>((set, get) => ({
     }
   })),
   
-  setPath: (sessionId, path) => set((state) => {
+setPath: (sessionId, path, isManual = false) => set((state) => {
       const session = state.sessions[sessionId] || defaultSessionState;
       if (session.currentPath === path) return {}; 
 
@@ -174,8 +174,9 @@ export const useFileStore = create<FileStore>((set, get) => ({
             currentPath: path,
             history: newHistory,
             historyIndex: newHistory.length - 1,
-            files: isCacheValid ? cached.data : (session.files), 
+            files: isCacheValid ? cached.data : [], // 🟢 顺手修复：缓存失效时清空旧文件，避免闪烁
             isLoading: !isCacheValid, 
+            isTracking: isManual ? false : session.isTracking // 🟢 关键：手动触发时关闭磁铁
           }
         }
       };
@@ -188,12 +189,12 @@ export const useFileStore = create<FileStore>((set, get) => ({
     }
   })),
 
-  goBack: (sessionId) => set((state) => {
+// --- 3. 后退时关闭 tracking ---
+goBack: (sessionId) => set((state) => {
       const session = state.sessions[sessionId];
       if (!session || session.historyIndex <= 0) return {};
       const newIndex = session.historyIndex - 1;
       const path = session.history[newIndex];
-      
       const cached = session.cache[path];
       const isCacheValid = cached && (Date.now() - cached.timestamp < CACHE_DURATION);
 
@@ -204,19 +205,19 @@ export const useFileStore = create<FileStore>((set, get) => ({
                   ...session, 
                   historyIndex: newIndex, 
                   currentPath: path,
-                  files: isCacheValid ? cached.data : session.files,
-                  isLoading: !isCacheValid
+                  files: isCacheValid ? cached.data : [], // 🟢 同上修复
+                  isLoading: !isCacheValid,
+                  isTracking: false // 🟢 关键修复：后退时自动取消跟随
               } 
           } 
       };
   }),
 
-  goForward: (sessionId) => set((state) => {
+goForward: (sessionId) => set((state) => {
       const session = state.sessions[sessionId];
       if (!session || session.historyIndex >= session.history.length - 1) return {};
       const newIndex = session.historyIndex + 1;
       const path = session.history[newIndex];
-
       const cached = session.cache[path];
       const isCacheValid = cached && (Date.now() - cached.timestamp < CACHE_DURATION);
 
@@ -227,18 +228,20 @@ export const useFileStore = create<FileStore>((set, get) => ({
                   ...session, 
                   historyIndex: newIndex, 
                   currentPath: path,
-                  files: isCacheValid ? cached.data : session.files,
-                  isLoading: !isCacheValid
+                  files: isCacheValid ? cached.data : [], // 🟢 同上修复
+                  isLoading: !isCacheValid,
+                  isTracking: false // 🟢 关键修复：前进时自动取消跟随
               } 
           } 
       };
   }),
 
-  goUp: (sessionId) => {
+ goUp: (sessionId) => {
       const session = get().sessions[sessionId];
       if (!session) return;
       const parent = session.currentPath.split('/').slice(0, -1).join('/') || '/';
-      if (parent !== session.currentPath) get().setPath(sessionId, parent);
+      // 🟢 传入 true 标记为手动操作
+      if (parent !== session.currentPath) get().setPath(sessionId, parent, true); 
   },
 
   toggleHidden: (sessionId) => set((state) => ({

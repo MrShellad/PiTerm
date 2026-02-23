@@ -146,6 +146,7 @@ interface SettingsState {
   loadServers: () => Promise<void>; // 🟢 [新增] 触发加载服务器
 
   initDeviceIdentity: () => Promise<void>;
+  initAppVersion: () => Promise<void>;
 }
 
 const defaultSettings = SETTING_ITEMS.reduce((acc, item) => {
@@ -327,7 +328,17 @@ export const useSettingsStore = create<SettingsState>()(
           get().updateSettings(updates);
         }
       },
-      
+      //[新增] 动态获取 Tauri 应用版本号并更新到设置中
+      initAppVersion: async () => {
+        try {
+          const version = await getVersion();
+          // 如果你想加 'v' 前缀或者 'Beta'，可以在这里拼接，例如: `v${version} (Beta)`
+          get().updateSetting('about.version', `v${version}`);
+        } catch (e) {
+          console.error("Failed to fetch app version:", e);
+          get().updateSetting('about.version', 'Unknown Version');
+        }
+      },
       // --- Proxies ---
       loadProxies: async () => {
         try {
