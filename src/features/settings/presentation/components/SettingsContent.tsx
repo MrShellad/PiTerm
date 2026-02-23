@@ -6,7 +6,7 @@ import { SettingItemRenderer } from "./SettingItemRenderer";
 import { TerminalPreview } from "./TerminalPreview";
 import { CATEGORIES } from "../../domain/categories";
 import { SETTING_ITEMS } from "../../domain/constants";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronDown, ChevronRight, TerminalSquare } from "lucide-react";
 
 export const SettingsContent = () => {
@@ -17,11 +17,17 @@ export const SettingsContent = () => {
   const searchQuery = useSettingsStore(s => s.searchQuery);
   const updateSettings = useSettingsStore(s => s.updateSettings);
 
+  const initAppVersion = useSettingsStore(s => s.initAppVersion);
+
   const { currentTitle, displayItems: searchResults } = useSettingsLogic();
 
   const showPreviewGlobal = ['terminal', 'appearance'].includes(activeCategory);
   const [isPreviewExpanded, setIsPreviewExpanded] = useState(true);
 
+    useEffect(() => {
+    initAppVersion();
+  }, [initAppVersion]);
+  
   return (
     <div className={clsx(
         "flex-1 flex flex-col h-full min-w-0 relative select-none",

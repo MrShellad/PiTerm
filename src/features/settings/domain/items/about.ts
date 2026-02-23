@@ -1,3 +1,4 @@
+// src/features/settings/domain/items/about.ts
 import { SettingItem } from "../types";
 
 export const aboutItems: SettingItem[] = [
@@ -6,6 +7,7 @@ export const aboutItems: SettingItem[] = [
     categoryId: 'about',
     type: 'info',
     labelKey: 'settings.about.version',
-    defaultValue: '1.0.0 (Beta)',
+    //改为占位符，等待从 Tauri 动态获取
+    defaultValue: 'Loading...', 
   },
 ];
