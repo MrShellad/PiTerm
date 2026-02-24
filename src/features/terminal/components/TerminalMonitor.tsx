@@ -1,21 +1,17 @@
 // src/features/terminal/components/TerminalMonitor.tsx
 import { useEffect, useState, useMemo } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { 
   PanelLeft, PanelRight, ChevronLeft, ChevronRight, ExternalLink,
   Server, Cpu, Zap, Database, Wifi 
 } from "lucide-react"; 
 import { useTranslation } from "react-i18next";
-import { WebviewWindow } from "@tauri-apps/api/webviewWindow"; 
-import { emit, emitTo } from "@tauri-apps/api/event"; 
 import { LayoutGroup } from "framer-motion";
 
 import { useTerminalStore } from "@/store/useTerminalStore";
 import { useServerStore } from "@/features/server/application/useServerStore";
-import { useMonitorStore, RemoteCpuInfo, RemoteMemInfo, RemoteDiskInfo, RemoteOsInfo, RemoteNetworkInfo } from "@/store/useMonitorStore";
-// 🟢 [新增] 引入设置 Store，用于获取当前字体/主题配置
+import { useMonitorStore } from "@/store/useMonitorStore";
 import { useSettingsStore } from "@/features/settings/application/useSettingsStore";
-import { MonitorDescriptor, MonitorSyncPayload } from "./monitor/types"; 
+import { MonitorDescriptor } from "./monitor/types"; 
 
 import { InfoCard } from "./monitor/card/InfoCard";
 import { CpuCard } from "./monitor/card/CpuCard";
@@ -24,6 +20,10 @@ import { DiskCard } from "./monitor/card/DiskCard";
 import { NetworkCard } from "./monitor/card/NetworkCard";
 
 import { Button } from "@/components/ui/button"; 
+
+// 🟢 引入拆分出的服务
+import { MonitorWindowService } from "./monitor/services/monitorWindowService";
+import { MonitorDataService } from "./monitor/services/monitorDataService";
 
 interface Props {
     collapsed?: boolean;
@@ -43,49 +43,17 @@ export const TerminalMonitor = ({ collapsed = false, onToggle }: Props) => {
   const { sessions, setSessionData, updateHistory } = useMonitorStore();
   const currentSessionData = sessionId ? sessions[sessionId] : undefined;
 
-  // 🟢 获取当前全局设置
   const settings = useSettingsStore(s => s.settings);
 
-  // 窗口同步逻辑
-  const openAdvancedMonitor = async () => {
+  // 🟢 1. 委托给 WindowService 处理独立窗口
+  const handleOpenAdvancedMonitor = () => {
     if (!sessionId || !serverConfig) return;
-    const label = "advanced_monitor";
-    const existingWindow = await WebviewWindow.getByLabel(label);
-    
-    if (existingWindow) {
-        await existingWindow.unminimize();
-        await existingWindow.show();
-        await existingWindow.setFocus();
-        await emitTo(label, "monitor:open-session", { sessionId, title: serverConfig.name });
-        
-        // 同步监控数据
-        if (currentSessionData) {
-            await emit("monitor:sync-data", { sessionId, data: currentSessionData } as MonitorSyncPayload);
-        }
-        // 🟢 [核心] 同步当前的设置（字体/主题）给已存在的窗口
-        await emitTo(label, "app:settings-change", settings);
-
-    } else {
-        const url = `/advanced-monitor?sessionId=${sessionId}&name=${encodeURIComponent(serverConfig.name)}`;
-        const win = new WebviewWindow(label, {
-            url, 
-            title: "Advanced Resource Monitor",
-            width: 1000, height: 800, 
-            decorations: false, transparent: true, center: true, visible: false
-        });
-
-        win.once('tauri://created', () => {
-             setTimeout(() => {
-                 if (currentSessionData) {
-                     emit("monitor:sync-data", { sessionId, data: currentSessionData } as MonitorSyncPayload);
-                 }
-                 // 🟢 [核心] 窗口创建时立即发送设置，保证字体正确初始化
-                 emit("app:settings-change", settings);
-                 
-                 win.show();
-             }, 500);
-        });
-    }
+    MonitorWindowService.openAdvancedMonitor(
+      sessionId, 
+      serverConfig.name, 
+      currentSessionData, 
+      settings
+    );
   };
 
   const CARD_DESCRIPTORS = useMemo<MonitorDescriptor[]>(() => [
@@ -96,36 +64,18 @@ export const TerminalMonitor = ({ collapsed = false, onToggle }: Props) => {
     { id: 'net',  Component: NetworkCard, icon: <Wifi className="w-5 h-5" />,     color: "orange" },
   ], []);
 
-  // 主抓取逻辑：广播数据
+  // 🟢 2. 委托给 DataService 负责轮询抓取
   useEffect(() => {
     if (!sessionId) return;
-    const fetchData = async () => {
-      try {
-        const [cpu, mem, disk, os, net] = await Promise.allSettled([
-          invoke<RemoteCpuInfo>("get_ssh_cpu_info", { id: sessionId }),
-          invoke<RemoteMemInfo>("get_ssh_mem_info", { id: sessionId }),
-          invoke<RemoteDiskInfo>("get_ssh_disk_info", { id: sessionId }),
-          invoke<RemoteOsInfo>("get_ssh_os_info", { id: sessionId }),
-          invoke<RemoteNetworkInfo>("get_ssh_network_info", { id: sessionId }),
-        ]);
-        const updates: any = {};
-        if (cpu.status === "fulfilled") { 
-            updates.cpu = cpu.value; 
-            updateHistory(sessionId, cpu.value.usage); 
-        }
-        if (mem.status === "fulfilled") updates.mem = mem.value;
-        if (disk.status === "fulfilled") updates.disk = disk.value;
-        if (os.status === "fulfilled") updates.os = os.value;
-        if (net.status === "fulfilled") updates.network = net.value;
-        
+    
+    const cleanup = MonitorDataService.startPolling(sessionId, 3000, (updates) => {
         setSessionData(sessionId, updates);
-        emit("monitor:sync-data", { sessionId, data: updates } as MonitorSyncPayload);
+        if (updates.cpu) {
+            updateHistory(sessionId, updates.cpu.usage);
+        }
+    });
 
-      } catch (err) {}
-    };
-    fetchData();
-    const interval = setInterval(fetchData, 3000);
-    return () => clearInterval(interval);
+    return cleanup;
   }, [sessionId, setSessionData, updateHistory]);
 
   if (collapsed) {
@@ -143,11 +93,10 @@ export const TerminalMonitor = ({ collapsed = false, onToggle }: Props) => {
   return (
     <div className="h-full w-full flex flex-col bg-slate-50/30 dark:bg-transparent overflow-hidden relative">
       <div className="flex items-center justify-between p-3 pb-2 shrink-0 z-10 bg-slate-50/30 dark:bg-transparent">
-        <h2 className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500 px-1">
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500 px-1">
           {serverConfig?.name || 'Resource Monitor'}
         </h2>
         <div className="flex gap-1">
-            {/* 切换左右位置的按钮 */}
             <Button 
                 variant="ghost" 
                 size="icon" 
@@ -158,7 +107,6 @@ export const TerminalMonitor = ({ collapsed = false, onToggle }: Props) => {
                 {monitorPosition === 'left' ? <PanelRight className="w-3.5 h-3.5" /> : <PanelLeft className="w-3.5 h-3.5" />}
             </Button>
 
-            {/* 折叠按钮 */}
             <Button variant="ghost" size="icon" onClick={onToggle} className="h-6 w-6 text-slate-400">
                 {monitorPosition === 'left' ? <ChevronLeft className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
             </Button>
@@ -183,7 +131,7 @@ export const TerminalMonitor = ({ collapsed = false, onToggle }: Props) => {
         <Button 
             variant="outline" size="sm" 
             className="w-full text-xs font-medium border-dashed border-slate-300 dark:border-slate-700 text-slate-500 hover:text-blue-600 gap-2 shadow-sm transition-all active:scale-[0.98]"
-            onClick={openAdvancedMonitor}
+            onClick={handleOpenAdvancedMonitor}
         >
             <ExternalLink className="w-3.5 h-3.5" />
             {t('monitor.openAdvanced', 'Open Advanced Monitor')}

@@ -49,7 +49,7 @@ export const DiskCard = ({ id, data, isExpanded, onToggle, icon, color = "blue" 
                 </div>
               </div>
               <div className="flex gap-1.5">
-                <span className="text-[10px] px-1.5 py-0.5 bg-slate-200 dark:bg-white/10 rounded font-semibold text-slate-500 flex items-center gap-1 uppercase tracking-widest">
+                <span className="text-xs px-1.5 py-0.5 bg-slate-200 dark:bg-white/10 rounded font-semibold text-slate-500 flex items-center gap-1 uppercase tracking-widest">
                   <Cpu className="w-2.5 h-2.5" /> {disk.isSsd ? 'SSD' : 'HDD'}
                 </span>
               </div>
@@ -80,11 +80,10 @@ export const DiskCard = ({ id, data, isExpanded, onToggle, icon, color = "blue" 
                     <div className="flex items-center gap-2.5">
                       <Layers className="w-3.5 h-3.5 text-slate-400" />
                       <div className="flex flex-col">
-                        <span className="text-xs font-medium text-slate-600 dark:text-slate-300 truncate max-w-[160px]">{p.mount}</span>
-                        <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest">{p.typeName}</span>
+                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 truncate max-w-[160px]">{p.mount}</span>
                       </div>
                     </div>
-                    <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 tabular-nums">
+                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400 tabular-nums">
                       {formatBytes(p.used)} / {formatBytes(p.total)}
                     </span>
                   </div>

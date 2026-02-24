@@ -7,10 +7,13 @@ import { BaseMonitorCardProps } from "../types";
 import { clsx } from "clsx";
 import { Cpu } from "lucide-react";
 
+// 🟢 核心修改：改为 flex-col 垂直布局，并优化间距和字号
 const CpuDetailItem = ({ label, value, colorClass }: { label: string; value: string; colorClass?: string }) => (
-  <div className="flex justify-between items-center bg-slate-100/50 dark:bg-white/5 p-2.5 rounded-xl border border-slate-200/60 dark:border-white/5 shadow-sm">
-    <span className="text-[11px] uppercase font-medium text-slate-500 dark:text-slate-400 tracking-widest">{label}</span>
-    <span className={clsx("text-xs font-semibold tabular-nums", colorClass || "text-slate-700 dark:text-slate-200")}>
+  <div className="flex flex-col gap-1.5 bg-slate-100/50 dark:bg-white/5 p-3 rounded-xl border border-slate-200/60 dark:border-white/5 shadow-sm">
+    <span className="text-[10px] uppercase font-medium text-slate-500 dark:text-slate-400 tracking-wider">
+      {label}
+    </span>
+    <span className={clsx("text-sm font-bold tabular-nums leading-none", colorClass || "text-slate-700 dark:text-slate-200")}>
       {value}
     </span>
   </div>
@@ -47,10 +50,10 @@ export const CpuCard = ({ id, data, isExpanded, onToggle, icon, color = "blue" }
     >
       <div className="flex flex-col gap-4 animate-in fade-in duration-300">
         <div className="flex flex-col gap-1.5 p-3.5 rounded-xl bg-slate-100/80 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 shadow-sm">
-           <span className="text-[11px] uppercase font-semibold text-slate-400 tracking-widest px-0.5">{t('monitor.cpu.model', 'Processor Model')}</span>
+           <span className="text-xs uppercase font-semibold text-slate-400 tracking-widest px-0.5">{t('monitor.cpu.model', 'Processor Model')}</span>
            <div className="flex items-center gap-3">
              <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500"><Cpu className="w-4 h-4" /></div>
-             <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 leading-tight">{cpuData?.model || t('monitor.loading', 'Loading...')}</span>
+             <span className="text-xs text-slate-700 dark:text-slate-200 leading-tight">{cpuData?.model || t('monitor.loading', 'Loading...')}</span>
            </div>
         </div>
 
@@ -69,7 +72,7 @@ export const CpuCard = ({ id, data, isExpanded, onToggle, icon, color = "blue" }
 
         {cpuData?.perCoreUsage && cpuData.perCoreUsage.length > 0 && (
           <div className="flex flex-col gap-2.5 p-3.5 bg-slate-100/30 dark:bg-white/5 rounded-xl border border-slate-200/50 dark:border-white/5">
-            <span className="text-[11px] uppercase font-semibold text-slate-400 tracking-widest">{t('monitor.cpu.per_core', 'Per Core Activity')}</span>
+            <span className="text-xs uppercase font-semibold text-slate-400 tracking-widest">{t('monitor.cpu.per_core', 'Per Core Activity')}</span>
             <div className="grid grid-cols-4 sm:grid-cols-8 gap-x-4 gap-y-2.5">
               {cpuData.perCoreUsage.map((u: number, i: number) => (
                 <div key={i} className="flex flex-col gap-2">

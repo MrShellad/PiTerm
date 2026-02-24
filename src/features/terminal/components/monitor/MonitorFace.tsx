@@ -51,7 +51,7 @@ export const MonitorInfoFace = ({
             <span className={clsx(
                 "uppercase tracking-[0.05em] font-medium", 
                 // 🟢 [优化] 提升最小字号至 11px
-                subTitleClassName || "text-[11px] text-slate-500 dark:text-slate-400"
+                subTitleClassName || "text-xs text-slate-500 dark:text-slate-400"
             )}>
               {subTitle}
             </span>
@@ -70,29 +70,33 @@ export const MonitorInfoFace = ({
   return (
     <div className="flex flex-col min-h-[7rem] w-full p-4 justify-between relative">
       {/* Header Area */}
-      <div className="flex justify-between items-start gap-2 mb-2">
-        <div className="flex items-start gap-3 flex-1 min-w-0">
+      {/* 🟢 1. 将外层的 items-start 改为 items-center (如果右侧有操作按钮也能对齐) */}
+      <div className="flex justify-between items-center gap-2 mb-2">
+        
+        {/* 🟢 2. 将此处的 items-start 改为 items-center */}
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          
           <div className="p-2.5 rounded-xl shrink-0 bg-slate-100/80 dark:bg-white/10 backdrop-blur-sm">
             {icon}
           </div>
-          <div className="flex-1 min-w-0 flex flex-col pt-1.5">
+          
+          {/* 🟢 3. 移除 pt-1.5 (之前是 className="flex-1 min-w-0 flex flex-col pt-1.5") */}
+          <div className="flex-1 min-w-0 flex flex-col justify-center">
             <div className="flex items-center gap-2">
-               {/* 🟢 [优化] 使用 text-sm (14px) 标准字号 */}
                <p className="text-sm font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wide">
                   {title}
                </p>
                {tag && (
-                  // 🟢 [优化] 使用 text-xs (12px)
                   <span className="text-xs font-semibold bg-slate-200/50 dark:bg-white/10 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-400">
                     {tag}
                   </span>
                )}
             </div>
-            {/* 🟢 [优化] 使用 text-xs (12px) 确保详情可读 */}
             <div className="text-xs leading-snug mt-1 font-medium text-slate-700/80 dark:text-slate-200/80 truncate">
               {detail}
             </div>
           </div>
+
         </div>
       </div>
 
@@ -107,7 +111,7 @@ export const MonitorInfoFace = ({
             {subTitle}
           </span>
           <div className={clsx(
-              "text-xl font-semibold tracking-tighter leading-none",
+              "text-lg font-semibold tracking-tighter leading-none",
               usageColor
           )}>
             {usageDisplay || `${(usage || 0).toFixed(1)}%`}

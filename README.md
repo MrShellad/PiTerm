@@ -71,6 +71,7 @@ pnpm install
 pnpm tauri dev
 pnpm tauri build
 
+---
 📄 License
 
 Copyright © 2026 MrShellad
