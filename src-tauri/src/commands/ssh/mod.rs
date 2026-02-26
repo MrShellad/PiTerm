@@ -21,7 +21,7 @@ pub mod state;
 
 pub use state::{SshConnection, SshState};
 use core::{
-    create_monitor_session, create_sftp_session, create_shell_channel, spawn_shell_reader_thread,
+    create_monitor_session, create_sftp_session, create_shell_channel, spawn_shell_reader_thread,configure_legacy_algorithms
 };
 
 // ==============================================================================
@@ -89,6 +89,9 @@ pub async fn check_host_key(
         // 2. 发起 SSH 握手 (仅交换密钥，不进行用户认证)
         emit_ssh_log(&app, "Initiating SSH protocol handshake...");
         let mut sess = ssh2::Session::new().map_err(|e| e.to_string())?;
+        
+        configure_legacy_algorithms(&mut sess);
+
         sess.set_tcp_stream(tcp);
         sess.handshake().map_err(|e| {
             let err = format!("SSH handshake failed: {}", e);
@@ -189,6 +192,8 @@ pub async fn trust_host_key(
             .map_err(|e| format!("Re-connection failed: {}", e))?;
         
         let mut sess = ssh2::Session::new().map_err(|e| e.to_string())?;
+        configure_legacy_algorithms(&mut sess);
+
         sess.set_tcp_stream(tcp);
         sess.handshake().map_err(|e| format!("Handshake failed: {}", e))?;
 

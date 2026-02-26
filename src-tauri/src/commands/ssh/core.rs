@@ -6,9 +6,32 @@ use std::time::Duration;
 use std::fs; // [必须] 引入文件操作
 use std::env; // [必须] 引入环境路径
 
-use ssh2::{Channel, Session};
+use ssh2::{Channel, Session, MethodType};
 use tauri::{AppHandle, Emitter};
 use crate::models::SshConfig;
+
+
+// ==============================================================================
+// [新增] 兼容老旧设备算法配置函数
+// ==============================================================================
+pub fn configure_legacy_algorithms(sess: &mut Session) {
+    // 1. KEX (密钥交换): 把现代算法放在前面，把 diffie-hellman-group14-sha1 等老算法追加在后面
+    let kex_methods = "curve25519-sha256,curve25519-sha256@libssh.org,ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521,diffie-hellman-group-exchange-sha256,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512,diffie-hellman-group14-sha256,diffie-hellman-group14-sha1,diffie-hellman-group1-sha1,diffie-hellman-group-exchange-sha1";
+    
+    // 2. HostKey (主机密钥): 追加 ssh-rsa, ssh-dss
+    let hostkey_methods = "ssh-ed25519,ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,rsa-sha2-512,rsa-sha2-256,ssh-rsa,ssh-dss";
+
+    // 3. Cipher & MAC (可选，但为了最大限度兼容老旧交换机/路由器，建议加上 3des-cbc 和 hmac-sha1)
+    let cipher_methods = "aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr,aes256-cbc,aes192-cbc,aes128-cbc,3des-cbc";
+    let mac_methods = "hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-sha2-512,hmac-sha2-256,hmac-sha1";
+
+    let _ = sess.method_pref(MethodType::Kex, kex_methods);
+    let _ = sess.method_pref(MethodType::HostKey, hostkey_methods);
+    let _ = sess.method_pref(MethodType::CryptCs, cipher_methods);
+    let _ = sess.method_pref(MethodType::CryptSc, cipher_methods);
+    let _ = sess.method_pref(MethodType::MacCs, mac_methods);
+    let _ = sess.method_pref(MethodType::MacSc, mac_methods);
+}
 
 /// 建立基础 TCP 和 SSH 会话连接
 /// 这是一个通用辅助函数，被 Shell、Monitor、SFTP 三者共用
@@ -28,6 +51,7 @@ pub fn establish_base_session(config: &SshConfig) -> Result<Session, String> {
     let _ = tcp.set_write_timeout(Some(Duration::from_secs(60)));
 
     let mut sess = Session::new().map_err(|e| format!("Session Init Error: {}", e))?;
+    configure_legacy_algorithms(&mut sess);
     sess.set_tcp_stream(tcp);
     sess.handshake()
         .map_err(|e| format!("Handshake Error: {}", e))?;
