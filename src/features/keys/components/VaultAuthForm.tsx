@@ -1,46 +1,125 @@
-import { useState } from 'react';
-import { useKeyStore } from '@/store/useKeyStore';
-import { ShieldCheck, Lock, ArrowRight, Loader2 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import React, { useRef, useEffect } from 'react';
+import { ShieldCheck, Lock, Loader2, RefreshCcw } from 'lucide-react';
+import { useVaultAuthForm } from '@/features/keys/hooks/VaultAuthFormHook';
 
-interface Props {
-    onSuccess?: () => void; // 解锁/设置成功后的回调
-}
+// ==========================================
+// 提取出的独立 PIN 码输入组件 (保持不变)
+// ==========================================
+const PinInput = ({ 
+    value, 
+    onChange, 
+    disabled, 
+    autoFocus 
+}: { 
+    value: string; 
+    onChange: (v: string) => void; 
+    disabled?: boolean; 
+    autoFocus?: boolean;
+}) => {
+    const refs = useRef<(HTMLInputElement | null)[]>([]);
 
-export const VaultAuthForm = ({ onSuccess }: Props) => {
-    const { status, setupVault, unlockVault, isLoading } = useKeyStore();
-    const [password, setPassword] = useState('');
-    const [confirmPwd, setConfirmPwd] = useState('');
-    const [error, setError] = useState('');
-    const { t } = useTranslation();
-
-    const handleSetup = async () => {
-        if (password !== confirmPwd) {
-            setError(t('keys.error.pwdMismatch', 'Passwords do not match'));
-            return;
+    useEffect(() => {
+        if (autoFocus && refs.current[0]) {
+            refs.current[0].focus();
         }
-        if (password.length < 6) {
-            setError(t('keys.error.pwdShort', 'Password must be at least 6 characters'));
-            return;
+    }, [autoFocus]);
+
+    const handleChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        const char = val.slice(-1);
+        
+        let chars = value.split('');
+        for (let i = 0; i < 6; i++) {
+            if (!chars[i]) chars[i] = ' ';
         }
-        await setupVault(password);
-        onSuccess?.();
+        chars[index] = char || ' ';
+        
+        onChange(chars.join('').replace(/\s+$/, ''));
+        
+        if (char && index < 5) {
+            refs.current[index + 1]?.focus();
+        }
     };
 
-    const handleUnlock = async (e?: React.FormEvent) => {
-        e?.preventDefault();
-        const success = await unlockVault(password);
-        if (success) {
-            onSuccess?.();
-        } else {
-            setError(t('keys.error.wrongPwd', 'Incorrect password'));
+    const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Backspace') {
+            const currentChar = value[index];
+            if (!currentChar || currentChar === ' ') {
+                if (index > 0) {
+                    e.preventDefault();
+                    refs.current[index - 1]?.focus();
+                    let chars = value.split('');
+                    for (let i = 0; i < 6; i++) if (!chars[i]) chars[i] = ' ';
+                    chars[index - 1] = ' ';
+                    onChange(chars.join('').replace(/\s+$/, ''));
+                }
+            }
+        } else if (e.key === 'ArrowLeft' && index > 0) {
+            refs.current[index - 1]?.focus();
+        } else if (e.key === 'ArrowRight' && index < 5) {
+            refs.current[index + 1]?.focus();
+        }
+    };
+
+    const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+        e.preventDefault();
+        const pasted = e.clipboardData.getData('text').slice(0, 6);
+        onChange(pasted);
+        if (pasted.length > 0) {
+            const focusIndex = Math.min(pasted.length, 5);
+            refs.current[focusIndex]?.focus();
         }
     };
 
     return (
-        <div className="flex flex-col items-center justify-center p-6 w-full">
-            <div className="flex justify-center mb-6">
-                <div className="p-4 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+        <div className="flex justify-center gap-2 sm:gap-3" dir="ltr">
+            {[0, 1, 2, 3, 4, 5].map(i => {
+                const char = value[i];
+                const displayValue = char && char !== ' ' ? char : '';
+                return (
+                    <input
+                        key={i}
+                        ref={el => { refs.current[i] = el; }}
+                        type="password"
+                        maxLength={1}
+                        value={displayValue}
+                        onChange={e => handleChange(i, e)}
+                        onKeyDown={e => handleKeyDown(i, e)}
+                        onPaste={handlePaste}
+                        disabled={disabled}
+                        className="w-11 h-14 sm:w-12 sm:h-16 text-center text-2xl font-bold bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:bg-white dark:focus:bg-slate-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all disabled:opacity-50"
+                    />
+                );
+            })}
+        </div>
+    );
+};
+
+// ==========================================
+// 验证表单主组件 (已接入 Hook)
+// ==========================================
+interface Props {
+    onSuccess?: () => void;
+}
+
+export const VaultAuthForm = ({ onSuccess }: Props) => {
+    const {
+        status,
+        isLoading,
+        password,
+        setupStep,
+        error,
+        handlePinChange,
+        resetSetup,
+        getTitle,
+        getDesc,
+        t
+    } = useVaultAuthForm({ onSuccess });
+
+    return (
+        <div className="flex flex-col items-center justify-center p-8 w-full">
+            <div className="flex justify-center mb-8">
+                <div className="p-4 bg-blue-100 dark:bg-blue-900/30 rounded-2xl shadow-inner">
                     {status === 'uninitialized' ? (
                         <ShieldCheck className="w-10 h-10 text-blue-600 dark:text-blue-400" />
                     ) : (
@@ -49,54 +128,40 @@ export const VaultAuthForm = ({ onSuccess }: Props) => {
                 </div>
             </div>
 
-            <h2 className="text-2xl font-bold text-center text-slate-800 dark:text-slate-100 mb-2">
-                {status === 'uninitialized' ? t('keys.setup.title', 'Setup Key Vault') : t('keys.setup.unlock_title', 'Unlock Vault')}
+            <h2 className="text-2xl font-bold text-center text-slate-800 dark:text-slate-100 mb-3 animate-in fade-in">
+                {getTitle()}
             </h2>
-            <p className="text-center text-slate-500 dark:text-slate-400 mb-8 text-sm max-w-xs">
-                {status === 'uninitialized' 
-                    ? t('keys.setup.desc', 'Your keys are encrypted using a master password. Please set one up to continue.')
-                    : t('keys.setup.unlock_desc', 'Please enter your master password to access your keys.')}
+            <p className="text-center text-slate-500 dark:text-slate-400 mb-8 text-sm max-w-[280px] leading-relaxed animate-in fade-in">
+                {getDesc()}
             </p>
 
-            <form onSubmit={status === 'locked' ? handleUnlock : (e) => { e.preventDefault(); handleSetup(); }} className="space-y-4 w-full max-w-sm">
-                <div>
-                    <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => { setPassword(e.target.value); setError(''); }}
-                        placeholder={status === 'uninitialized' ? t('keys.placeholder.setPwd', 'Set Master Password') : t('keys.placeholder.enterPwd', 'Master Password')}
-                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                        autoFocus
-                    />
+            <div className="w-full max-w-sm flex flex-col items-center space-y-6">
+                <PinInput 
+                    value={password} 
+                    onChange={handlePinChange} 
+                    disabled={isLoading} 
+                    autoFocus 
+                />
+
+                <div className="h-6 flex items-center justify-center">
+                    {isLoading ? (
+                        <Loader2 className="animate-spin w-5 h-5 text-blue-500" />
+                    ) : error ? (
+                        <p className="text-red-500 text-sm font-medium animate-in shake">{error}</p>
+                    ) : null}
                 </div>
-                
-                {status === 'uninitialized' && (
-                    <div className="animate-in fade-in slide-in-from-top-2">
-                        <input
-                            type="password"
-                            value={confirmPwd}
-                            onChange={(e) => setConfirmPwd(e.target.value)}
-                            placeholder={t('keys.placeholder.confirmPwd', 'Confirm Password')}
-                            className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                        />
-                    </div>
+
+                {status === 'uninitialized' && setupStep === 2 && !isLoading && (
+                    <button 
+                        type="button" 
+                        onClick={resetSetup}
+                        className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors animate-in fade-in"
+                    >
+                        <RefreshCcw className="w-3.5 h-3.5" />
+                        {t('common.startOver', 'Start over')}
+                    </button>
                 )}
-
-                {error && <p className="text-red-500 text-sm text-center animate-in shake">{error}</p>}
-
-                <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                    {isLoading ? <Loader2 className="animate-spin w-5 h-5" /> : (
-                        <>
-                            {status === 'uninitialized' ? t('common.create', 'Create Vault') : t('common.unlock', 'Unlock')}
-                            <ArrowRight className="w-4 h-4" />
-                        </>
-                    )}
-                </button>
-            </form>
+            </div>
         </div>
     );
 };

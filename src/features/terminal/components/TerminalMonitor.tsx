@@ -113,7 +113,7 @@ export const TerminalMonitor = ({ collapsed = false, onToggle }: Props) => {
         </div>
       </div>
 
-      <div className="flex-1 w-full overflow-y-auto no-scrollbar px-3 pb-20">
+      <div className="flex-1 w-full overflow-y-auto px-3 pb-20 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         <LayoutGroup id="monitor-group">
           <div className="flex flex-col gap-3 pt-1"> 
             {CARD_DESCRIPTORS.map(({ id, Component, icon, color }) => (

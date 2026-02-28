@@ -29,18 +29,21 @@ function App() {
   useSecurityEffects();
   
   const settings = useSettingsStore(s => s.settings);
-  // 🟢 [新增] 获取设备身份初始化方法 (用于备份识别)
   const initDeviceIdentity = useSettingsStore(s => s.initDeviceIdentity);
 
-  // 获取保险库状态
+  // 🟢 修复 1：使用精确的 selector 读取状态，确保 React 能够100%监听到状态变化
   const vaultStatus = useKeyStore(s => s.status);
+  const checkVaultStatus = useKeyStore(s => s.checkVaultStatus);
 
   const appTheme = settings?.['appearance.appTheme']; 
+  const customFont = settings?.['appearance.fontFamily'];
 
-  // 🟢 [新增] 应用启动时初始化设备身份 ID
+  // 🟢 修复 2：在应用启动时主动检查金库状态 (代替你之前删掉的 KeyVaultGuard)
   useEffect(() => {
-    // 这里的 initDeviceIdentity 是在 useSettingsStore 中定义的
-    // 务必确保你已经在 store 中添加了这个 action
+    checkVaultStatus();
+  }, [checkVaultStatus]);
+
+  useEffect(() => {
     if (initDeviceIdentity) {
       initDeviceIdentity();
     }
@@ -52,7 +55,6 @@ function App() {
     }
   }, [appTheme]);
 
-  const customFont = settings?.['appearance.fontFamily'];
   useEffect(() => {
     let styleTag = document.getElementById('dynamic-font-override') as HTMLStyleElement;
     if (!styleTag) {
@@ -111,9 +113,10 @@ function App() {
 
   return (
     <BrowserRouter>
-      {/* 全局锁屏遮罩 */}
-      {vaultStatus === 'locked' && (
-        <div className="fixed inset-0 z-[9999] bg-white dark:bg-slate-950 flex flex-col items-center justify-center animate-in fade-in duration-300">
+      {/* 🟢 修复 3：恢复你第一版的全局锁屏遮罩逻辑，并改为严格白名单验证 */}
+      {/* 只要状态不是 'unlocked'，就无条件拦截，防止初始状态漏洞 */}
+      {vaultStatus !== 'unlocked' && (
+        <div className="fixed inset-0 z-[9999] bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center animate-in fade-in duration-300">
            <div className="w-full max-w-md px-4">
               <VaultAuthForm />
            </div>
