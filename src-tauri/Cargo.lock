@@ -11,6 +11,7 @@ dependencies = [
  "chrono",
  "font-kit",
  "hmac",
+ "libssh2-sys",
  "pbkdf2 0.12.2",
  "rand 0.8.5",
  "regex",

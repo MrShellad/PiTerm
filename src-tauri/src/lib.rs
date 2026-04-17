@@ -13,7 +13,7 @@ use tauri::{
 use std::sync::Mutex;
 use crate::state::AppState;
 use commands::monitor::MonitorCache;
-use commands::ssh::SshState;
+use commands::ssh::{HostKeyVerificationCache, SshState};
 use commands::vault::VaultState;
 use tauri_plugin_autostart::MacosLauncher;
 
@@ -95,6 +95,7 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         // 状态管理
         .manage(SshState::default())
+        .manage(HostKeyVerificationCache::default())
         .manage(MonitorCache::new())
         .manage(VaultState(Mutex::new(None)))
         

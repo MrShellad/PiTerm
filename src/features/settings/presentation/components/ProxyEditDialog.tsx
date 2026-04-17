@@ -72,10 +72,10 @@ export const ProxyEditDialog = ({ isOpen, onClose, onSave, initialData }: Props)
   useEffect(() => {
     if (isOpen) {
       if (initialData) {
-        let user = '';
-        let pass = '';
+        let user = initialData.username || '';
+        let pass = initialData.password || '';
         
-        if (initialData.encryptedAuth && encryptionKey) {
+        if (!user && !pass && initialData.encryptedAuth && encryptionKey) {
           try {
             const json = SimpleCrypto.decrypt(initialData.encryptedAuth, encryptionKey);
             if (json) {
@@ -123,6 +123,8 @@ export const ProxyEditDialog = ({ isOpen, onClose, onSave, initialData }: Props)
       type: formData.type,
       host: formData.host,
       port: Number(formData.port),
+      username: formData.username || undefined,
+      password: formData.password || undefined,
       encryptedAuth,
       createdAt: initialData?.createdAt || now,
       updatedAt: now 

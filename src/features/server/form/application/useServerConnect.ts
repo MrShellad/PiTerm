@@ -85,8 +85,6 @@ export const useServerConnect = () => {
     if (server.authType === 'key') {
         // 🟢 本地化日志
         setLogs(prev => [...prev, t('server.logs.authKey', 'Auth Method: Public Key. Initializing tunnel...')]);
-        await executeConnection(server);
-        return;
     }
 
     try {

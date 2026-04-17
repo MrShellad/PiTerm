@@ -131,6 +131,8 @@ pub struct SshConfig {
     pub host: String,
     pub port: u16,
     pub username: String,
+    pub connection_type: ConnectionType,
+    pub proxy: Option<Proxy>,
     
     pub password: Option<String>, 
     pub private_key: Option<String>, 
@@ -203,6 +205,8 @@ pub struct TestConnectionPayload {
     pub port: u16,
     pub username: String,
     pub auth_type: String, // "password" | "key" | "privateKey"
+    #[serde(default = "default_connection_type")]
+    pub connection_type: ConnectionType,
 
     // 密码相关
     pub password_source: Option<String>, // "manual" | "store"

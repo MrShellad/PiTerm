@@ -2,8 +2,7 @@ use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, State, Manager, Emitter};
 use sqlx::Row;
 use serde_json::Value;
-use crate::models::TestConnectionPayload;
-use crate::models::SshConfig;
+use crate::models::{ConnectionType, Proxy, SshConfig, TestConnectionPayload};
 use crate::state::AppState;
 use crate::commands::vault::{VaultState, internal_get_secret};
 
@@ -12,14 +11,16 @@ use ssh2::{CheckResult, KnownHostFileKind};
 use std::net::TcpStream;
 use std::path::PathBuf;
 use std::fs::OpenOptions;
+use std::collections::HashMap;
 use std::io::Write;
+use std::time::Instant;
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 
 // 导出子模块
 pub mod core;
 pub mod state;
 
-pub use state::{SshConnection, SshState};
+pub use state::{HostKeyVerificationCache, PendingHostKey, SshConnection, SshState};
 use core::{
     create_monitor_session, create_sftp_session, create_shell_channel, spawn_shell_reader_thread,configure_legacy_algorithms
 };
@@ -63,12 +64,42 @@ fn emit_ssh_log(app: &AppHandle, msg: &str) {
     let _ = app.emit("ssh-log", format!("[{}] {}", timestamp, msg));
 }
 
+fn prune_pending_host_keys(cache: &mut HashMap<String, PendingHostKey>) {
+    cache.retain(|_, entry| !entry.is_expired());
+}
+
+async fn load_proxy_for_connection(
+    db_pool: &sqlx::SqlitePool,
+    connection_type: &ConnectionType,
+    proxy_id: Option<&str>,
+) -> Result<Option<Proxy>, String> {
+    if matches!(connection_type, ConnectionType::Direct) {
+        return Ok(None);
+    }
+
+    let proxy_id = proxy_id
+        .filter(|value| !value.trim().is_empty())
+        .ok_or_else(|| "Proxy mode selected but no proxy profile is configured.".to_string())?;
+
+    sqlx::query_as::<_, Proxy>(
+        "SELECT id, name, proxy_type, host, port, username, password, created_at, updated_at
+         FROM proxies WHERE id = ?",
+    )
+    .bind(proxy_id)
+    .fetch_optional(db_pool)
+    .await
+    .map_err(|e| format!("Proxy Query Error: {}", e))?
+    .ok_or_else(|| format!("Proxy not found with ID: {}", proxy_id))
+    .map(Some)
+}
+
 // ==============================================================================
 // 🟢 [新增] 命令：检查主机密钥
 // ==============================================================================
 #[tauri::command]
 pub async fn check_host_key(
     app: AppHandle,
+    verification_cache: State<'_, HostKeyVerificationCache>,
     _id: String, // 预留服务器 ID 参数
     host: String,
     port: u16
@@ -76,7 +107,10 @@ pub async fn check_host_key(
     // 立即向前端发送开始日志
     emit_ssh_log(&app, &format!("Checking host identity for {}:{}...", host, port));
 
+    let cache = verification_cache.entries.clone();
+
     tauri::async_runtime::spawn_blocking(move || {
+
         // 1. 尝试建立 TCP 连接
         emit_ssh_log(&app, "Connecting to target host (TCP)...");
         let tcp = TcpStream::connect(format!("{}:{}", host, port))
@@ -91,6 +125,7 @@ pub async fn check_host_key(
         let mut sess = ssh2::Session::new().map_err(|e| e.to_string())?;
         
         configure_legacy_algorithms(&mut sess);
+        sess.set_timeout(10_000);
 
         sess.set_tcp_stream(tcp);
         sess.handshake().map_err(|e| {
@@ -146,6 +181,25 @@ pub async fn check_host_key(
             },
         };
 
+        let mut entries = cache.lock().unwrap();
+        prune_pending_host_keys(&mut entries);
+
+        if status == "verified" {
+            entries.remove(&_id);
+        } else {
+            entries.insert(
+                _id.clone(),
+                PendingHostKey {
+                    host: host.clone(),
+                    port,
+                    key_type: key_type.clone(),
+                    fingerprint: fingerprint.clone(),
+                    host_key: host_key.to_vec(),
+                    cached_at: Instant::now(),
+                },
+            );
+        }
+
         Ok(HostKeyCheckResult {
             status: status.to_string(),
             data: if status != "verified" {
@@ -165,15 +219,18 @@ pub async fn check_host_key(
 // 🟢 [新增] 命令：信任主机密钥 (手动文件写入版)
 // ==============================================================================
 #[tauri::command]
+#[allow(unreachable_code)]
 pub async fn trust_host_key(
     app: AppHandle,
     app_state: State<'_, AppState>,
+    verification_cache: State<'_, HostKeyVerificationCache>,
     id: String,          
     fingerprint: String, 
     _key_type: String     // 未使用
 ) -> Result<(), String> {
     
     let db_pool = &app_state.db;
+    let cache = verification_cache.entries.clone();
 
     // 1. 从数据库获取 IP 和 Port (确保安全性，不信任前端传来的 IP)
     let row = sqlx::query("SELECT ip, port FROM servers WHERE id = ?")
@@ -187,6 +244,52 @@ pub async fn trust_host_key(
     let port: u16 = row.get::<i64, _>("port") as u16;
 
     tauri::async_runtime::spawn_blocking(move || {
+        let pending = {
+            let mut entries = cache.lock().unwrap();
+            prune_pending_host_keys(&mut entries);
+            entries.remove(&id)
+        }
+        .ok_or_else(|| "Host verification expired. Please verify the host again.".to_string())?;
+
+        if pending.host != host || pending.port != port {
+            return Err("Host verification no longer matches the saved server target.".to_string());
+        }
+
+        if pending.fingerprint != fingerprint {
+            return Err(format!(
+                "Security Warning: Expected fingerprint {}, got cached {}",
+                fingerprint, pending.fingerprint
+            ));
+        }
+
+        let key_base64 = BASE64.encode(&pending.host_key);
+        let line = if port == 22 {
+            format!("{} {} {}\n", host, pending.key_type, key_base64)
+        } else {
+            format!("[{}]:{} {} {}\n", host, port, pending.key_type, key_base64)
+        };
+
+        let known_hosts_path = get_known_hosts_path(&app)
+            .ok_or("Could not determine home directory")?;
+
+        if let Some(parent) = known_hosts_path.parent() {
+            if !parent.exists() {
+                std::fs::create_dir_all(parent)
+                    .map_err(|e| format!("Failed to create .ssh dir: {}", e))?;
+            }
+        }
+
+        let mut file = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&known_hosts_path)
+            .map_err(|e| format!("Failed to open known_hosts: {}", e))?;
+
+        file.write_all(line.as_bytes())
+            .map_err(|e| format!("Failed to write to known_hosts: {}", e))?;
+
+        return Ok(());
+
         // 2. 重新连接获取密钥 (为了获取原始密钥数据)
         let tcp = TcpStream::connect(format!("{}:{}", host, port))
             .map_err(|e| format!("Re-connection failed: {}", e))?;
@@ -274,7 +377,7 @@ pub async fn connect_ssh(
 
     // 1. --- 从数据库查询服务器基础信息 ---
     let row = sqlx::query(
-        "SELECT id, ip, port, username, auth_type, password_id, key_id, passphrase, private_key, password, 
+        "SELECT id, ip, port, username, connection_type, proxy_id, auth_type, password_id, key_id, passphrase, private_key, password, 
                 connect_timeout, keep_alive_interval, auto_reconnect, max_reconnects 
          FROM servers WHERE id = ?"
     )
@@ -288,6 +391,8 @@ pub async fn connect_ssh(
     let host: String = row.get("ip");
     let port: u16 = row.get::<i64, _>("port") as u16;
     let username: String = row.get("username");
+    let connection_type: ConnectionType = row.try_get("connection_type").unwrap_or(ConnectionType::Direct);
+    let proxy_id: Option<String> = row.try_get("proxy_id").ok();
     let auth_type: String = row.get("auth_type");
 
     let connect_timeout: Option<u32> = row.try_get("connect_timeout").ok();
@@ -409,11 +514,15 @@ pub async fn connect_ssh(
     }
 
     // 3. --- 组装 SshConfig 对象 ---
+    let proxy = load_proxy_for_connection(db_pool, &connection_type, proxy_id.as_deref()).await?;
+
     let config = SshConfig {
         id: server_id.clone(),
         host,
         port,
         username,
+        connection_type,
+        proxy,
         password: final_password,
         private_key: final_private_key,
         passphrase: final_passphrase, 
@@ -440,7 +549,7 @@ pub async fn connect_ssh(
         }
 
         // B. 建立连接
-        let (_shell_sess, shell_channel) =
+        let (shell_sess, shell_channel) =
             create_shell_channel(&config).map_err(|e| format!("Shell Connection Failed: {}", e))?;
 
         let monitor_sess = create_monitor_session(&config_monitor);
@@ -456,6 +565,7 @@ pub async fn connect_ssh(
             map.insert(
                 session_id.clone(),
                 SshConnection {
+                    shell_session: shell_sess.clone(),
                     shell_channel: shell_channel_arc.clone(),
                     monitor_session: monitor_session_arc,
                     sftp_session: sftp_session_arc,
@@ -464,7 +574,7 @@ pub async fn connect_ssh(
         }
 
         // D. 启动读取线程
-        spawn_shell_reader_thread(app, shell_channel_arc, session_id.clone());
+        spawn_shell_reader_thread(app, shell_sess, shell_channel_arc, session_id.clone());
 
         Ok(())
     })
@@ -599,11 +709,20 @@ pub async fn test_connection(
         final_private_key = Some(key_clean);
     }
 
+    let proxy = load_proxy_for_connection(
+        db_pool,
+        &payload.connection_type,
+        payload.proxy_id.as_deref(),
+    )
+    .await?;
+
     let config = SshConfig {
         id: "test_session".to_string(),
         host: payload.ip,
         port: payload.port,
         username: payload.username,
+        connection_type: payload.connection_type,
+        proxy,
         password: final_password,
         private_key: final_private_key,
         passphrase: final_passphrase,
@@ -674,6 +793,8 @@ pub async fn quick_connect(
         host: ip,
         port,
         username,
+        connection_type: ConnectionType::Direct,
+        proxy: None,
         password,       
         private_key: final_private_key,    
         passphrase,
@@ -704,7 +825,7 @@ pub async fn quick_connect(
 
         // B. 建立 Shell 通道
         // 复用 core 模块中的底层函数
-        let (_shell_sess, shell_channel) =
+        let (shell_sess, shell_channel) =
             create_shell_channel(&config).map_err(|e| format!("Shell Connection Failed: {}", e))?;
 
         // C. 建立辅助会话 (监控和文件传输)
@@ -721,6 +842,7 @@ pub async fn quick_connect(
             map.insert(
                 session_id.clone(),
                 SshConnection {
+                    shell_session: shell_sess.clone(),
                     shell_channel: shell_channel_arc.clone(),
                     monitor_session: monitor_session_arc,
                     sftp_session: sftp_session_arc,
@@ -729,7 +851,7 @@ pub async fn quick_connect(
         }
 
         // E. 启动读取线程 (监听 SSH 输出并发回前端)
-        spawn_shell_reader_thread(app, shell_channel_arc, session_id);
+        spawn_shell_reader_thread(app, shell_sess, shell_channel_arc, session_id);
 
         Ok(())
     })

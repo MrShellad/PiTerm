@@ -345,7 +345,8 @@ export const useSettingsStore = create<SettingsState>()(
             const list = await invoke<any[]>('get_all_proxies');
             const formatted = list.map(p => ({
                 ...p,
-                type: p.proxyType || p.type 
+                type: p.proxyType || p.type,
+                encryptedAuth: p.encryptedAuth || ((p.username || p.password) ? '__stored__' : undefined),
             }));
             set({ proxies: formatted });
         } catch (e) { console.error("DB Error:", e); }

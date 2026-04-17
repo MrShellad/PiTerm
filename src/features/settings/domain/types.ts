@@ -33,6 +33,8 @@ export interface ProxyItem {
   host: string;
   port: number;
   // 敏感字段 (加密存储)
+  username?: string;
+  password?: string;
   encryptedAuth?: string; 
   //[新增] 必须添加此字段以匹配 Rust 后端
   createdAt: number; 
