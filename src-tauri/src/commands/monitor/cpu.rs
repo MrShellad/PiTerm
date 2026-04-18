@@ -66,12 +66,12 @@ pub async fn get_ssh_cpu_info(
 ) -> Result<RemoteCpuInfo, String> {
     let session_arc = {
         let map = ssh_state.sessions.lock().unwrap();
-        map.get(&id).map(|c| c.monitor_session.clone()).ok_or("SSH not active")?
+        map.get(&id).map(|c| c.bg_session.clone()).ok_or("SSH not active")?
     };
 
     let output = tauri::async_runtime::spawn_blocking(move || {
-        let sess_guard = session_arc.lock().unwrap();
-        let sess = sess_guard.as_ref().ok_or("Monitor session unavailable")?;
+        let sess = session_arc.lock().unwrap();
+        
         let mut channel = sess.channel_session().map_err(|e| e.to_string())?;
         
         // 🟢 组合指令：模型、逻辑数、物理数、负载、CPU 统计

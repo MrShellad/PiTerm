@@ -9,9 +9,9 @@ macro_rules! run_sftp {
     ($ssh_state:expr, $id:expr, |$fs:ident| $block:expr) => {{
         let session_arc = get_sftp_session_arc($ssh_state, &$id)?;
         tauri::async_runtime::spawn_blocking(move || {
-            let sess_guard = session_arc.lock().unwrap();
-            let sess = sess_guard.as_ref().ok_or("SFTP session unavailable")?;
-            let $fs = SftpFileSystem::new(sess);
+            let sess = session_arc.lock().unwrap();
+            
+            let $fs = SftpFileSystem::new(&sess);
             $block
         })
         .await

@@ -4,10 +4,9 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 pub struct SshConnection {
-    pub shell_session: Session,
+    pub shell_session: Arc<Mutex<Session>>,
+    pub bg_session: Arc<Mutex<Session>>,
     pub shell_channel: Arc<Mutex<Channel>>,
-    pub monitor_session: Arc<Mutex<Option<Session>>>,
-    pub sftp_session: Arc<Mutex<Option<Session>>>,
 }
 
 impl Drop for SshConnection {
@@ -17,20 +16,12 @@ impl Drop for SshConnection {
             let _ = channel.wait_close();
         }
 
-        let _ = self
-            .shell_session
-            .disconnect(None, "PiTerm disconnect", None);
-
-        if let Ok(mut session) = self.monitor_session.lock() {
-            if let Some(session) = session.take() {
-                let _ = session.disconnect(None, "PiTerm disconnect", None);
-            }
+        if let Ok(session) = self.shell_session.lock() {
+            let _ = session.disconnect(None, "PiTerm disconnect", None);
         }
 
-        if let Ok(mut session) = self.sftp_session.lock() {
-            if let Some(session) = session.take() {
-                let _ = session.disconnect(None, "PiTerm disconnect", None);
-            }
+        if let Ok(session) = self.bg_session.lock() {
+            let _ = session.disconnect(None, "PiTerm disconnect", None);
         }
     }
 }

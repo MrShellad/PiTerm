@@ -26,18 +26,13 @@ pub async fn get_ssh_mem_info(
     let session_arc = {
         let map = ssh_state.sessions.lock().unwrap();
         match map.get(&id) {
-            Some(conn) => conn.monitor_session.clone(),
+            Some(conn) => conn.bg_session.clone(),
             None => return Err("SSH connection not active".to_string()),
         }
     };
 
     let output = tauri::async_runtime::spawn_blocking(move || {
-        let sess_guard = session_arc.lock().unwrap();
-        let sess = match &*sess_guard {
-            Some(s) => s,
-            None => return Err("Monitor session unavailable".to_string()),
-        };
-
+        let sess = session_arc.lock().unwrap();
         let mut channel = sess.channel_session().map_err(|e: ssh2::Error| e.to_string())?;
         channel.exec("cat /proc/meminfo").map_err(|e: ssh2::Error| e.to_string())?;
 

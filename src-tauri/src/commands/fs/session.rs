@@ -8,10 +8,10 @@ use tauri::State;
 pub fn get_sftp_session_arc(
     ssh_state: &State<'_, SshState>,
     id: &str,
-) -> Result<Arc<Mutex<Option<Session>>>, String> {
+) -> Result<Arc<Mutex<Session>>, String> {
     let map = ssh_state.sessions.lock().map_err(|e| e.to_string())?;
     let conn = map.get(id).ok_or("SSH connection not active")?;
     
-    // Return sftp_session
-    Ok(conn.sftp_session.clone())
+    // Return sftp_session (now named bg_session)
+    Ok(conn.bg_session.clone())
 }

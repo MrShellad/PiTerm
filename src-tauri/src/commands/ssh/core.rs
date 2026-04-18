@@ -536,31 +536,7 @@ pub fn create_shell_channel(config: &SshConfig) -> Result<(Session, Channel), St
     Ok((sess, channel))
 }
 
-pub fn create_monitor_session(config: &SshConfig) -> Option<Session> {
-    match establish_base_session(config) {
-        Ok(sess) => Some(sess),
-        Err(e) => {
-            eprintln!(
-                "[SSH] WARNING: Monitor connection failed: {}. Monitoring disabled.",
-                e
-            );
-            None
-        }
-    }
-}
 
-pub fn create_sftp_session(config: &SshConfig) -> Option<Session> {
-    match establish_base_session(config) {
-        Ok(sess) => Some(sess),
-        Err(e) => {
-            eprintln!(
-                "[SSH] WARNING: SFTP connection failed: {}. File manager disabled.",
-                e
-            );
-            None
-        }
-    }
-}
 
 pub fn spawn_shell_reader_thread(
     app: AppHandle,

@@ -21,13 +21,13 @@ pub async fn get_ssh_process_list(
     let session_arc = {
         let map = ssh_state.sessions.lock().unwrap();
         map.get(&id)
-            .map(|c| c.monitor_session.clone())
+            .map(|c| c.bg_session.clone())
             .ok_or("SSH connection not active")?
     };
 
     let output = tauri::async_runtime::spawn_blocking(move || {
-        let sess_guard = session_arc.lock().unwrap();
-        let sess = sess_guard.as_ref().ok_or("Monitor session unavailable")?;
+        let sess = session_arc.lock().unwrap();
+        
         let mut channel = sess.channel_session().map_err(|e| e.to_string())?;
         
         // 🟢 执行指令：获取 PID, 进程名, CPU%, RSS内存(KB)
