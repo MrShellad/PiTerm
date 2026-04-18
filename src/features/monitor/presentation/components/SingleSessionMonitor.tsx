@@ -84,10 +84,49 @@ export const SingleSessionMonitor = ({ sessionId, isDashboard = false }: Props) 
 
   if (!sessionData) {
       return (
-          <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-2 animate-pulse">
-              <div className="w-8 h-8 rounded-full border-2 border-slate-300 border-t-blue-500 animate-spin" />
-              <span className="text-xs font-medium">{t('monitor.connecting', 'Connecting...')}</span>
+        <div className="h-full w-full flex flex-col relative overflow-hidden">
+          <div className={clsx(
+              "h-full w-full overflow-y-auto custom-scrollbar",
+              isDashboard ? "px-1 py-2" : "p-4"
+          )}>
+            <div className="flex flex-col gap-4 pb-4">
+              <div className={clsx(
+                  "gap-3",
+                  isDashboard
+                    ? "flex flex-col"
+                    : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+              )}>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="min-h-[7rem] w-full p-4 rounded-xl border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-slate-900/50 flex flex-col justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-slate-200/50 dark:bg-white/5 animate-pulse" />
+                      <div className="flex-1 space-y-2">
+                         <div className="h-4 bg-slate-200/50 dark:bg-white/5 rounded w-1/3 animate-pulse" />
+                         <div className="h-3 bg-slate-200/50 dark:bg-white/5 rounded w-1/2 animate-pulse" />
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2 mt-4 pl-0.5">
+                      <div className="h-3 bg-slate-200/50 dark:bg-white/5 rounded w-1/4 animate-pulse" />
+                      <div className="h-6 bg-slate-200/50 dark:bg-white/5 rounded w-1/3 animate-pulse" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="min-h-[16rem] w-full p-4 rounded-xl border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-slate-900/50 flex flex-col gap-4">
+                 <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-slate-200/50 dark:bg-white/5 animate-pulse" />
+                    <div className="h-4 bg-slate-200/50 dark:bg-white/5 rounded w-1/6 animate-pulse" />
+                 </div>
+                 <div className="space-y-3 mt-4">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <div key={i} className="h-8 bg-slate-200/50 dark:bg-white/5 rounded w-full animate-pulse" />
+                    ))}
+                 </div>
+              </div>
+            </div>
           </div>
+        </div>
       );
   }
 
