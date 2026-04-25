@@ -3,11 +3,10 @@ import { useEffect, useState, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { Server, Cpu, Zap, Database, Wifi } from "lucide-react";
-import { useTranslation } from "react-i18next";
 import { LayoutGroup } from "framer-motion";
 import { clsx } from "clsx";
 
-import { useMonitorStore, RemoteCpuInfo, RemoteMemInfo, RemoteDiskInfo, RemoteOsInfo, RemoteNetworkInfo } from "@/store/useMonitorStore";
+import { useMonitorStore, SessionMonitorData } from "@/store/useMonitorStore";
 import { MonitorDescriptor, MonitorSyncPayload } from "@/features/terminal/components/monitor/types";
 
 import { InfoCard } from "@/features/terminal/components/monitor/card/InfoCard";
@@ -23,7 +22,6 @@ interface Props {
 }
 
 export const SingleSessionMonitor = ({ sessionId, isDashboard = false }: Props) => {
-  const { t } = useTranslation();
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const { sessions, setSessionData, updateHistory } = useMonitorStore();
@@ -52,25 +50,17 @@ export const SingleSessionMonitor = ({ sessionId, isDashboard = false }: Props) 
     // 兜底逻辑
     const fetchData = async () => {
       try {
-        const [cpu, mem, disk, os, net] = await Promise.allSettled([
-          invoke<RemoteCpuInfo>("get_ssh_cpu_info", { id: sessionId }),
-          invoke<RemoteMemInfo>("get_ssh_mem_info", { id: sessionId }),
-          invoke<RemoteDiskInfo>("get_ssh_disk_info", { id: sessionId }),
-          invoke<RemoteOsInfo>("get_ssh_os_info", { id: sessionId }),
-          invoke<RemoteNetworkInfo>("get_ssh_network_info", { id: sessionId }),
-        ]);
+        const updates = await invoke<Partial<SessionMonitorData>>("get_ssh_combined_info", {
+          id: sessionId,
+        });
 
-        const updates: any = {};
-        if (cpu.status === "fulfilled") {
-          updates.cpu = cpu.value;
-          updateHistory(sessionId, cpu.value.usage);
+        if (updates.cpu) {
+          updateHistory(sessionId, updates.cpu.usage);
         }
-        if (mem.status === "fulfilled") updates.mem = mem.value;
-        if (disk.status === "fulfilled") updates.disk = disk.value;
-        if (os.status === "fulfilled") updates.os = os.value;
-        if (net.status === "fulfilled") updates.network = net.value;
 
-        setSessionData(sessionId, updates);
+        if (Object.keys(updates).length > 0) {
+          setSessionData(sessionId, updates);
+        }
       } catch (err) {}
     };
 

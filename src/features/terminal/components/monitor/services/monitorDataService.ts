@@ -1,39 +1,27 @@
 // src/features/terminal/components/monitor/services/monitorDataService.ts
 import { invoke } from "@tauri-apps/api/core";
 import { emit } from "@tauri-apps/api/event";
-import { 
-    RemoteCpuInfo, 
-    RemoteMemInfo, 
-    RemoteDiskInfo, 
-    RemoteOsInfo, 
-    RemoteNetworkInfo 
-} from "@/store/useMonitorStore";
+import { SessionMonitorData } from "@/store/useMonitorStore";
 import { MonitorSyncPayload } from "../types";
+
+const isExpectedMonitorError = (err: unknown) => {
+  const message = String(err).toLowerCase();
+  return message.includes("ssh connection not active");
+};
 
 export const MonitorDataService = {
   /**
    * 单次抓取服务器的监控数据
    */
-  fetchSessionData: async (sessionId: string) => {
-    const updates: any = {};
+  fetchSessionData: async (sessionId: string): Promise<Partial<SessionMonitorData>> => {
     try {
-      const [cpu, mem, disk, os, net] = await Promise.allSettled([
-        invoke<RemoteCpuInfo>("get_ssh_cpu_info", { id: sessionId }),
-        invoke<RemoteMemInfo>("get_ssh_mem_info", { id: sessionId }),
-        invoke<RemoteDiskInfo>("get_ssh_disk_info", { id: sessionId }),
-        invoke<RemoteOsInfo>("get_ssh_os_info", { id: sessionId }),
-        invoke<RemoteNetworkInfo>("get_ssh_network_info", { id: sessionId }),
-      ]);
-
-      if (cpu.status === "fulfilled") updates.cpu = cpu.value;
-      if (mem.status === "fulfilled") updates.mem = mem.value;
-      if (disk.status === "fulfilled") updates.disk = disk.value;
-      if (os.status === "fulfilled") updates.os = os.value;
-      if (net.status === "fulfilled") updates.network = net.value;
+      return await invoke<Partial<SessionMonitorData>>("get_ssh_combined_info", { id: sessionId });
     } catch (err) {
-      console.error("Error fetching monitor data:", err);
+      if (!isExpectedMonitorError(err)) {
+        console.error("Error fetching monitor data:", err);
+      }
+      return {};
     }
-    return updates;
   },
 
   /**
@@ -42,7 +30,7 @@ export const MonitorDataService = {
   startPolling: (
     sessionId: string,
     intervalMs: number,
-    onDataFetched: (updates: any) => void
+    onDataFetched: (updates: Partial<SessionMonitorData>) => void
   ) => {
     const fetchData = async () => {
       if (!sessionId) return;

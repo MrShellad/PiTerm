@@ -19,9 +19,12 @@ export const useFileManager = (sessionId?: string) => {
   const isValidSession = useTerminalStore(state => 
      sessionId ? !!state.sessions[sessionId] : false
   );
+  const terminalSessionStatus = useTerminalStore(state =>
+    sessionId ? state.sessions[sessionId]?.status : undefined
+  );
 
   const monitorSession = useMonitorStore(state => sessionId ? state.sessions[sessionId] : undefined);
-  const isConnectionReady = !!monitorSession?.os;
+  const isConnectionReady = terminalSessionStatus === "connected" && !!monitorSession?.os;
 
   const sessionState = sessionId ? getSession(sessionId) : null;
   const currentPath = sessionState?.currentPath || '/';
@@ -31,6 +34,14 @@ export const useFileManager = (sessionId?: string) => {
 
   const [error, setError] = useState<string | null>(null);
   const isMounted = useRef(true);
+  const getErrorMessage = (err: unknown) => String(err);
+  const isExpectedFileManagerError = (message: string) => {
+    const normalizedMessage = message.toLowerCase();
+    return normalizedMessage.includes("ssh connection not active")
+      || normalizedMessage.includes("sftp not enabled")
+      || normalizedMessage.includes("channel request failed")
+      || normalizedMessage.includes("unable to startup channel");
+  };
 
   useEffect(() => {
     isMounted.current = true;
@@ -58,7 +69,9 @@ export const useFileManager = (sessionId?: string) => {
                 }
             })
             .catch(err => {
-                console.warn("Failed to detect home directory:", err);
+                if (!isExpectedFileManagerError(getErrorMessage(err))) {
+                    console.warn("Failed to detect home directory:", err);
+                }
             });
     }
   }, [sessionId, isConnectionReady, currentPath, setPath, sessionState?.history.length]);
@@ -79,10 +92,12 @@ export const useFileManager = (sessionId?: string) => {
         setFiles(sessionId, files);
       }
     } catch (err: any) {
-      console.error("List files error:", err);
+      const errorMsg = getErrorMessage(err);
+      if (!isExpectedFileManagerError(errorMsg)) {
+        console.error("List files error:", err);
+      }
       if (isMounted.current) {
          setStoreLoading(sessionId, false);
-         const errorMsg = err.toString();
 
          if (errorMsg.includes("SFTP not enabled") || errorMsg.includes("channel request failed")) {
              setError("no_sftp");

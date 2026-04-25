@@ -11,6 +11,7 @@ import {
 import {
   AlertDialog,
   AlertDialogContent,
+  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
@@ -55,9 +56,9 @@ export const HostKeyVerificationModal = ({ open, data, onConfirm, onCancel }: Pr
           <AlertDialogTitle className="text-lg font-bold text-amber-800 dark:text-amber-200">
             {t('server.verify.title', 'Unknown Host')}
           </AlertDialogTitle>
-          <p className="text-sm text-amber-700/80 dark:text-amber-400 mt-2">
+          <AlertDialogDescription className="text-sm text-amber-700/80 dark:text-amber-400 mt-2">
             {t('server.verify.desc', 'The authenticity of host cannot be established. Connecting to this server for the first time.')}
-          </p>
+          </AlertDialogDescription>
         </div>
 
         {/* 信息详情区 */}

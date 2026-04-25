@@ -1,5 +1,5 @@
 use std::sync::{Arc, Mutex};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 use std::net::TcpStream;
 use tauri::{AppHandle, State};
 use std::collections::HashMap;
@@ -14,7 +14,10 @@ pub mod utils;
 pub mod host_key;
 pub mod resolver;
 
-pub use state::{HostKeyVerificationCache, PendingHostKey, SshConnection, SshState};
+pub use state::{
+    HostKeyVerificationCache, PendingHostKey, SshConnection, SshState,
+    remove_ssh_session, remove_ssh_session_if_instance, spawn_ssh_session_cleanup_task,
+};
 use core::{
     create_shell_channel, spawn_shell_reader_thread, configure_legacy_algorithms
 };
@@ -37,6 +40,28 @@ pub struct HostKeyData {
 
 fn prune_pending_host_keys(cache: &mut HashMap<String, PendingHostKey>) {
     cache.retain(|_, entry| !entry.is_expired());
+}
+
+const SSH_BLOCKING_OPERATION_TIMEOUT: Duration = Duration::from_secs(10);
+
+async fn run_blocking_ssh_task<T, F>(operation_name: &'static str, task: F) -> Result<T, String>
+where
+    T: Send + 'static,
+    F: FnOnce() -> Result<T, String> + Send + 'static,
+{
+    tokio::time::timeout(
+        SSH_BLOCKING_OPERATION_TIMEOUT,
+        async move { tauri::async_runtime::spawn_blocking(task).await },
+    )
+    .await
+    .map_err(|_| {
+        format!(
+            "SSH {} timed out after {}s",
+            operation_name,
+            SSH_BLOCKING_OPERATION_TIMEOUT.as_secs()
+        )
+    })?
+    .map_err(|e| format!("SSH {} task failed: {}", operation_name, e))?
 }
 
 #[tauri::command]
@@ -212,12 +237,8 @@ pub async fn connect_ssh(
     let config = resolver::resolve_config(db_pool, &master_key, &server_id).await?;
 
     tauri::async_runtime::spawn_blocking(move || {
-        {
-            let mut map = sessions.lock().unwrap();
-            if map.contains_key(&session_id) {
-                map.remove(&session_id);
-            }
-        }
+        let existing = remove_ssh_session(&sessions, &session_id);
+        drop(existing);
 
         let (shell_sess, shell_channel) =
             create_shell_channel(&config).map_err(|e| format!("Shell Connection Failed: {}", e))?;
@@ -229,19 +250,29 @@ pub async fn connect_ssh(
         let shell_session_arc = Arc::new(Mutex::new(shell_sess.clone()));
         let bg_session_arc = Arc::new(Mutex::new(bg_sess));
 
+        let connection = SshConnection::new(
+            shell_session_arc.clone(),
+            bg_session_arc,
+            shell_channel_arc.clone(),
+        );
+        let connection_instance_id = connection.instance_id;
+
         {
             let mut map = sessions.lock().unwrap();
             map.insert(
                 session_id.clone(),
-                SshConnection {
-                    shell_session: shell_session_arc.clone(),
-                    bg_session: bg_session_arc,
-                    shell_channel: shell_channel_arc.clone(),
-                },
+                connection,
             );
         }
 
-        spawn_shell_reader_thread(app, shell_sess, shell_channel_arc, session_id);
+        spawn_shell_reader_thread(
+            app,
+            shell_sess,
+            shell_channel_arc,
+            sessions.clone(),
+            session_id,
+            connection_instance_id,
+        );
 
         Ok(())
     })
@@ -250,42 +281,83 @@ pub async fn connect_ssh(
 }
 
 #[tauri::command]
-pub fn disconnect_ssh(state: State<'_, SshState>, id: String) -> Result<(), String> {
-    let mut map = state.sessions.lock().unwrap();
-    if let Some(conn) = map.remove(&id) {
-        if let Ok(mut c) = conn.shell_channel.lock() {
-            let _ = c.close();
-        }
+pub async fn disconnect_ssh(state: State<'_, SshState>, id: String) -> Result<(), String> {
+    let conn = remove_ssh_session(&state.sessions, &id);
+
+    if let Some(conn) = conn {
+        run_blocking_ssh_task("disconnect", move || {
+            drop(conn);
+            Ok(())
+        })
+        .await?;
     }
+
     Ok(())
 }
 
 #[tauri::command]
-pub fn write_ssh(state: State<'_, SshState>, id: String, data: String) -> Result<(), String> {
-    let map = state.sessions.lock().unwrap();
-    if let Some(conn) = map.get(&id) {
-        if let Ok(mut c) = conn.shell_channel.lock() {
-            use std::io::Write;
-            c.write_all(data.as_bytes()).map_err(|e| e.to_string())?;
-            c.flush().map_err(|e| e.to_string())?;
-        }
-    }
-    Ok(())
+pub async fn write_ssh(state: State<'_, SshState>, id: String, data: String) -> Result<(), String> {
+    let channel = {
+        let map = state.sessions.lock().map_err(|e| e.to_string())?;
+        map.get(&id)
+            .map(|conn| {
+                conn.touch_client_heartbeat();
+                conn.shell_channel.clone()
+            })
+            .ok_or_else(|| "SSH connection not active".to_string())?
+    };
+
+    run_blocking_ssh_task("write", move || {
+        use std::io::Write;
+
+        let mut channel = channel
+            .lock()
+            .map_err(|e| format!("SSH channel lock failed: {}", e))?;
+
+        channel
+            .write_all(data.as_bytes())
+            .map_err(|e| e.to_string())?;
+        channel.flush().map_err(|e| e.to_string())
+    })
+    .await
 }
 
 #[tauri::command]
-pub fn resize_ssh(
+pub async fn resize_ssh(
     state: State<'_, SshState>,
     id: String,
     rows: u32,
     cols: u32,
 ) -> Result<(), String> {
-    let map = state.sessions.lock().unwrap();
-    if let Some(conn) = map.get(&id) {
-        if let Ok(mut c) = conn.shell_channel.lock() {
-            let _ = c.request_pty_size(cols, rows, None, None);
-        }
-    }
+    let channel = {
+        let map = state.sessions.lock().map_err(|e| e.to_string())?;
+        map.get(&id)
+            .map(|conn| {
+                conn.touch_client_heartbeat();
+                conn.shell_channel.clone()
+            })
+            .ok_or_else(|| "SSH connection not active".to_string())?
+    };
+
+    run_blocking_ssh_task("resize", move || {
+        let mut channel = channel
+            .lock()
+            .map_err(|e| format!("SSH channel lock failed: {}", e))?;
+
+        channel
+            .request_pty_size(cols, rows, None, None)
+            .map_err(|e| e.to_string())
+    })
+    .await
+}
+
+#[tauri::command]
+pub fn touch_ssh_session(state: State<'_, SshState>, id: String) -> Result<(), String> {
+    let map = state.sessions.lock().map_err(|e| e.to_string())?;
+    let conn = map
+        .get(&id)
+        .ok_or_else(|| "SSH connection not active".to_string())?;
+    conn.touch_client_heartbeat();
     Ok(())
 }
 
@@ -374,12 +446,8 @@ pub async fn quick_connect(
     };
 
     tauri::async_runtime::spawn_blocking(move || {
-        {
-            let mut map = sessions.lock().unwrap();
-            if map.contains_key(&session_id) {
-                map.remove(&session_id);
-            }
-        }
+        let existing = remove_ssh_session(&sessions, &session_id);
+        drop(existing);
 
         let (shell_sess, shell_channel) =
             create_shell_channel(&config).map_err(|e| format!("Shell Connection Failed: {}", e))?;
@@ -391,19 +459,29 @@ pub async fn quick_connect(
         let shell_session_arc = Arc::new(Mutex::new(shell_sess.clone()));
         let bg_session_arc = Arc::new(Mutex::new(bg_sess));
 
+        let connection = SshConnection::new(
+            shell_session_arc.clone(),
+            bg_session_arc,
+            shell_channel_arc.clone(),
+        );
+        let connection_instance_id = connection.instance_id;
+
         {
             let mut map = sessions.lock().unwrap();
             map.insert(
                 session_id.clone(),
-                SshConnection {
-                    shell_session: shell_session_arc.clone(),
-                    bg_session: bg_session_arc,
-                    shell_channel: shell_channel_arc.clone(),
-                },
+                connection,
             );
         }
 
-        spawn_shell_reader_thread(app, shell_sess, shell_channel_arc, session_id);
+        spawn_shell_reader_thread(
+            app,
+            shell_sess,
+            shell_channel_arc,
+            sessions.clone(),
+            session_id,
+            connection_instance_id,
+        );
 
         Ok(())
     })

@@ -111,6 +111,9 @@ pub fn run() {
                  db::init_db(&handle).await.expect("数据库初始化失败")
              });
              app.manage(AppState { db: pool });
+             let cleanup_app = app.handle().clone();
+             let ssh_sessions = app.state::<SshState>().sessions.clone();
+             spawn_ssh_session_cleanup_task(cleanup_app, ssh_sessions);
 
              // ============================================================
              // 🟢 [新增] 系统托盘配置 (带类型注解)
@@ -190,11 +193,13 @@ pub fn run() {
             connect_ssh,
             write_ssh,
             resize_ssh,
+            touch_ssh_session,
             disconnect_ssh,
             test_connection,
             check_host_key,
             trust_host_key,
             quick_connect,
+            get_ssh_combined_info,
             // 监控命令
             get_ssh_cpu_info,
             get_ssh_mem_info,

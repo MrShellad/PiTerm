@@ -33,6 +33,18 @@ export const useTerminalConnection = (
     applyHighlightRef.current = applyHighlight;
   }, [applyHighlight]);
 
+  const markSessionDisconnected = useCallback(() => {
+    const currentSession = useTerminalStore.getState().sessions[sessionId];
+    if (currentSession?.status !== 'disconnected' && termRef.current) {
+      termRef.current.write(`\r\n\x1b[33m[SSH]\x1b[0m Session disconnected.\r\n`);
+    }
+    setIsConnectionReady(false);
+    updateSessionStatus(sessionId, 'disconnected');
+  }, [sessionId, termRef, updateSessionStatus]);
+
+  const isInactiveSessionError = (err: unknown) =>
+    String(err).includes('SSH connection not active');
+
   const connectInternal = useCallback(async (manualPassword?: string) => {
     if (!termRef.current || !serverConfig) return;
     const term = termRef.current;
@@ -90,6 +102,7 @@ export const useTerminalConnection = (
 
     let isMounted = true;
     let unlistenFn: UnlistenFn | null = null;
+    let exitUnlistenFn: UnlistenFn | null = null;
 
     const setup = async () => {
       // 拦截服务端发来的数据
@@ -103,6 +116,23 @@ export const useTerminalConnection = (
 
       if (!isMounted) { unlisten(); return; }
       unlistenFn = unlisten;
+
+      const exitUnlisten = await listen(`term-exit-${sessionId}`, () => {
+        if (!isMounted) return;
+
+        const currentSession = useTerminalStore.getState().sessions[sessionId];
+        if (currentSession?.status === 'connecting') {
+          return;
+        }
+
+        markSessionDisconnected();
+      });
+
+      if (!isMounted) {
+        exitUnlisten();
+        return;
+      }
+      exitUnlistenFn = exitUnlisten;
       await connectInternal();
     };
 
@@ -110,7 +140,13 @@ export const useTerminalConnection = (
 
     // Data input listener (User typing)
     const dataDisposable = termRef.current.onData((data) => {
-      TerminalService.writeSsh(sessionId, data).catch(console.error);
+      TerminalService.writeSsh(sessionId, data).catch((err) => {
+        if (isInactiveSessionError(err)) {
+          markSessionDisconnected();
+          return;
+        }
+        console.error(err);
+      });
 
       // History buffer parsing
       for (let i = 0; i < data.length; i++) {
@@ -134,6 +170,7 @@ export const useTerminalConnection = (
       isMounted = false;
       setIsConnectionReady(false);
       if (unlistenFn) unlistenFn();
+      if (exitUnlistenFn) exitUnlistenFn();
       dataDisposable.dispose();
       
       const currentTabs = useTerminalStore.getState().tabs;
@@ -144,7 +181,26 @@ export const useTerminalConnection = (
       }
     };
   // 🟢 核心修复：这里移除了 applyHighlight 依赖
-  }, [sessionId, serverConfig?.id, session?.connectTimestamp, termRef]); 
+  }, [sessionId, serverConfig?.id, session?.connectTimestamp, termRef, markSessionDisconnected]); 
+
+  useEffect(() => {
+    if (session?.status !== 'connected') return;
+
+    const sendHeartbeat = () => {
+      TerminalService.touchSshSession(sessionId).catch((err) => {
+        if (isInactiveSessionError(err)) {
+          markSessionDisconnected();
+        }
+      });
+    };
+
+    sendHeartbeat();
+    const heartbeatTimer = window.setInterval(sendHeartbeat, 20000);
+
+    return () => {
+      window.clearInterval(heartbeatTimer);
+    };
+  }, [sessionId, session?.status, markSessionDisconnected]);
 
   return { isPasswordRequired, setIsPasswordRequired, connectInternal, isConnectionReady, serverConfig };
 };

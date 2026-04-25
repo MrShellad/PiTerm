@@ -4,6 +4,8 @@ import { Loader2, Terminal, XCircle } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 
@@ -31,6 +33,16 @@ export const ConnectionStatusModal = ({ open, logs, serverName, onClose, isError
   return (
     <AlertDialog open={open}>
       <AlertDialogContent className="max-w-[450px] p-0 border-none bg-[#1e1e1e] text-zinc-300 shadow-2xl rounded-xl overflow-hidden font-mono select-none">
+        <AlertDialogTitle className="sr-only">
+          {isError
+            ? t('server.sshlog.failed', 'Connection Failed')
+            : t('server.sshlog.connecting', 'Connecting...')}
+        </AlertDialogTitle>
+        <AlertDialogDescription className="sr-only">
+          {serverName
+            ? t('server.sshlog.description', 'SSH connection log for {{serverName}}.', { serverName })
+            : t('server.sshlog.descriptionFallback', 'SSH connection log dialog.')}
+        </AlertDialogDescription>
         {/* Header */}
         <div className="p-4 bg-[#252526] flex items-center justify-between border-b border-white/5">
           <div className="flex items-center gap-2">

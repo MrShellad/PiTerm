@@ -23,6 +23,9 @@ export const TerminalService = {
   resizeSsh: async (id: string, rows: number, cols: number) => 
     invoke('resize_ssh', { id, rows, cols }),
 
+  touchSshSession: async (id: string) =>
+    invoke('touch_ssh_session', { id }),
+
   checkIsDir: async (id: string, path: string) => 
     invoke<boolean>('sftp_check_is_dir', { id, path }),
 };

@@ -12,6 +12,9 @@ use ssh2::{Channel, KeyboardInteractivePrompt, MethodType, Prompt, Session};
 use tauri::{AppHandle, Emitter};
 
 use crate::models::{ConnectionType, Proxy, SshConfig};
+use super::state::{
+    remove_ssh_session_if_instance, SshConnection, SSH_KEEPALIVE_FAILURE_THRESHOLD,
+};
 
 const DEFAULT_CONNECT_TIMEOUT_SECS: u64 = 10;
 const DEFAULT_IO_TIMEOUT_SECS: u64 = 60;
@@ -510,7 +513,7 @@ pub fn establish_base_session(config: &SshConfig) -> Result<Session, String> {
         .map_err(|e| format!("Handshake Error: {}", e))?;
 
     if let Some(interval) = config.keep_alive_interval.filter(|interval| *interval > 0) {
-        sess.set_keepalive(true, interval);
+        sess.set_keepalive(false, interval);
     }
 
     authenticate_session(&sess, config)?;
@@ -542,10 +545,13 @@ pub fn spawn_shell_reader_thread(
     app: AppHandle,
     session: Session,
     channel: Arc<Mutex<Channel>>,
+    sessions: Arc<Mutex<std::collections::HashMap<String, SshConnection>>>,
     id: String,
+    instance_id: u64,
 ) {
     thread::spawn(move || {
         let mut buf = [0u8; 8192];
+        let mut keepalive_failures = 0u8;
 
         loop {
             let mut chan_lock = match channel.lock() {
@@ -573,7 +579,18 @@ pub fn spawn_shell_reader_thread(
                         break;
                     }
 
-                    let _ = session.keepalive_send();
+                    if let Err(keepalive_err) = session.keepalive_send() {
+                        keepalive_failures = keepalive_failures.saturating_add(1);
+                        eprintln!(
+                            "[SSH] Keepalive failed for session {} (attempt {}/{}): {}",
+                            id, keepalive_failures, SSH_KEEPALIVE_FAILURE_THRESHOLD, keepalive_err
+                        );
+                        if keepalive_failures >= SSH_KEEPALIVE_FAILURE_THRESHOLD {
+                            break;
+                        }
+                    } else {
+                        keepalive_failures = 0;
+                    }
                     continue;
                 }
                 Err(err) => {
@@ -592,7 +609,13 @@ pub fn spawn_shell_reader_thread(
             drop(chan_lock);
         }
 
-        println!("[SSH] Shell thread exited for {}", id);
-        let _ = app.emit(&format!("term-exit-{}", id), ());
+        let removed = remove_ssh_session_if_instance(&sessions, &id, instance_id);
+        if let Some(conn) = removed {
+            drop(conn);
+            println!("[SSH] Shell thread exited for {}", id);
+            let _ = app.emit(&format!("term-exit-{}", id), ());
+        } else {
+            println!("[SSH] Shell thread exited for stale session {}", id);
+        }
     });
 }
