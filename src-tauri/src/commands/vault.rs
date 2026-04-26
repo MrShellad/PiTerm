@@ -1,18 +1,18 @@
-use std::sync::Mutex;
-use tauri::{State, command};
-use aes_gcm::{
-    aead::{Aead, KeyInit, AeadCore},
-    Aes256Gcm, Key, Nonce
-};
-use pbkdf2::pbkdf2;
-use hmac::Hmac;
-use sha2::{Sha256, Digest};
-use rand::{rngs::OsRng, RngCore};
-use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
-use serde::{Deserialize, Serialize};
-use sqlx::{Pool, Sqlite, Row, FromRow}; // 🟢 确保引入 FromRow
 use crate::state::AppState;
-use chrono::Utc; 
+use aes_gcm::{
+    aead::{Aead, AeadCore, KeyInit},
+    Aes256Gcm, Key, Nonce,
+};
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
+use chrono::Utc;
+use hmac::Hmac;
+use pbkdf2::pbkdf2;
+use rand::{rngs::OsRng, RngCore};
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+use sqlx::{FromRow, Pool, Row, Sqlite}; // 🟢 确保引入 FromRow
+use std::sync::Mutex;
+use tauri::{command, State};
 
 // --- 常量 ---
 const AUTH_CHECK_TEXT: &[u8] = b"VALID_PASSWORD_CHECK";
@@ -30,8 +30,8 @@ pub struct VaultStatus {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct EncryptedData {
     pub iv: String,
-    pub data: String, 
-    pub salt: String, 
+    pub data: String,
+    pub salt: String,
 }
 
 // 🟢 [新增] 对应前端 KeyEntry 中的 lastUsed 对象
@@ -48,15 +48,15 @@ pub struct LastUsedInfo {
 pub struct KeyEntry {
     pub id: String,
     pub name: String,
-    
-    #[serde(rename = "type")] 
+
+    #[serde(rename = "type")]
     pub key_type: String,
-    
-    pub username: Option<String>, 
-    
-    #[serde(rename = "content")] 
-    pub encrypted_content: String, 
-    
+
+    pub username: Option<String>,
+
+    #[serde(rename = "content")]
+    pub encrypted_content: String,
+
     pub salt: String,
 
     pub algorithm: Option<String>,
@@ -115,7 +115,7 @@ fn get_key_fingerprint(key: &Key<Aes256Gcm>) -> String {
     let mut hasher = Sha256::new();
     hasher.update(key);
     let result = hasher.finalize();
-    format!("{:x}", result)[..8].to_string() 
+    format!("{:x}", result)[..8].to_string()
 }
 
 // =========================================================
@@ -123,7 +123,7 @@ fn get_key_fingerprint(key: &Key<Aes256Gcm>) -> String {
 // =========================================================
 
 fn derive_key(password: &str, salt: &[u8]) -> Key<Aes256Gcm> {
-    let mut key = [0u8; 32]; 
+    let mut key = [0u8; 32];
     let _ = pbkdf2::<Hmac<Sha256>>(password.as_bytes(), salt, 100_000, &mut key);
     *Key::<Aes256Gcm>::from_slice(&key)
 }
@@ -131,29 +131,36 @@ fn derive_key(password: &str, salt: &[u8]) -> Key<Aes256Gcm> {
 fn encrypt_data(key: &Key<Aes256Gcm>, plaintext: &[u8]) -> Result<String, String> {
     let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
     let cipher = Aes256Gcm::new(key);
-    let ciphertext = cipher.encrypt(&nonce, plaintext)
+    let ciphertext = cipher
+        .encrypt(&nonce, plaintext)
         .map_err(|e| format!("Encryption failed: {}", e))?;
 
     let json = serde_json::to_string(&EncryptedData {
         iv: BASE64.encode(nonce),
         data: BASE64.encode(ciphertext),
-        salt: "".to_string(), 
-    }).map_err(|e| e.to_string())?;
-    
+        salt: "".to_string(),
+    })
+    .map_err(|e| e.to_string())?;
+
     Ok(json)
 }
 
 fn decrypt_data(key: &Key<Aes256Gcm>, json_str: &str) -> Result<Vec<u8>, String> {
-    let enc_data: EncryptedData = serde_json::from_str(json_str)
-        .map_err(|e| format!("Invalid encrypted format: {}", e))?;
+    let enc_data: EncryptedData =
+        serde_json::from_str(json_str).map_err(|e| format!("Invalid encrypted format: {}", e))?;
 
-    let nonce_bytes = BASE64.decode(&enc_data.iv).map_err(|_| "Invalid IV".to_string())?;
-    let ciphertext_bytes = BASE64.decode(&enc_data.data).map_err(|_| "Invalid Ciphertext".to_string())?;
-    
+    let nonce_bytes = BASE64
+        .decode(&enc_data.iv)
+        .map_err(|_| "Invalid IV".to_string())?;
+    let ciphertext_bytes = BASE64
+        .decode(&enc_data.data)
+        .map_err(|_| "Invalid Ciphertext".to_string())?;
+
     let nonce = Nonce::from_slice(&nonce_bytes);
     let cipher = Aes256Gcm::new(key);
 
-    cipher.decrypt(nonce, ciphertext_bytes.as_ref())
+    cipher
+        .decrypt(nonce, ciphertext_bytes.as_ref())
         .map_err(|_| "Decryption failed".to_string())
 }
 
@@ -165,13 +172,13 @@ fn decrypt_data(key: &Key<Aes256Gcm>, json_str: &str) -> Result<Vec<u8>, String>
 pub async fn internal_record_usage(
     pool: &Pool<Sqlite>,
     key_id: &str,
-    server_id: &str
+    server_id: &str,
 ) -> Result<(), String> {
     let now = Utc::now().timestamp_millis();
-    
+
     // 使用 INSERT OR REPLACE 确保更新最后使用时间
     sqlx::query(
-        "INSERT OR REPLACE INTO key_usages (key_id, server_id, last_used_at) VALUES (?, ?, ?)"
+        "INSERT OR REPLACE INTO key_usages (key_id, server_id, last_used_at) VALUES (?, ?, ?)",
     )
     .bind(key_id)
     .bind(server_id)
@@ -192,7 +199,10 @@ pub async fn internal_add_secret(
     username: Option<String>,
     algorithm: Option<String>,
 ) -> Result<String, String> {
-    println!("🔐 [Internal Add] Encrypting with Key Fingerprint: {}", get_key_fingerprint(master_key));
+    println!(
+        "🔐 [Internal Add] Encrypting with Key Fingerprint: {}",
+        get_key_fingerprint(master_key)
+    );
 
     let encrypted_json = encrypt_data(master_key, content.as_bytes())?;
     let new_id = uuid::Uuid::new_v4().to_string();
@@ -247,7 +257,7 @@ pub async fn internal_get_secret(
 #[command]
 pub async fn check_key_associations(
     state: State<'_, AppState>,
-    id: String
+    id: String,
 ) -> Result<KeyUsageStats, String> {
     let pool = &state.db;
 
@@ -261,7 +271,7 @@ pub async fn check_key_associations(
         LEFT JOIN key_usages ku ON s.id = ku.server_id AND ku.key_id = ?
         WHERE s.password_id = ? OR s.key_id = ?
         ORDER BY ku.last_used_at DESC
-        "#
+        "#,
     )
     .bind(&id)
     .bind(&id)
@@ -280,10 +290,10 @@ pub async fn check_key_associations(
 #[command]
 pub async fn get_vault_status(
     state: State<'_, AppState>,
-    vault_state: State<'_, VaultState>
+    vault_state: State<'_, VaultState>,
 ) -> Result<VaultStatus, String> {
     let pool = &state.db;
-    
+
     let initialized = sqlx::query("SELECT 1 FROM vault_config WHERE key = 'vault_salt'")
         .fetch_optional(pool)
         .await
@@ -294,7 +304,7 @@ pub async fn get_vault_status(
 
     Ok(VaultStatus {
         is_initialized: initialized,
-        is_locked: initialized && !has_key, 
+        is_locked: initialized && !has_key,
     })
 }
 
@@ -302,7 +312,7 @@ pub async fn get_vault_status(
 pub async fn init_vault(
     state: State<'_, AppState>,
     vault_state: State<'_, VaultState>,
-    password: String
+    password: String,
 ) -> Result<(), String> {
     let pool = &state.db;
 
@@ -325,9 +335,17 @@ pub async fn init_vault(
 
     let mut tx = pool.begin().await.map_err(|e| e.to_string())?;
     sqlx::query("INSERT INTO vault_config (key, value) VALUES (?, ?)")
-        .bind("vault_salt").bind(&salt_str).execute(&mut *tx).await.map_err(|e| e.to_string())?;
+        .bind("vault_salt")
+        .bind(&salt_str)
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| e.to_string())?;
     sqlx::query("INSERT INTO vault_config (key, value) VALUES (?, ?)")
-        .bind("auth_check").bind(&auth_check_json).execute(&mut *tx).await.map_err(|e| e.to_string())?;
+        .bind("auth_check")
+        .bind(&auth_check_json)
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| e.to_string())?;
     tx.commit().await.map_err(|e| e.to_string())?;
 
     *vault_state.0.lock().unwrap() = Some(key);
@@ -338,14 +356,18 @@ pub async fn init_vault(
 pub async fn unlock_vault(
     state: State<'_, AppState>,
     vault_state: State<'_, VaultState>,
-    password: String
+    password: String,
 ) -> Result<bool, String> {
     let pool = &state.db;
 
     let salt_row = sqlx::query("SELECT value FROM vault_config WHERE key = 'vault_salt'")
-        .fetch_optional(pool).await.map_err(|e| e.to_string())?;
+        .fetch_optional(pool)
+        .await
+        .map_err(|e| e.to_string())?;
     let auth_row = sqlx::query("SELECT value FROM vault_config WHERE key = 'auth_check'")
-        .fetch_optional(pool).await.map_err(|e| e.to_string())?;
+        .fetch_optional(pool)
+        .await
+        .map_err(|e| e.to_string())?;
 
     if salt_row.is_none() || auth_row.is_none() {
         return Err("Vault not initialized".to_string());
@@ -354,15 +376,17 @@ pub async fn unlock_vault(
     let salt_str: String = salt_row.unwrap().get(0);
     let auth_check_str: String = auth_row.unwrap().get(0);
 
-    let salt_bytes = BASE64.decode(salt_str).map_err(|_| "Invalid Salt".to_string())?;
+    let salt_bytes = BASE64
+        .decode(salt_str)
+        .map_err(|_| "Invalid Salt".to_string())?;
     let key = derive_key(&password, &salt_bytes);
-    
+
     match decrypt_data(&key, &auth_check_str) {
         Ok(decrypted) if decrypted == AUTH_CHECK_TEXT => {
             *vault_state.0.lock().unwrap() = Some(key);
             Ok(true)
-        },
-        _ => Ok(false) 
+        }
+        _ => Ok(false),
     }
 }
 
@@ -379,7 +403,7 @@ pub async fn add_key(
     key_type: String,
     content: String,
     username: Option<String>,
-    algorithm: Option<String> 
+    algorithm: Option<String>,
 ) -> Result<KeyEntry, String> {
     let master_key = {
         let guard = vault_state.0.lock().unwrap();
@@ -387,14 +411,15 @@ pub async fn add_key(
     };
 
     let new_id = internal_add_secret(
-        &state.db, 
-        &master_key, 
-        &name, 
-        &key_type, 
-        &content, 
+        &state.db,
+        &master_key,
+        &name,
+        &key_type,
+        &content,
         username.clone(),
-        algorithm.clone() 
-    ).await?;
+        algorithm.clone(),
+    )
+    .await?;
 
     let now = Utc::now().timestamp_millis();
 
@@ -402,8 +427,8 @@ pub async fn add_key(
         id: new_id,
         name,
         key_type,
-        username, 
-        encrypted_content: "".to_string(), 
+        username,
+        encrypted_content: "".to_string(),
         salt: "".to_string(),
         algorithm,
         created_at: now,
@@ -413,10 +438,7 @@ pub async fn add_key(
 }
 
 #[command]
-pub async fn delete_key(
-    state: State<'_, AppState>, 
-    id: String
-) -> Result<(), String> {
+pub async fn delete_key(state: State<'_, AppState>, id: String) -> Result<(), String> {
     let pool = &state.db;
 
     // 1. 删除使用记录
@@ -461,37 +483,42 @@ pub async fn get_all_keys(state: State<'_, AppState>) -> Result<Vec<KeyEntry>, S
         ) ku_latest ON vk.id = ku_latest.key_id
         LEFT JOIN servers s ON ku_latest.server_id = s.id
         ORDER BY vk.created_at DESC
-        "#
+        "#,
     )
     .fetch_all(pool)
     .await
     .map_err(|e| e.to_string())?;
 
     // 将 Row 转换为嵌套的 KeyEntry 结构
-    let keys = rows.into_iter().map(|row| {
-        let last_used = if let (Some(ts), Some(name), Some(ip)) = (row.last_used_at, row.server_name, row.server_ip) {
-            Some(LastUsedInfo {
-                timestamp: ts,
-                server_name: name,
-                server_ip: ip
-            })
-        } else {
-            None
-        };
+    let keys = rows
+        .into_iter()
+        .map(|row| {
+            let last_used = if let (Some(ts), Some(name), Some(ip)) =
+                (row.last_used_at, row.server_name, row.server_ip)
+            {
+                Some(LastUsedInfo {
+                    timestamp: ts,
+                    server_name: name,
+                    server_ip: ip,
+                })
+            } else {
+                None
+            };
 
-        KeyEntry {
-            id: row.id,
-            name: row.name,
-            key_type: row.key_type,
-            username: row.username,
-            encrypted_content: row.encrypted_content,
-            salt: row.salt,
-            algorithm: row.algorithm,
-            created_at: row.created_at,
-            updated_at: row.updated_at,
-            last_used, // 赋值
-        }
-    }).collect();
+            KeyEntry {
+                id: row.id,
+                name: row.name,
+                key_type: row.key_type,
+                username: row.username,
+                encrypted_content: row.encrypted_content,
+                salt: row.salt,
+                algorithm: row.algorithm,
+                created_at: row.created_at,
+                updated_at: row.updated_at,
+                last_used, // 赋值
+            }
+        })
+        .collect();
 
     Ok(keys)
 }
@@ -500,7 +527,7 @@ pub async fn get_all_keys(state: State<'_, AppState>) -> Result<Vec<KeyEntry>, S
 pub async fn get_decrypted_content(
     state: State<'_, AppState>,
     vault_state: State<'_, VaultState>,
-    id: String 
+    id: String,
 ) -> Result<String, String> {
     let pool = &state.db;
     let master_key = {

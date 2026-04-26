@@ -1,8 +1,8 @@
+use crate::models::backup::CommandResult;
+use crate::utils::crypto::{decrypt_data, encrypt_data};
 use std::fs;
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager, Runtime};
-use crate::models::backup::CommandResult;
-use crate::utils::crypto::{encrypt_data, decrypt_data};
 
 fn get_credentials_path<R: Runtime>(app: &AppHandle<R>) -> CommandResult<PathBuf> {
     let config_dir = app.path().app_config_dir().map_err(|e| e.to_string())?;

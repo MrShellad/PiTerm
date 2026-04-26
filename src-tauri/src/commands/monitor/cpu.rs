@@ -1,5 +1,6 @@
-use super::MonitorCache;
+use super::{get_monitor_session_arc, run_monitor_operation, MonitorCache};
 use crate::commands::ssh::SshState;
+use crate::utils::ssh_log;
 use std::io::Read;
 use tauri::State;
 
@@ -93,9 +94,18 @@ pub(crate) fn parse_cpu_output(
 
     let load_parts: Vec<&str> = parts[3].split_whitespace().collect();
     let load_avg = [
-        load_parts.first().and_then(|v| v.parse().ok()).unwrap_or(0.0),
-        load_parts.get(1).and_then(|v| v.parse().ok()).unwrap_or(0.0),
-        load_parts.get(2).and_then(|v| v.parse().ok()).unwrap_or(0.0),
+        load_parts
+            .first()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(0.0),
+        load_parts
+            .get(1)
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(0.0),
+        load_parts
+            .get(2)
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(0.0),
     ];
 
     let mut usage = 0.0;
@@ -127,9 +137,9 @@ pub(crate) fn parse_cpu_output(
 
                     if label == "cpu" {
                         usage = calc_usage;
-                        breakdown.user =
-                            (current.user.saturating_sub(prev.user) as f64 / total_delta as f64)
-                                * 100.0;
+                        breakdown.user = (current.user.saturating_sub(prev.user) as f64
+                            / total_delta as f64)
+                            * 100.0;
                         breakdown.system = ((current.system + current.irq + current.softirq)
                             .saturating_sub(prev.system + prev.irq + prev.softirq)
                             as f64
@@ -138,9 +148,9 @@ pub(crate) fn parse_cpu_output(
                         breakdown.iowait = (current.iowait.saturating_sub(prev.iowait) as f64
                             / total_delta as f64)
                             * 100.0;
-                        breakdown.idle =
-                            (current.idle.saturating_sub(prev.idle) as f64 / total_delta as f64)
-                                * 100.0;
+                        breakdown.idle = (current.idle.saturating_sub(prev.idle) as f64
+                            / total_delta as f64)
+                            * 100.0;
                     } else {
                         per_core_usage.push(calc_usage.min(100.0));
                     }
@@ -168,23 +178,26 @@ pub async fn get_ssh_cpu_info(
     monitor_cache: State<'_, MonitorCache>,
     id: String,
 ) -> Result<RemoteCpuInfo, String> {
-    let session_arc = {
-        let map = ssh_state.sessions.lock().unwrap();
-        map.get(&id)
-            .map(|conn| conn.bg_session.clone())
-            .ok_or("SSH not active")?
-    };
+    let session_arc = get_monitor_session_arc(&ssh_state, &id, "cpu_snapshot")?;
 
+    let monitor_id = id.clone();
     let output = tauri::async_runtime::spawn_blocking(move || {
-        let sess = session_arc.lock().unwrap();
-        let mut channel = sess.channel_session().map_err(|e| e.to_string())?;
+        run_monitor_operation(
+            session_arc,
+            &monitor_id,
+            "cpu_snapshot",
+            vec![ssh_log::log_field("command_name", "CPU_INFO_CMD")],
+            |sess| {
+                let mut channel = sess.channel_session().map_err(|e| e.to_string())?;
 
-        channel.exec(CPU_INFO_CMD).map_err(|e| e.to_string())?;
+                channel.exec(CPU_INFO_CMD).map_err(|e| e.to_string())?;
 
-        let mut s = String::new();
-        channel.read_to_string(&mut s).ok();
-        channel.wait_close().ok();
-        Ok::<String, String>(s)
+                let mut s = String::new();
+                channel.read_to_string(&mut s).ok();
+                channel.wait_close().ok();
+                Ok::<String, String>(s)
+            },
+        )
     })
     .await
     .map_err(|e| e.to_string())??;

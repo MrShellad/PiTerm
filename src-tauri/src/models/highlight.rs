@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
 // 🟢 [修改] 添加 Clone
-#[derive(Debug, Serialize, Deserialize, FromRow, Clone)] 
+#[derive(Debug, Serialize, Deserialize, FromRow, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct HighlightRuleSet {
     pub id: String,
@@ -15,7 +15,7 @@ pub struct HighlightRuleSet {
 }
 
 // 🟢 [修改] 核心修复：必须添加 Clone，否则 .cloned() 会报错
-#[derive(Debug, Serialize, Deserialize, FromRow, Clone)] 
+#[derive(Debug, Serialize, Deserialize, FromRow, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct HighlightStyle {
     pub id: String,
@@ -38,8 +38,8 @@ pub struct HighlightRule {
     pub is_regex: bool,
     pub is_case_sensitive: bool,
     pub priority: i32,
-    #[sqlx(skip)] 
-    pub style: Option<HighlightStyle>, 
+    #[sqlx(skip)]
+    pub style: Option<HighlightStyle>,
     pub created_at: i64,
     pub updated_at: i64,
 }

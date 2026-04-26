@@ -1,5 +1,6 @@
-use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
-use tauri::{AppHandle, Manager, Emitter};
+use crate::models::SshConfig;
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
+use tauri::{AppHandle, Emitter};
 
 pub fn emit_ssh_log(app: &AppHandle, msg: &str) {
     let timestamp = chrono::Local::now().format("%H:%M:%S").to_string();
@@ -7,7 +8,7 @@ pub fn emit_ssh_log(app: &AppHandle, msg: &str) {
 }
 
 pub fn compute_fingerprint(host_key: &[u8]) -> String {
-    use sha2::{Sha256, Digest};
+    use sha2::{Digest, Sha256};
     let mut hasher = Sha256::new();
     hasher.update(host_key);
     let result = hasher.finalize();
@@ -57,4 +58,24 @@ pub fn clean_private_key(raw_key: &str) -> String {
     }
 
     key_clean
+}
+
+pub fn auth_method_label(config: &SshConfig) -> &'static str {
+    if config
+        .private_key
+        .as_deref()
+        .map(|value| !value.trim().is_empty())
+        .unwrap_or(false)
+    {
+        "public_key"
+    } else if config
+        .password
+        .as_deref()
+        .map(|value| !value.trim().is_empty())
+        .unwrap_or(false)
+    {
+        "password"
+    } else {
+        "unknown"
+    }
 }

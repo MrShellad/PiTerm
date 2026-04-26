@@ -11,18 +11,34 @@ use libssh2_sys as raw;
 use ssh2::{Channel, KeyboardInteractivePrompt, MethodType, Prompt, Session};
 use tauri::{AppHandle, Emitter};
 
-use crate::models::{ConnectionType, Proxy, SshConfig};
 use super::state::{
-    remove_ssh_session_if_instance, SshConnection, SSH_KEEPALIVE_FAILURE_THRESHOLD,
+    get_ssh_session_if_instance, SshConnection, SshWriteRequest, TerminalExitEvent,
+    SSH_KEEPALIVE_FAILURE_THRESHOLD,
 };
+use crate::models::{ConnectionType, Proxy, SshConfig};
+use crate::utils::ssh_log::{self, SshLogRecord};
 
 const DEFAULT_CONNECT_TIMEOUT_SECS: u64 = 10;
 const DEFAULT_IO_TIMEOUT_SECS: u64 = 60;
 const SHELL_READ_TIMEOUT_MS: u32 = 50;
 const HTTP_PROXY_RESPONSE_LIMIT: usize = 16 * 1024;
+const SHELL_WRITE_BATCH_LIMIT: usize = 64 * 1024;
 
 struct PasswordPrompter {
     secret: String,
+}
+
+fn with_connection_context(
+    record: SshLogRecord,
+    session_id: Option<&str>,
+    role: &'static str,
+) -> SshLogRecord {
+    let record = record.field("connection_role", role);
+    if let Some(session_id) = session_id {
+        record.session_id(session_id.to_string())
+    } else {
+        record
+    }
 }
 
 impl KeyboardInteractivePrompt for PasswordPrompter {
@@ -100,10 +116,7 @@ fn connect_direct_stream(config: &SshConfig, timeout: Duration) -> Result<TcpStr
     Ok(stream)
 }
 
-fn connect_proxy_stream(
-    proxy: &Proxy,
-    timeout: Duration,
-) -> Result<TcpStream, String> {
+fn connect_proxy_stream(proxy: &Proxy, timeout: Duration) -> Result<TcpStream, String> {
     let addrs = resolve_socket_addrs(&proxy.host, proxy.port)?;
     let stream =
         connect_with_timeout(&addrs, timeout).map_err(|e| format!("Proxy TCP Error: {}", e))?;
@@ -213,7 +226,10 @@ fn connect_socks4_proxy(
         .map_err(|e| format!("SOCKS4 proxy handshake failed: {}", e))?;
 
     if response[1] != 0x5a {
-        return Err(format!("SOCKS4 proxy CONNECT failed (code {})", response[1]));
+        return Err(format!(
+            "SOCKS4 proxy CONNECT failed (code {})",
+            response[1]
+        ));
     }
 
     prepare_stream(&stream, socket_io_timeout(timeout))?;
@@ -261,7 +277,11 @@ fn connect_socks5_proxy(
             .map(|value| !value.is_empty())
             .unwrap_or(false);
 
-    let methods = if has_auth { vec![0x00, 0x02] } else { vec![0x00] };
+    let methods = if has_auth {
+        vec![0x00, 0x02]
+    } else {
+        vec![0x00]
+    };
     let mut method_request = vec![0x05, methods.len() as u8];
     method_request.extend_from_slice(&methods);
 
@@ -394,16 +414,63 @@ fn establish_tcp_stream(config: &SshConfig) -> Result<TcpStream, String> {
     }
 }
 
-fn authenticate_session(sess: &Session, config: &SshConfig) -> Result<(), String> {
+fn authenticate_session(
+    sess: &Session,
+    config: &SshConfig,
+    session_id: Option<&str>,
+    role: &'static str,
+) -> Result<(), String> {
     let mut last_error = None;
 
     if let Some(key_content) = &config.private_key {
         if !key_content.trim().is_empty() {
-            let passphrase = config.passphrase.as_deref().filter(|value| !value.is_empty());
+            ssh_log::info(with_connection_context(
+                SshLogRecord::new(
+                    "ssh.auth",
+                    "public_key_attempt",
+                    "Attempting public key authentication",
+                )
+                .field("host", config.host.clone())
+                .field("port", config.port)
+                .field("username", config.username.clone()),
+                session_id,
+                role,
+            ));
+            let passphrase = config
+                .passphrase
+                .as_deref()
+                .filter(|value| !value.is_empty());
 
             match userauth_pubkey_from_memory(sess, &config.username, key_content, passphrase) {
-                Ok(_) => return Ok(()),
+                Ok(_) => {
+                    ssh_log::info(with_connection_context(
+                        SshLogRecord::new(
+                            "ssh.auth",
+                            "public_key_success",
+                            "Public key authentication succeeded",
+                        )
+                        .field("host", config.host.clone())
+                        .field("port", config.port)
+                        .field("username", config.username.clone()),
+                        session_id,
+                        role,
+                    ));
+                    return Ok(());
+                }
                 Err(err) => {
+                    ssh_log::warn(with_connection_context(
+                        SshLogRecord::new(
+                            "ssh.auth",
+                            "public_key_failed",
+                            "Public key authentication failed",
+                        )
+                        .field("host", config.host.clone())
+                        .field("port", config.port)
+                        .field("username", config.username.clone())
+                        .field("error", err.clone()),
+                        session_id,
+                        role,
+                    ));
                     last_error = Some(format!("Public Key Auth Error: {}", err));
                 }
             }
@@ -412,16 +479,82 @@ fn authenticate_session(sess: &Session, config: &SshConfig) -> Result<(), String
 
     if let Some(password) = &config.password {
         if !password.trim().is_empty() {
+            ssh_log::info(with_connection_context(
+                SshLogRecord::new(
+                    "ssh.auth",
+                    "password_attempt",
+                    "Attempting password authentication",
+                )
+                .field("host", config.host.clone())
+                .field("port", config.port)
+                .field("username", config.username.clone()),
+                session_id,
+                role,
+            ));
             match sess.userauth_password(&config.username, password) {
-                Ok(_) => return Ok(()),
+                Ok(_) => {
+                    ssh_log::info(with_connection_context(
+                        SshLogRecord::new(
+                            "ssh.auth",
+                            "password_success",
+                            "Password authentication succeeded",
+                        )
+                        .field("host", config.host.clone())
+                        .field("port", config.port)
+                        .field("username", config.username.clone()),
+                        session_id,
+                        role,
+                    ));
+                    return Ok(());
+                }
                 Err(password_err) => {
+                    ssh_log::warn(with_connection_context(
+                        SshLogRecord::new(
+                            "ssh.auth",
+                            "password_failed",
+                            "Password authentication failed; trying keyboard-interactive fallback",
+                        )
+                        .field("host", config.host.clone())
+                        .field("port", config.port)
+                        .field("username", config.username.clone())
+                        .field("error", password_err.to_string()),
+                        session_id,
+                        role,
+                    ));
                     let mut prompter = PasswordPrompter {
                         secret: password.clone(),
                     };
 
                     match sess.userauth_keyboard_interactive(&config.username, &mut prompter) {
-                        Ok(_) => return Ok(()),
+                        Ok(_) => {
+                            ssh_log::info(with_connection_context(
+                                SshLogRecord::new(
+                                    "ssh.auth",
+                                    "keyboard_interactive_success",
+                                    "Keyboard-interactive authentication succeeded",
+                                )
+                                .field("host", config.host.clone())
+                                .field("port", config.port)
+                                .field("username", config.username.clone()),
+                                session_id,
+                                role,
+                            ));
+                            return Ok(());
+                        }
                         Err(interactive_err) => {
+                            ssh_log::error(with_connection_context(
+                                SshLogRecord::new(
+                                    "ssh.auth",
+                                    "keyboard_interactive_failed",
+                                    "Keyboard-interactive authentication failed",
+                                )
+                                .field("host", config.host.clone())
+                                .field("port", config.port)
+                                .field("username", config.username.clone())
+                                .field("error", interactive_err.to_string()),
+                                session_id,
+                                role,
+                            ));
                             last_error = Some(format!(
                                 "Password Auth Error: {}; keyboard-interactive fallback failed: {}",
                                 password_err, interactive_err
@@ -433,9 +566,8 @@ fn authenticate_session(sess: &Session, config: &SshConfig) -> Result<(), String
         }
     }
 
-    Err(last_error.unwrap_or_else(|| {
-        "Auth failed: No usable private key or password provided.".to_string()
-    }))
+    Err(last_error
+        .unwrap_or_else(|| "Auth failed: No usable private key or password provided.".to_string()))
 }
 
 fn userauth_pubkey_from_memory(
@@ -444,7 +576,8 @@ fn userauth_pubkey_from_memory(
     private_key: &str,
     passphrase: Option<&str>,
 ) -> Result<(), String> {
-    let username_c = CString::new(username).map_err(|_| "Username contains a NUL byte".to_string())?;
+    let username_c =
+        CString::new(username).map_err(|_| "Username contains a NUL byte".to_string())?;
     let private_key_c =
         CString::new(private_key).map_err(|_| "Private key contains a NUL byte".to_string())?;
     let passphrase_c = passphrase
@@ -496,8 +629,56 @@ pub fn configure_legacy_algorithms(sess: &mut Session) {
     let _ = sess.method_pref(MethodType::MacSc, mac_methods);
 }
 
-pub fn establish_base_session(config: &SshConfig) -> Result<Session, String> {
+pub fn establish_base_session(
+    config: &SshConfig,
+    session_id: Option<&str>,
+    role: &'static str,
+) -> Result<Session, String> {
+    ssh_log::info(with_connection_context(
+        SshLogRecord::new(
+            "ssh.connect",
+            "session_establish_started",
+            "Establishing SSH session",
+        )
+        .field("host", config.host.clone())
+        .field("port", config.port)
+        .field("username", config.username.clone())
+        .field("connection_type", format!("{:?}", config.connection_type))
+        .field("auth_method", super::utils::auth_method_label(config))
+        .field(
+            "proxy_type",
+            config
+                .proxy
+                .as_ref()
+                .map(|proxy| proxy.proxy_type.clone())
+                .unwrap_or_else(|| "none".to_string()),
+        )
+        .field(
+            "connect_timeout_secs",
+            config
+                .connect_timeout
+                .unwrap_or(DEFAULT_CONNECT_TIMEOUT_SECS as u32),
+        )
+        .field(
+            "keepalive_interval_secs",
+            config.keep_alive_interval.unwrap_or_default(),
+        ),
+        session_id,
+        role,
+    ));
+
     let tcp = establish_tcp_stream(config)?;
+    ssh_log::info(with_connection_context(
+        SshLogRecord::new(
+            "ssh.connect",
+            "tcp_connected",
+            "TCP stream established for SSH session",
+        )
+        .field("host", config.host.clone())
+        .field("port", config.port),
+        session_id,
+        role,
+    ));
 
     let mut sess = Session::new().map_err(|e| format!("Session Init Error: {}", e))?;
     configure_legacy_algorithms(&mut sess);
@@ -511,35 +692,180 @@ pub fn establish_base_session(config: &SshConfig) -> Result<Session, String> {
     sess.set_tcp_stream(tcp);
     sess.handshake()
         .map_err(|e| format!("Handshake Error: {}", e))?;
+    ssh_log::info(with_connection_context(
+        SshLogRecord::new(
+            "ssh.connect",
+            "handshake_completed",
+            "SSH handshake completed",
+        )
+        .field("host", config.host.clone())
+        .field("port", config.port),
+        session_id,
+        role,
+    ));
 
     if let Some(interval) = config.keep_alive_interval.filter(|interval| *interval > 0) {
         sess.set_keepalive(false, interval);
+        ssh_log::debug(with_connection_context(
+            SshLogRecord::new(
+                "ssh.connect",
+                "keepalive_configured",
+                "Configured SSH keepalive interval",
+            )
+            .field("keepalive_interval_secs", interval),
+            session_id,
+            role,
+        ));
     }
 
-    authenticate_session(&sess, config)?;
+    authenticate_session(&sess, config, session_id, role)?;
+
+    ssh_log::info(with_connection_context(
+        SshLogRecord::new(
+            "ssh.connect",
+            "session_established",
+            "SSH session established successfully",
+        )
+        .field("host", config.host.clone())
+        .field("port", config.port)
+        .field("username", config.username.clone()),
+        session_id,
+        role,
+    ));
 
     Ok(sess)
 }
 
-pub fn create_shell_channel(config: &SshConfig) -> Result<(Session, Channel), String> {
-    let sess = establish_base_session(config)?;
+pub fn create_shell_channel(
+    config: &SshConfig,
+    session_id: Option<&str>,
+) -> Result<(Session, Channel), String> {
+    let sess = establish_base_session(config, session_id, "shell")?;
 
     let mut channel = sess
         .channel_session()
         .map_err(|e| format!("Channel Error: {}", e))?;
+    ssh_log::debug(with_connection_context(
+        SshLogRecord::new("ssh.shell", "channel_created", "Created SSH shell channel")
+            .field("host", config.host.clone())
+            .field("port", config.port),
+        session_id,
+        "shell",
+    ));
     channel
         .request_pty("xterm-256color", None, Some((80, 24, 0, 0)))
         .map_err(|e| format!("PTY Error: {}", e))?;
+    ssh_log::debug(with_connection_context(
+        SshLogRecord::new(
+            "ssh.shell",
+            "pty_requested",
+            "Requested PTY for shell channel",
+        )
+        .field("pty", "xterm-256color")
+        .field("rows", 24)
+        .field("cols", 80),
+        session_id,
+        "shell",
+    ));
     channel
         .shell()
         .map_err(|e| format!("Shell Start Error: {}", e))?;
+    ssh_log::info(with_connection_context(
+        SshLogRecord::new("ssh.shell", "shell_started", "Remote shell started"),
+        session_id,
+        "shell",
+    ));
 
     sess.set_timeout(SHELL_READ_TIMEOUT_MS);
 
     Ok((sess, channel))
 }
 
+pub fn spawn_shell_writer_thread(
+    channel: Arc<Mutex<Channel>>,
+    sessions: Arc<Mutex<std::collections::HashMap<String, SshConnection>>>,
+    id: String,
+    instance_id: u64,
+    mut write_rx: tokio::sync::mpsc::Receiver<SshWriteRequest>,
+) {
+    thread::spawn(move || {
+        ssh_log::info(
+            SshLogRecord::new(
+                "ssh.shell",
+                "writer_thread_started",
+                "Started shell writer thread",
+            )
+            .session_id(id.clone())
+            .instance_id(instance_id),
+        );
 
+        let mut total_bytes_written = 0u64;
+
+        while let Some(first_request) = write_rx.blocking_recv() {
+            let mut payload = first_request.data;
+            let mut responders = vec![first_request.result_tx];
+
+            while payload.len() < SHELL_WRITE_BATCH_LIMIT {
+                match write_rx.try_recv() {
+                    Ok(request) => {
+                        payload.push_str(&request.data);
+                        responders.push(request.result_tx);
+                    }
+                    Err(tokio::sync::mpsc::error::TryRecvError::Empty) => break,
+                    Err(tokio::sync::mpsc::error::TryRecvError::Disconnected) => break,
+                }
+            }
+
+            let payload_len = payload.len();
+            let write_result = match get_ssh_session_if_instance(&sessions, &id, instance_id) {
+                Some(conn) if conn.shell_is_active() => {
+                    let mut chan_lock = match channel.lock() {
+                        Ok(guard) => guard,
+                        Err(poisoned) => poisoned.into_inner(),
+                    };
+
+                    chan_lock
+                        .write_all(payload.as_bytes())
+                        .and_then(|_| chan_lock.flush())
+                        .map_err(|err| err.to_string())
+                }
+                Some(_) => Err("SSH shell not active".to_string()),
+                None => Err("SSH connection not active".to_string()),
+            };
+
+            if write_result.is_ok() {
+                total_bytes_written = total_bytes_written.saturating_add(payload_len as u64);
+            } else if let Err(err) = &write_result {
+                ssh_log::warn(
+                    SshLogRecord::new(
+                        "ssh.shell",
+                        "writer_write_failed",
+                        "Failed to write queued payload to SSH shell channel",
+                    )
+                    .session_id(id.clone())
+                    .instance_id(instance_id)
+                    .field("payload_len", payload_len)
+                    .field("error", err.clone()),
+                );
+            }
+
+            for responder in responders {
+                let _ = responder.send(write_result.clone());
+            }
+        }
+
+        ssh_log::debug(
+            SshLogRecord::new(
+                "ssh.shell",
+                "writer_thread_exited",
+                "Shell writer thread exited",
+            )
+            .session_id(id)
+            .instance_id(instance_id)
+            .field("bytes_written", total_bytes_written),
+        );
+    });
+}
 
 pub fn spawn_shell_reader_thread(
     app: AppHandle,
@@ -550,10 +876,22 @@ pub fn spawn_shell_reader_thread(
     instance_id: u64,
 ) {
     thread::spawn(move || {
+        ssh_log::info(
+            SshLogRecord::new(
+                "ssh.shell",
+                "reader_thread_started",
+                "Started shell reader thread",
+            )
+            .session_id(id.clone())
+            .instance_id(instance_id),
+        );
+
         let mut buf = [0u8; 8192];
         let mut keepalive_failures = 0u8;
+        let mut total_bytes_read = 0u64;
+        let mut last_error: Option<String> = None;
 
-        loop {
+        let exit_reason = loop {
             let mut chan_lock = match channel.lock() {
                 Ok(guard) => guard,
                 Err(poisoned) => poisoned.into_inner(),
@@ -561,13 +899,13 @@ pub fn spawn_shell_reader_thread(
 
             match chan_lock.read(&mut buf) {
                 Ok(count) if count > 0 => {
+                    total_bytes_read = total_bytes_read.saturating_add(count as u64);
                     let data = String::from_utf8_lossy(&buf[..count]).to_string();
                     let _ = app.emit(&format!("term-data-{}", id), data);
                 }
                 Ok(_) => {
                     if chan_lock.eof() {
-                        println!("[SSH] EOF received for session: {}", id);
-                        break;
+                        break "channel_eof";
                     }
                 }
                 Err(err) if matches!(err.kind(), ErrorKind::TimedOut | ErrorKind::WouldBlock) => {
@@ -575,47 +913,115 @@ pub fn spawn_shell_reader_thread(
                     drop(chan_lock);
 
                     if should_exit {
-                        println!("[SSH] EOF received for session: {}", id);
-                        break;
+                        break "channel_eof_after_timeout";
                     }
 
                     if let Err(keepalive_err) = session.keepalive_send() {
                         keepalive_failures = keepalive_failures.saturating_add(1);
-                        eprintln!(
-                            "[SSH] Keepalive failed for session {} (attempt {}/{}): {}",
-                            id, keepalive_failures, SSH_KEEPALIVE_FAILURE_THRESHOLD, keepalive_err
+                        let error_text = keepalive_err.to_string();
+                        ssh_log::warn(
+                            SshLogRecord::new(
+                                "ssh.shell",
+                                "reader_keepalive_failed",
+                                "Shell reader keepalive probe failed",
+                            )
+                            .session_id(id.clone())
+                            .instance_id(instance_id)
+                            .field("attempt", keepalive_failures)
+                            .field("threshold", SSH_KEEPALIVE_FAILURE_THRESHOLD)
+                            .field("error", error_text.clone()),
                         );
+                        last_error = Some(error_text);
                         if keepalive_failures >= SSH_KEEPALIVE_FAILURE_THRESHOLD {
-                            break;
+                            break "keepalive_failure_threshold_reached";
                         }
                     } else {
+                        if keepalive_failures > 0 {
+                            ssh_log::debug(
+                                SshLogRecord::new(
+                                    "ssh.shell",
+                                    "reader_keepalive_recovered",
+                                    "Shell reader keepalive probe recovered",
+                                )
+                                .session_id(id.clone())
+                                .instance_id(instance_id)
+                                .field("previous_failures", keepalive_failures),
+                            );
+                        }
                         keepalive_failures = 0;
                     }
                     continue;
                 }
                 Err(err) => {
                     let should_exit = chan_lock.eof();
+                    let error_text = err.to_string();
                     drop(chan_lock);
 
                     if should_exit {
-                        println!("[SSH] Channel closed for session: {}", id);
+                        last_error = Some(error_text);
+                        break "channel_closed_after_read_error";
                     } else {
-                        eprintln!("[SSH] Read Error for session {}: {}", id, err);
+                        last_error = Some(error_text);
+                        break "channel_read_error";
                     }
-                    break;
                 }
             }
 
             drop(chan_lock);
-        }
+        };
 
-        let removed = remove_ssh_session_if_instance(&sessions, &id, instance_id);
-        if let Some(conn) = removed {
-            drop(conn);
-            println!("[SSH] Shell thread exited for {}", id);
-            let _ = app.emit(&format!("term-exit-{}", id), ());
+        let exit_status = match channel.lock() {
+            Ok(chan) => chan.exit_status().ok(),
+            Err(poisoned) => poisoned.into_inner().exit_status().ok(),
+        };
+
+        let existing = get_ssh_session_if_instance(&sessions, &id, instance_id);
+        if let Some(conn) = existing {
+            let shell_marked_closed = conn.mark_shell_closed();
+            let mut record = SshLogRecord::new(
+                "ssh.shell",
+                "reader_thread_exited",
+                if shell_marked_closed {
+                    "Shell reader thread exited; background session preserved"
+                } else {
+                    "Shell reader thread exited after shell was already marked inactive"
+                },
+            )
+            .session_id(id.clone())
+            .instance_id(instance_id)
+            .field("reason", exit_reason)
+            .field("bytes_read", total_bytes_read)
+            .field("keepalive_failures", keepalive_failures)
+            .field("session_active", true)
+            .field("shell_marked_closed", shell_marked_closed);
+
+            if let Some(status) = exit_status {
+                record = record.field("exit_status", status);
+            }
+            if let Some(error_text) = last_error {
+                record = record.field("error", error_text);
+            }
+
+            ssh_log::warn(record);
+            let _ = app.emit(
+                &format!("term-exit-{}", id),
+                TerminalExitEvent {
+                    session_active: true,
+                    reason: exit_reason.to_string(),
+                },
+            );
         } else {
-            println!("[SSH] Shell thread exited for stale session {}", id);
+            ssh_log::debug(
+                SshLogRecord::new(
+                    "ssh.shell",
+                    "reader_thread_stale_exit",
+                    "Shell reader thread exited for a stale session instance",
+                )
+                .session_id(id)
+                .instance_id(instance_id)
+                .field("reason", exit_reason)
+                .field("bytes_read", total_bytes_read),
+            );
         }
     });
 }

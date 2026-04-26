@@ -1,4 +1,5 @@
 use super::filesystem::{FileEntry, FileSystem}; // Ensure imports match
+use crate::utils::ssh_log::{self, SshLogRecord};
 use ssh2::Session;
 use std::fs::File;
 use std::io::{Read, Write};
@@ -36,24 +37,36 @@ impl<'a> FileSystem for SftpFileSystem<'a> {
 
         // [Optimization] 2. Try to init SFTP
         let sftp_result = self.session.sftp();
-        
+
         // Reset timeout regardless of success/failure
         self.session.set_timeout(0);
 
         let sftp = match sftp_result {
             Ok(s) => s,
             Err(e) => {
-                eprintln!("[SFTP Init Error] Code: {:?}, Msg: {}", e.code(), e);
+                ssh_log::warn(
+                    SshLogRecord::new(
+                        "ssh.sftp",
+                        "sftp_init_failed",
+                        "SFTP subsystem initialization failed",
+                    )
+                    .field("remote_path", path.to_string())
+                    .field("error_code", format!("{:?}", e.code()))
+                    .field("error", e.to_string()),
+                );
                 let msg = e.to_string().to_lowercase();
                 if msg.contains("wait for response") || msg.contains("timeout") {
                     return Err("SFTP Connection Timed Out. (Server response slow)".to_string());
                 }
-                return Err("SFTP not enabled on this server. (Please install openssh-sftp-server)".to_string());
+                return Err(
+                    "SFTP not enabled on this server. (Please install openssh-sftp-server)"
+                        .to_string(),
+                );
             }
         };
 
         let dir_path = Path::new(path);
-        
+
         // Reading large dirs might take longer, give 5s
         self.session.set_timeout(5000);
         let paths_result = sftp.readdir(dir_path);
@@ -63,8 +76,14 @@ impl<'a> FileSystem for SftpFileSystem<'a> {
         let mut entries = Vec::new();
 
         for (path_buf, stat) in paths {
-            let file_name = path_buf.file_name().unwrap_or_default().to_string_lossy().to_string();
-            if file_name == "." || file_name == ".." { continue; }
+            let file_name = path_buf
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string();
+            if file_name == "." || file_name == ".." {
+                continue;
+            }
 
             let is_dir = stat.is_dir();
             let full_path = if path.ends_with('/') {
@@ -73,7 +92,11 @@ impl<'a> FileSystem for SftpFileSystem<'a> {
                 format!("{}/{}", path, file_name)
             };
 
-            let extension = path_buf.extension().unwrap_or_default().to_string_lossy().to_string();
+            let extension = path_buf
+                .extension()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string();
             let perms_str = if is_dir {
                 format!("d{}", Self::format_permissions(stat.perm.unwrap_or(0)))
             } else {
@@ -95,7 +118,11 @@ impl<'a> FileSystem for SftpFileSystem<'a> {
 
         // Sorting
         entries.sort_by(|a, b| {
-            if a.is_dir == b.is_dir { a.name.cmp(&b.name) } else { b.is_dir.cmp(&a.is_dir) }
+            if a.is_dir == b.is_dir {
+                a.name.cmp(&b.name)
+            } else {
+                b.is_dir.cmp(&a.is_dir)
+            }
         });
 
         Ok(entries)
@@ -129,7 +156,11 @@ impl<'a> FileSystem for SftpFileSystem<'a> {
         self.session.set_timeout(8000);
         let sftp = self.session.sftp().map_err(|e| e.to_string())?;
         let p = Path::new(path);
-        let res = if is_dir { sftp.rmdir(p) } else { sftp.unlink(p) };
+        let res = if is_dir {
+            sftp.rmdir(p)
+        } else {
+            sftp.unlink(p)
+        };
         self.session.set_timeout(0);
         res.map_err(|e| e.to_string())
     }
@@ -138,11 +169,18 @@ impl<'a> FileSystem for SftpFileSystem<'a> {
         self.session.set_timeout(10000);
         let sftp = self.session.sftp().map_err(|e| e.to_string())?;
 
-        let mut src_file = sftp.open(Path::new(from_path)).map_err(|e| format!("Failed to open src: {}", e))?;
-        let mut dst_file = sftp.create(Path::new(to_path)).map_err(|e| format!("Failed to create dst: {}", e))?;
+        let mut src_file = sftp
+            .open(Path::new(from_path))
+            .map_err(|e| format!("Failed to open src: {}", e))?;
+        let mut dst_file = sftp
+            .create(Path::new(to_path))
+            .map_err(|e| format!("Failed to create dst: {}", e))?;
 
-        std::io::copy(&mut src_file, &mut dst_file).map_err(|e| format!("Copy stream failed: {}", e))?;
-        dst_file.flush().map_err(|e| format!("Flush failed: {}", e))?;
+        std::io::copy(&mut src_file, &mut dst_file)
+            .map_err(|e| format!("Copy stream failed: {}", e))?;
+        dst_file
+            .flush()
+            .map_err(|e| format!("Flush failed: {}", e))?;
 
         self.session.set_timeout(0);
         Ok(())
@@ -152,11 +190,15 @@ impl<'a> FileSystem for SftpFileSystem<'a> {
         self.session.set_timeout(0); // Infinite timeout
         let sftp = self.session.sftp().map_err(|e| e.to_string())?;
 
-        let mut remote_file = sftp.open(Path::new(remote_path)).map_err(|e| format!("Open remote failed: {}", e))?;
-        let mut local_file = File::create(local_path).map_err(|e| format!("Create local failed: {}", e))?;
+        let mut remote_file = sftp
+            .open(Path::new(remote_path))
+            .map_err(|e| format!("Open remote failed: {}", e))?;
+        let mut local_file =
+            File::create(local_path).map_err(|e| format!("Create local failed: {}", e))?;
 
-        std::io::copy(&mut remote_file, &mut local_file).map_err(|e| format!("Download failed: {}", e))?;
-        
+        std::io::copy(&mut remote_file, &mut local_file)
+            .map_err(|e| format!("Download failed: {}", e))?;
+
         self.session.set_timeout(3000); // Restore default
         Ok(())
     }
@@ -165,38 +207,48 @@ impl<'a> FileSystem for SftpFileSystem<'a> {
         self.session.set_timeout(0);
         let sftp = self.session.sftp().map_err(|e| e.to_string())?;
 
-        let mut local_file = File::open(local_path).map_err(|e| format!("Open local failed: {}", e))?;
-        let mut remote_file = sftp.create(Path::new(remote_path)).map_err(|e| format!("Create remote failed: {}", e))?;
+        let mut local_file =
+            File::open(local_path).map_err(|e| format!("Open local failed: {}", e))?;
+        let mut remote_file = sftp
+            .create(Path::new(remote_path))
+            .map_err(|e| format!("Create remote failed: {}", e))?;
 
-        std::io::copy(&mut local_file, &mut remote_file).map_err(|e| format!("Upload failed: {}", e))?;
-        remote_file.flush().map_err(|e| format!("Flush failed: {}", e))?;
+        std::io::copy(&mut local_file, &mut remote_file)
+            .map_err(|e| format!("Upload failed: {}", e))?;
+        remote_file
+            .flush()
+            .map_err(|e| format!("Flush failed: {}", e))?;
 
         self.session.set_timeout(3000);
         Ok(())
     }
 
     fn chmod(&self, path: &str, mode: &str, recursive: bool) -> Result<(), String> {
-        let mode_num = u32::from_str_radix(mode, 8).map_err(|e| format!("Invalid octal mode: {}", e))?;
+        let mode_num =
+            u32::from_str_radix(mode, 8).map_err(|e| format!("Invalid octal mode: {}", e))?;
 
         if recursive {
             let mut channel = self.session.channel_session().map_err(|e| e.to_string())?;
             let safe_path = path.replace("'", "'\\''");
             let cmd = format!("chmod -R {:03o} '{}'", mode_num, safe_path);
-            
+
             channel.exec(&cmd).map_err(|e| e.to_string())?;
-            
+
             let mut output = String::new();
             channel.read_to_string(&mut output).ok();
             channel.wait_close().ok();
-            
+
             let status = channel.exit_status().unwrap_or(-1);
-            if status != 0 { return Err(format!("Recursive chmod failed (Exit: {})", status)); }
+            if status != 0 {
+                return Err(format!("Recursive chmod failed (Exit: {})", status));
+            }
         } else {
             self.session.set_timeout(5000);
             let sftp = self.session.sftp().map_err(|e| e.to_string())?;
             let mut stat = sftp.stat(Path::new(path)).map_err(|e| e.to_string())?;
             stat.perm = Some(mode_num);
-            sftp.setstat(Path::new(path), stat).map_err(|e| e.to_string())?;
+            sftp.setstat(Path::new(path), stat)
+                .map_err(|e| e.to_string())?;
             self.session.set_timeout(0);
         }
         Ok(())
@@ -213,8 +265,10 @@ impl<'a> FileSystem for SftpFileSystem<'a> {
         }
 
         let mut content = String::new();
-        remote_file.read_to_string(&mut content).map_err(|e| format!("Read text failed (Binary?): {}", e))?;
-        
+        remote_file
+            .read_to_string(&mut content)
+            .map_err(|e| format!("Read text failed (Binary?): {}", e))?;
+
         self.session.set_timeout(0);
         Ok(content)
     }
@@ -223,10 +277,12 @@ impl<'a> FileSystem for SftpFileSystem<'a> {
         self.session.set_timeout(10000);
         let sftp = self.session.sftp().map_err(|e| e.to_string())?;
         let mut remote_file = sftp.create(Path::new(path)).map_err(|e| e.to_string())?;
-        
-        remote_file.write_all(content.as_bytes()).map_err(|e| e.to_string())?;
+
+        remote_file
+            .write_all(content.as_bytes())
+            .map_err(|e| e.to_string())?;
         remote_file.flush().map_err(|e| e.to_string())?;
-        
+
         self.session.set_timeout(0);
         Ok(())
     }
@@ -234,10 +290,10 @@ impl<'a> FileSystem for SftpFileSystem<'a> {
     fn get_home_dir(&self) -> Result<String, String> {
         self.session.set_timeout(5000);
         let sftp = self.session.sftp().map_err(|e| e.to_string())?;
-        
+
         // "." 在 SFTP 中解析为当前工作目录 (通常是 /root 或 /home/user)
         let path = sftp.realpath(Path::new(".")).map_err(|e| e.to_string())?;
-        
+
         self.session.set_timeout(0);
         Ok(path.to_string_lossy().to_string())
     }

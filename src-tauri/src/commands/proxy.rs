@@ -1,12 +1,9 @@
-use tauri::{command, State};
-use crate::state::AppState;
 use crate::models::Proxy;
+use crate::state::AppState;
+use tauri::{command, State};
 
 #[command]
-pub async fn add_proxy(
-    state: State<'_, AppState>,
-    proxy: Proxy
-) -> Result<(), String> {
+pub async fn add_proxy(state: State<'_, AppState>, proxy: Proxy) -> Result<(), String> {
     sqlx::query(
         "INSERT INTO proxies (id, name, proxy_type, host, port, username, password, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
@@ -40,15 +37,12 @@ pub async fn get_all_proxies(state: State<'_, AppState>) -> Result<Vec<Proxy>, S
 }
 
 #[command]
-pub async fn update_proxy(
-    state: State<'_, AppState>,
-    proxy: Proxy
-) -> Result<(), String> {
+pub async fn update_proxy(state: State<'_, AppState>, proxy: Proxy) -> Result<(), String> {
     sqlx::query(
         "UPDATE proxies SET 
             name = ?, proxy_type = ?, host = ?, port = ?, 
             username = ?, password = ?, updated_at = ? 
-         WHERE id = ?"
+         WHERE id = ?",
     )
     .bind(&proxy.name)
     .bind(&proxy.proxy_type)
@@ -66,10 +60,7 @@ pub async fn update_proxy(
 }
 
 #[command]
-pub async fn delete_proxy(
-    state: State<'_, AppState>,
-    id: String
-) -> Result<(), String> {
+pub async fn delete_proxy(state: State<'_, AppState>, id: String) -> Result<(), String> {
     sqlx::query("DELETE FROM proxies WHERE id = ?")
         .bind(id)
         .execute(&state.db)

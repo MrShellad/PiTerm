@@ -10,6 +10,16 @@ import { HistoryService } from "../services/history.service";
 // 引入高亮处理 Hook
 import { useTerminalHighlight } from "./useTerminalHighlight";
 
+interface TerminalExitPayload {
+  sessionActive?: boolean;
+  reason?: string;
+}
+
+interface BackgroundSessionPayload {
+  status?: 'connecting' | 'ready' | 'unavailable';
+  reason?: string;
+}
+
 export const useTerminalConnection = (
   sessionId: string,
   termRef: React.RefObject<Terminal | null>,
@@ -18,8 +28,15 @@ export const useTerminalConnection = (
   const [isPasswordRequired, setIsPasswordRequired] = useState(false);
   const [isConnectionReady, setIsConnectionReady] = useState(false);
   const cmdBuffer = useRef<string>('');
+  const onReadyRef = useRef(onReady);
+  const connectInternalRef = useRef<(manualPassword?: string) => Promise<void>>(
+    async () => {}
+  );
 
   const updateSessionStatus = useTerminalStore(s => s.updateSessionStatus);
+  const updateSessionBackgroundStatus = useTerminalStore(
+    s => s.updateSessionBackgroundStatus
+  );
   const session = useTerminalStore(s => s.sessions[sessionId]);
   const serverConfig = useServerStore(s => s.servers.find(srv => srv.id === session?.serverId));
   const consumeCredential = useSessionCredentialStore(s => s.consumeCredential);
@@ -33,17 +50,50 @@ export const useTerminalConnection = (
     applyHighlightRef.current = applyHighlight;
   }, [applyHighlight]);
 
-  const markSessionDisconnected = useCallback(() => {
+  useEffect(() => {
+    onReadyRef.current = onReady;
+  }, [onReady]);
+
+  const markSessionBackground = useCallback((reason?: string) => {
+    const currentSession = useTerminalStore.getState().sessions[sessionId];
+    if (!currentSession || currentSession.status === 'disconnected') {
+      setIsConnectionReady(false);
+      return;
+    }
+    if (
+      currentSession.status !== 'background' &&
+      termRef.current
+    ) {
+      const suffix = reason ? ` (${reason})` : '';
+      const availabilityMessage =
+        currentSession.backgroundStatus === 'ready'
+          ? 'Monitor and SFTP remain available'
+          : currentSession.backgroundStatus === 'connecting'
+            ? 'Background session is still connecting'
+            : 'Monitor and SFTP are unavailable';
+      termRef.current.write(
+        `\r\n\x1b[33m[SSH]\x1b[0m Shell exited. ${availabilityMessage}${suffix}.\r\n`
+      );
+    }
+    setIsConnectionReady(false);
+    updateSessionStatus(sessionId, 'background');
+  }, [sessionId, termRef, updateSessionStatus]);
+
+  const markSessionDisconnected = useCallback((reason?: string) => {
     const currentSession = useTerminalStore.getState().sessions[sessionId];
     if (currentSession?.status !== 'disconnected' && termRef.current) {
-      termRef.current.write(`\r\n\x1b[33m[SSH]\x1b[0m Session disconnected.\r\n`);
+      const suffix = reason ? ` (${reason})` : '';
+      termRef.current.write(`\r\n\x1b[33m[SSH]\x1b[0m Session disconnected${suffix}.\r\n`);
     }
     setIsConnectionReady(false);
     updateSessionStatus(sessionId, 'disconnected');
-  }, [sessionId, termRef, updateSessionStatus]);
+    updateSessionBackgroundStatus(sessionId, 'unavailable');
+  }, [sessionId, termRef, updateSessionBackgroundStatus, updateSessionStatus]);
 
   const isInactiveSessionError = (err: unknown) =>
     String(err).includes('SSH connection not active');
+  const isInactiveShellError = (err: unknown) =>
+    String(err).includes('SSH shell not active');
 
   const connectInternal = useCallback(async (manualPassword?: string) => {
     if (!termRef.current || !serverConfig) return;
@@ -51,6 +101,7 @@ export const useTerminalConnection = (
     
     setIsPasswordRequired(false);
     updateSessionStatus(sessionId, 'connecting');
+    updateSessionBackgroundStatus(sessionId, 'connecting');
 
     try {
       let finalPassword = manualPassword;
@@ -61,6 +112,7 @@ export const useTerminalConnection = (
           term.write(`\r\n\x1b[33m[Auth]\x1b[0m Session expired.\r\n`);
           setIsPasswordRequired(true);
           updateSessionStatus(sessionId, 'disconnected');
+          updateSessionBackgroundStatus(sessionId, 'unavailable');
           return;
         }
       }
@@ -84,18 +136,30 @@ export const useTerminalConnection = (
 
       setTimeout(() => {
         setIsConnectionReady(true);
-        onReady(); 
+        onReadyRef.current(); 
       }, 300);
 
     } catch (err: any) {
       const msg = typeof err === 'string' ? err : (err.message || JSON.stringify(err));
       term.write(`\r\n\x1b[31mConnection failed: ${msg}\x1b[0m\r\n`);
       updateSessionStatus(sessionId, 'error');
+      updateSessionBackgroundStatus(sessionId, 'unavailable');
       if ((msg.includes("Auth Failed") || msg.includes("denied")) && serverConfig.provider === 'QuickConnect') {
         setIsPasswordRequired(true);
       }
     }
-  }, [serverConfig, sessionId, consumeCredential, updateSessionStatus, termRef, onReady]);
+  }, [
+    serverConfig,
+    sessionId,
+    consumeCredential,
+    updateSessionStatus,
+    updateSessionBackgroundStatus,
+    termRef,
+  ]);
+
+  useEffect(() => {
+    connectInternalRef.current = connectInternal;
+  }, [connectInternal]);
 
   useEffect(() => {
     if (!termRef.current || !session || !serverConfig) return;
@@ -103,6 +167,7 @@ export const useTerminalConnection = (
     let isMounted = true;
     let unlistenFn: UnlistenFn | null = null;
     let exitUnlistenFn: UnlistenFn | null = null;
+    let bgUnlistenFn: UnlistenFn | null = null;
 
     const setup = async () => {
       // 拦截服务端发来的数据
@@ -117,7 +182,7 @@ export const useTerminalConnection = (
       if (!isMounted) { unlisten(); return; }
       unlistenFn = unlisten;
 
-      const exitUnlisten = await listen(`term-exit-${sessionId}`, () => {
+      const exitUnlisten = await listen<TerminalExitPayload>(`term-exit-${sessionId}`, (event) => {
         if (!isMounted) return;
 
         const currentSession = useTerminalStore.getState().sessions[sessionId];
@@ -125,7 +190,12 @@ export const useTerminalConnection = (
           return;
         }
 
-        markSessionDisconnected();
+        const payload = event.payload;
+        if (payload?.sessionActive) {
+          markSessionBackground(payload.reason);
+        } else {
+          markSessionDisconnected(payload?.reason);
+        }
       });
 
       if (!isMounted) {
@@ -133,7 +203,41 @@ export const useTerminalConnection = (
         return;
       }
       exitUnlistenFn = exitUnlisten;
-      await connectInternal();
+
+      const bgUnlisten = await listen<BackgroundSessionPayload>(`bg-session-${sessionId}`, (event) => {
+        if (!isMounted) return;
+
+        const currentSession = useTerminalStore.getState().sessions[sessionId];
+        if (!currentSession || currentSession.status === 'disconnected') {
+          return;
+        }
+
+        const status = event.payload?.status;
+        if (status === 'ready') {
+          updateSessionBackgroundStatus(sessionId, 'ready');
+          return;
+        }
+
+        if (status === 'unavailable') {
+          updateSessionBackgroundStatus(sessionId, 'unavailable');
+          if (termRef.current && currentSession.backgroundStatus !== 'unavailable') {
+            const suffix = event.payload?.reason ? ` (${event.payload.reason})` : '';
+            termRef.current.write(
+              `\r\n\x1b[33m[SSH]\x1b[0m Monitor and SFTP unavailable${suffix}.\r\n`
+            );
+          }
+          return;
+        }
+
+        updateSessionBackgroundStatus(sessionId, 'connecting');
+      });
+
+      if (!isMounted) {
+        bgUnlisten();
+        return;
+      }
+      bgUnlistenFn = bgUnlisten;
+      await connectInternalRef.current();
     };
 
     setup();
@@ -143,6 +247,10 @@ export const useTerminalConnection = (
       TerminalService.writeSsh(sessionId, data).catch((err) => {
         if (isInactiveSessionError(err)) {
           markSessionDisconnected();
+          return;
+        }
+        if (isInactiveShellError(err)) {
+          markSessionBackground();
           return;
         }
         console.error(err);
@@ -171,17 +279,27 @@ export const useTerminalConnection = (
       setIsConnectionReady(false);
       if (unlistenFn) unlistenFn();
       if (exitUnlistenFn) exitUnlistenFn();
+      if (bgUnlistenFn) bgUnlistenFn();
       dataDisposable.dispose();
       
       const currentTabs = useTerminalStore.getState().tabs;
       const isSessionAlive = currentTabs.some(tab => tab.sessions.includes(sessionId));
       if (!isSessionAlive) {
         updateSessionStatus(sessionId, 'disconnected');
+        updateSessionBackgroundStatus(sessionId, 'unavailable');
         TerminalService.disconnectSsh(sessionId).catch(console.error);
       }
     };
   // 🟢 核心修复：这里移除了 applyHighlight 依赖
-  }, [sessionId, serverConfig?.id, session?.connectTimestamp, termRef, markSessionDisconnected]); 
+  }, [
+    sessionId,
+    serverConfig?.id,
+    session?.connectTimestamp,
+    termRef,
+    markSessionBackground,
+    markSessionDisconnected,
+    updateSessionBackgroundStatus,
+  ]); 
 
   useEffect(() => {
     if (session?.status !== 'connected') return;
@@ -190,6 +308,10 @@ export const useTerminalConnection = (
       TerminalService.touchSshSession(sessionId).catch((err) => {
         if (isInactiveSessionError(err)) {
           markSessionDisconnected();
+          return;
+        }
+        if (isInactiveShellError(err)) {
+          markSessionBackground();
         }
       });
     };
@@ -200,7 +322,7 @@ export const useTerminalConnection = (
     return () => {
       window.clearInterval(heartbeatTimer);
     };
-  }, [sessionId, session?.status, markSessionDisconnected]);
+  }, [sessionId, session?.status, markSessionBackground, markSessionDisconnected]);
 
   return { isPasswordRequired, setIsPasswordRequired, connectInternal, isConnectionReady, serverConfig };
 };

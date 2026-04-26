@@ -1,9 +1,9 @@
 import { useState, useEffect, RefObject } from "react";
 import { Terminal } from "@xterm/xterm";
-import { invoke } from '@tauri-apps/api/core';
 import { toast } from "sonner";
 import { Copy, Clipboard, Trash2 } from "lucide-react";
 import { ContextMenuItem } from "@/components/common/ContextMenu";
+import { TerminalService } from "./services/terminal.service";
 // 🟢 导入 Tauri 剪贴板插件 API
 import { readText, writeText } from '@tauri-apps/plugin-clipboard-manager';
 
@@ -58,7 +58,7 @@ export const useTerminalContextMenu = (
         try {
           // 🟢 使用插件 API 读取剪贴板
           const text = await readText();
-          if (text) invoke('write_ssh', { id: sessionId, data: text });
+          if (text) await TerminalService.writeSsh(sessionId, text);
         } catch (err) { 
           console.error(err);
           toast.error("无法读取剪贴板");

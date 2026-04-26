@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { useTerminalStore } from "@/store/useTerminalStore";
+import { TerminalService } from "./services/terminal.service";
 
 export const useCommandSender = () => {
   const [inputValue, setInputValue] = useState("");
@@ -33,7 +33,7 @@ export const useCommandSender = () => {
            : [activeSessionId];
 
         await Promise.all(targetSessions.map(id => 
-           invoke('write_ssh', { id, data: payload })
+           TerminalService.writeSsh(id, payload)
         ));
         
         setInputValue(""); // 清空输入框

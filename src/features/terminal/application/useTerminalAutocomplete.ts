@@ -4,6 +4,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { SnippetService } from '@/features/snippet/application/snippetService';
 import { Snippet } from '@/features/snippet/domain/types';
 import { SuggestionItem } from '../components/AutocompletePopup';
+import { TerminalService } from './services/terminal.service';
 
 const DEBOUNCE_MS = 200;
 
@@ -109,13 +110,13 @@ export const useTerminalAutocomplete = (
     if (targetCommand.startsWith(currentInput)) {
         const suffix = targetCommand.slice(currentInput.length);
         if (suffix) {
-            invoke('write_ssh', { id: sessionId, data: suffix });
+            TerminalService.writeSsh(sessionId, suffix).catch(console.error);
             inputBuffer.current = targetCommand; 
         }
     } else {
         let backspaces = '';
         for(let i=0; i<currentInput.length; i++) backspaces += '\x7f';
-        invoke('write_ssh', { id: sessionId, data: backspaces + targetCommand });
+        TerminalService.writeSsh(sessionId, backspaces + targetCommand).catch(console.error);
         inputBuffer.current = targetCommand;
     }
     setVisible(false);

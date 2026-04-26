@@ -1,14 +1,20 @@
+use crate::models::backup::{BackupMetadata, CommandResult, ProgressPayload, RestorePreview};
+use crate::services::backup::{archive, credentials, webdav};
 use std::fs::{self, File};
 use std::io::{Cursor, Read};
-use tauri::{AppHandle, Runtime, Emitter, State}; // 🟢 [引入 State]
-use crate::models::backup::{CommandResult, ProgressPayload, RestorePreview, BackupMetadata};
-use crate::services::backup::{archive, webdav, credentials};
-// 🟢 [引入 AppState] 用于获取并关闭数据库连接
-use crate::state::AppState; 
+use tauri::{AppHandle, Emitter, Runtime, State}; // 🟢 [引入 State]
+                                                 // 🟢 [引入 AppState] 用于获取并关闭数据库连接
+use crate::state::AppState;
 
 // 辅助函数：发送进度事件
 fn emit<R: Runtime>(app: &AppHandle<R>, msg: &str, progress: f64) {
-    let _ = app.emit("backup_progress", ProgressPayload { message: msg.to_string(), progress });
+    let _ = app.emit(
+        "backup_progress",
+        ProgressPayload {
+            message: msg.to_string(),
+            progress,
+        },
+    );
 }
 
 /// 第一步：下载并预处理 (显示下载进度条)
@@ -19,14 +25,13 @@ pub async fn prepare_cloud_restore<R: Runtime>(
     url: String,
     username: String,
     password: Option<String>,
-    filename: String
+    filename: String,
 ) -> CommandResult<RestorePreview> {
-    
     emit(&app, "backup.progress.preparing", 5.0);
 
     let actual_password = match password {
         Some(p) if !p.is_empty() => p,
-        _ => credentials::load_password(&app)?
+        _ => credentials::load_password(&app)?,
     };
 
     // 1. 下载文件 (WebDAV Service 会发送 20%~80% 的进度)
@@ -36,7 +41,10 @@ pub async fn prepare_cloud_restore<R: Runtime>(
     emit(&app, "backup.progress.analyzing", 90.0);
     let temp_dir = std::env::temp_dir();
     // 使用时间戳防止文件名冲突
-    let temp_path = temp_dir.join(format!("restore_temp_{}.zip", chrono::Utc::now().timestamp()));
+    let temp_path = temp_dir.join(format!(
+        "restore_temp_{}.zip",
+        chrono::Utc::now().timestamp()
+    ));
     fs::write(&temp_path, &content).map_err(|e| e.to_string())?;
 
     // 3. 尝试读取 zip 中的 backup_meta.json (不解压整个包)
@@ -68,11 +76,10 @@ pub async fn prepare_cloud_restore<R: Runtime>(
 pub async fn apply_restore_file<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, AppState>, // 🟢 [注入 State]
-    temp_file_path: String
+    temp_file_path: String,
 ) -> CommandResult<()> {
-    
     emit(&app, "backup.progress.preparing", 10.0);
-    
+
     // =========================================================================
     // 🟢 [关键修复] 强制关闭数据库连接池
     // =========================================================================
@@ -85,9 +92,9 @@ pub async fn apply_restore_file<R: Runtime>(
     // =========================================================================
 
     let file = File::open(&temp_file_path).map_err(|e| format!("Temp file missing: {}", e))?;
-    
+
     emit(&app, "backup.progress.extracting", 50.0);
-    
+
     // 调用 Archive Service 解压 (现在可以安全覆盖数据库了)
     archive::unpack_zip_to_config(&app, file)?;
 
@@ -95,7 +102,7 @@ pub async fn apply_restore_file<R: Runtime>(
     let _ = fs::remove_file(temp_file_path);
 
     emit(&app, "backup.progress.complete", 100.0);
-    
+
     // 注意：此时数据库连接已关闭，App 需要重启才能继续正常使用数据库功能
     Ok(())
 }

@@ -16,7 +16,8 @@ export interface TerminalSession {
   id: string;
   serverId: string;
   serverName: string;
-  status: 'connecting' | 'connected' | 'disconnected' | 'error';
+  status: 'connecting' | 'connected' | 'background' | 'disconnected' | 'error';
+  backgroundStatus: 'connecting' | 'ready' | 'unavailable';
   connectTimestamp?: number;
 }
 
@@ -51,6 +52,10 @@ interface TerminalState {
   setActiveTab: (tabId: string) => void;
   
   updateSessionStatus: (sessionId: string, status: TerminalSession['status']) => void;
+  updateSessionBackgroundStatus: (
+    sessionId: string,
+    backgroundStatus: TerminalSession['backgroundStatus']
+  ) => void;
   
   toggleBroadcastMode: () => void;
   
@@ -125,6 +130,7 @@ export const useTerminalStore = create<TerminalState>()(
                 serverId: targetServerId,
                 serverName: payload?.name || 'Unknown',
                 status: 'connecting',
+                backgroundStatus: 'connecting',
                 connectTimestamp: Date.now()
             };
             
@@ -235,6 +241,18 @@ export const useTerminalStore = create<TerminalState>()(
         });
       },
 
+      updateSessionBackgroundStatus: (sessionId, backgroundStatus) => {
+        set((state) => {
+            if (!state.sessions[sessionId]) return state;
+            return {
+                sessions: {
+                    ...state.sessions,
+                    [sessionId]: { ...state.sessions[sessionId], backgroundStatus }
+                }
+            };
+        });
+      },
+
       toggleBroadcastMode: () => set(state => ({ isBroadcastMode: !state.isBroadcastMode })),
 
       splitTab: (tabId) => {
@@ -252,6 +270,7 @@ export const useTerminalStore = create<TerminalState>()(
                 ...sourceSession,
                 id: newSessionId,
                 status: 'connecting',
+                backgroundStatus: 'connecting',
                 connectTimestamp: Date.now()
             };
 
@@ -291,6 +310,7 @@ export const useTerminalStore = create<TerminalState>()(
                 newSessions[sid] = { 
                     ...newSessions[sid], 
                     status: 'connecting',
+                    backgroundStatus: 'connecting',
                     connectTimestamp: Date.now()
                 };
             }

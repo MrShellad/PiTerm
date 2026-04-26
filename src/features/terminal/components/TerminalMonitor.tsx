@@ -38,7 +38,8 @@ export const TerminalMonitor = ({ collapsed = false, onToggle }: Props) => {
   const currentTab = tabs.find(t => t.id === activeTabId);
   const sessionId = currentTab?.sessions?.[0];
   const sessionObj = sessionId ? terminalSessions[sessionId] : undefined;
-  const isSessionConnected = sessionObj?.status === 'connected';
+  const isShellAvailable = sessionObj?.status === 'connected' || sessionObj?.status === 'background';
+  const isBackgroundReady = sessionObj?.backgroundStatus === 'ready';
   const serverConfig = useServerStore(state => state.servers.find(s => s.id === sessionObj?.serverId));
   
   const { sessions, setSessionData, updateHistory } = useMonitorStore();
@@ -67,7 +68,7 @@ export const TerminalMonitor = ({ collapsed = false, onToggle }: Props) => {
 
   // 🟢 2. 委托给 DataService 负责轮询抓取
   useEffect(() => {
-    if (!sessionId || !isSessionConnected) return;
+    if (!sessionId || !isShellAvailable || !isBackgroundReady) return;
     
     const cleanup = MonitorDataService.startPolling(sessionId, 3000, (updates) => {
         setSessionData(sessionId, updates);
@@ -77,7 +78,7 @@ export const TerminalMonitor = ({ collapsed = false, onToggle }: Props) => {
     });
 
     return cleanup;
-  }, [sessionId, isSessionConnected, setSessionData, updateHistory]);
+  }, [sessionId, isShellAvailable, isBackgroundReady, setSessionData, updateHistory]);
 
   if (collapsed) {
       return (

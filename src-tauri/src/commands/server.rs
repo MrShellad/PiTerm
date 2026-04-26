@@ -1,9 +1,9 @@
-use tauri::{State, command};
-use crate::models::{ServerConfig, ConnectionType, AuthType, OsType};
+use crate::commands::vault::{internal_add_secret, internal_record_usage, VaultState}; // 🟢 引入 internal_record_usage
+use crate::models::{AuthType, ConnectionType, OsType, ServerConfig};
 use crate::state::AppState;
-use crate::commands::vault::{VaultState, internal_add_secret, internal_record_usage}; // 🟢 引入 internal_record_usage
-use sqlx::Row;
 use chrono::Utc;
+use sqlx::Row;
+use tauri::{command, State};
 
 // =========================================================
 // 获取服务器列表
@@ -11,7 +11,7 @@ use chrono::Utc;
 #[command]
 pub async fn list_servers(state: State<'_, AppState>) -> Result<Vec<ServerConfig>, String> {
     let pool = &state.db;
-    
+
     // 1. 执行查询
     let rows = sqlx::query("SELECT * FROM servers ORDER BY sort ASC")
         .fetch_all(pool)
@@ -24,7 +24,7 @@ pub async fn list_servers(state: State<'_, AppState>) -> Result<Vec<ServerConfig
     for row in rows {
         let tags_str: String = row.try_get("tags").unwrap_or("[]".to_string());
         let tags: Vec<String> = serde_json::from_str(&tags_str).unwrap_or_default();
-        
+
         servers.push(ServerConfig {
             id: row.try_get("id").unwrap_or_default(),
             name: row.try_get("name").unwrap_or_default(),
@@ -34,21 +34,23 @@ pub async fn list_servers(state: State<'_, AppState>) -> Result<Vec<ServerConfig
             ip: row.try_get("ip").unwrap_or_default(),
             port: row.try_get("port").unwrap_or_default(),
             tags,
-            connection_type: row.try_get("connection_type").unwrap_or(ConnectionType::Direct),
+            connection_type: row
+                .try_get("connection_type")
+                .unwrap_or(ConnectionType::Direct),
             proxy_id: row.try_get("proxy_id").ok(),
             auth_type: row.try_get("auth_type").unwrap_or(AuthType::Password),
             username: row.try_get("username").unwrap_or_default(),
-            
+
             password: row.try_get("password").ok(),
             private_key: row.try_get("private_key").ok(),
             passphrase: row.try_get("passphrase").ok(),
-            
+
             password_id: row.try_get("password_id").ok(),
             password_source: row.try_get("password_source").ok(),
             key_id: row.try_get("key_id").ok(),
             key_source: row.try_get("key_source").ok(),
             private_key_remark: row.try_get("private_key_remark").ok(),
-            
+
             os: row.try_get("os").unwrap_or(OsType::Linux),
             is_pinned: row.try_get("is_pinned").unwrap_or(false),
             enable_expiration: row.try_get("enable_expiration").unwrap_or(false),
@@ -75,7 +77,7 @@ pub async fn list_servers(state: State<'_, AppState>) -> Result<Vec<ServerConfig
 pub async fn save_server(
     state: State<'_, AppState>,
     vault_state: State<'_, VaultState>,
-    mut server: ServerConfig
+    mut server: ServerConfig,
 ) -> Result<(), String> {
     let pool = &state.db;
 
@@ -84,20 +86,21 @@ pub async fn save_server(
         if !plain_password.is_empty() {
             let master_key = {
                 let guard = vault_state.0.lock().unwrap();
-                guard.as_ref().cloned().ok_or("VAULT_LOCKED")? 
+                guard.as_ref().cloned().ok_or("VAULT_LOCKED")?
             };
 
             let secret_name = format!("Server Pass: {}", server.name);
-            
+
             let new_pass_id = internal_add_secret(
-                pool, 
-                &master_key, 
-                &secret_name, 
-                "password", 
-                plain_password, 
+                pool,
+                &master_key,
+                &secret_name,
+                "password",
+                plain_password,
                 Some(server.username.clone()),
-                None 
-            ).await?;
+                None,
+            )
+            .await?;
 
             server.password_id = Some(new_pass_id);
             server.password_source = Some("vault".to_string());
@@ -114,20 +117,21 @@ pub async fn save_server(
             };
 
             let secret_name = format!("Server Key: {}", server.name);
-            
+
             let new_key_id = internal_add_secret(
-                pool, 
-                &master_key, 
-                &secret_name, 
-                "private_key", 
-                plain_key, 
+                pool,
+                &master_key,
+                &secret_name,
+                "private_key",
+                plain_key,
                 Some(server.username.clone()),
-                None 
-            ).await?;
+                None,
+            )
+            .await?;
 
             server.key_id = Some(new_key_id);
             server.key_source = Some("vault".to_string());
-            server.private_key = None; 
+            server.private_key = None;
         }
     }
 
@@ -160,7 +164,7 @@ pub async fn save_server(
             ?, ?, ?,
             ?, ?, ?, ?
         )
-        "#
+        "#,
     )
     .bind(server.id)
     .bind(server.name)
@@ -210,19 +214,16 @@ pub async fn delete_server(state: State<'_, AppState>, id: String) -> Result<(),
         .execute(&state.db)
         .await
         .map_err(|e| format!("删除失败: {}", e))?;
-        
+
     Ok(())
 }
 
 // 🟢 [修改] 更新最后连接时间，并记录凭据使用情况
 #[command]
-pub async fn update_last_connected(
-    state: State<'_, AppState>,
-    id: String
-) -> Result<(), String> {
+pub async fn update_last_connected(state: State<'_, AppState>, id: String) -> Result<(), String> {
     let pool = &state.db;
     let now = Utc::now().timestamp_millis();
-    
+
     // 1. 更新服务器自身的 last_connected_at
     sqlx::query("UPDATE servers SET last_connected_at = ? WHERE id = ?")
         .bind(now)

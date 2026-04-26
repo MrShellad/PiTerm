@@ -22,7 +22,7 @@ pub enum OsType {
 pub enum AuthType {
     Password,
     PrivateKey,
-    Agent, 
+    Agent,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, sqlx::Type)]
@@ -31,8 +31,8 @@ pub enum AuthType {
 pub enum ConnectionType {
     Direct,
     Proxy,
-    Http,   
-    Socks5, 
+    Http,
+    Socks5,
 }
 
 // =========================================================
@@ -59,7 +59,7 @@ pub struct ServerConfig {
     #[serde(default = "default_port")]
     pub port: u16,
 
-    #[sqlx(skip)] 
+    #[sqlx(skip)]
     #[serde(default)]
     pub tags: Vec<String>,
 
@@ -80,7 +80,7 @@ pub struct ServerConfig {
 
     pub password_id: Option<String>,
     pub password_source: Option<String>,
-    
+
     pub key_id: Option<String>,
     pub key_source: Option<String>,
     pub private_key_remark: Option<String>,
@@ -95,7 +95,7 @@ pub struct ServerConfig {
     pub enable_expiration: bool,
 
     pub expire_date: Option<String>,
-    
+
     #[serde(default)]
     pub created_at: i64,
 
@@ -112,13 +112,27 @@ pub struct ServerConfig {
 }
 
 // 默认值函数
-fn default_icon() -> String { "server".to_string() }
-fn default_provider() -> String { "Custom".to_string() }
-fn default_port() -> u16 { 22 }
-fn default_connection_type() -> ConnectionType { ConnectionType::Direct }
-fn default_auth_type() -> AuthType { AuthType::Password }
-fn default_username() -> String { "root".to_string() }
-fn default_os() -> OsType { OsType::Linux }
+fn default_icon() -> String {
+    "server".to_string()
+}
+fn default_provider() -> String {
+    "Custom".to_string()
+}
+fn default_port() -> u16 {
+    22
+}
+fn default_connection_type() -> ConnectionType {
+    ConnectionType::Direct
+}
+fn default_auth_type() -> AuthType {
+    AuthType::Password
+}
+fn default_username() -> String {
+    "root".to_string()
+}
+fn default_os() -> OsType {
+    OsType::Linux
+}
 
 // =========================================================
 // SshConfig (SSH 连接配置核心)
@@ -133,11 +147,11 @@ pub struct SshConfig {
     pub username: String,
     pub connection_type: ConnectionType,
     pub proxy: Option<Proxy>,
-    
-    pub password: Option<String>, 
-    pub private_key: Option<String>, 
+
+    pub password: Option<String>,
+    pub private_key: Option<String>,
     pub passphrase: Option<String>,
-    
+
     pub password_id: Option<String>,
     pub password_source: Option<String>,
 
@@ -158,7 +172,7 @@ pub struct Snippet {
     pub title: String,
     pub code: String,
     pub language: String,
-    pub tags: String, 
+    pub tags: String,
     pub created_at: i64,
     pub updated_at: i64,
 }
@@ -180,16 +194,16 @@ pub struct SnippetDto {
 pub struct Proxy {
     pub id: String,
     pub name: String,
-    
+
     #[sqlx(rename = "proxy_type")]
     pub proxy_type: String,
-    
+
     pub host: String,
     pub port: u16,
-    
+
     pub username: Option<String>,
     pub password: Option<String>,
-    
+
     pub created_at: i64,
     pub updated_at: i64,
 }
@@ -211,12 +225,12 @@ pub struct TestConnectionPayload {
     // 密码相关
     pub password_source: Option<String>, // "manual" | "store"
     pub password_id: Option<String>,
-    pub password: Option<String>,        // manual 模式下的明文
+    pub password: Option<String>, // manual 模式下的明文
 
     // 密钥相关
-    pub key_source: Option<String>,      // "manual" | "store"
+    pub key_source: Option<String>, // "manual" | "store"
     pub key_id: Option<String>,
-    pub private_key: Option<String>,     // manual 模式下的明文
+    pub private_key: Option<String>, // manual 模式下的明文
     pub passphrase: Option<String>,
 
     // 高级设置
@@ -241,7 +255,7 @@ pub struct CommandHistoryItem {
 #[derive(Debug, Serialize, Deserialize, Clone, FromRow)]
 #[serde(rename_all = "camelCase")]
 pub struct CommandUsageItem {
-    pub command: String,          // 从关联表查出来的 display_command
+    pub command: String, // 从关联表查出来的 display_command
     pub exec_count: i64,
     pub last_used_at: i64,
 }
@@ -260,9 +274,9 @@ impl Default for HistoryFilterConfig {
             ignore_short: true,
             min_length: 3,
             sensitive_keywords: vec![
-                "password".to_string(), 
-                "token".to_string(), 
-                "secret".to_string(), 
+                "password".to_string(),
+                "token".to_string(),
+                "secret".to_string(),
                 "export KEY=".to_string(),
                 "private_key".to_string(),
                 "Bearer ".to_string(),

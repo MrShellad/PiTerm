@@ -1,4 +1,6 @@
+use super::{get_monitor_session_arc, run_monitor_operation};
 use crate::commands::ssh::SshState;
+use crate::utils::ssh_log;
 use std::io::Read;
 use tauri::State;
 
@@ -49,26 +51,31 @@ pub async fn get_ssh_os_info(
     ssh_state: State<'_, SshState>,
     id: String,
 ) -> Result<RemoteOsInfo, String> {
-    let session_arc = {
-        let map = ssh_state.sessions.lock().unwrap();
-        match map.get(&id) {
-            Some(conn) => conn.bg_session.clone(),
-            None => return Err("SSH connection not active".to_string()),
-        }
-    };
+    let session_arc = get_monitor_session_arc(&ssh_state, &id, "os_snapshot")?;
 
     let output = tauri::async_runtime::spawn_blocking(move || {
-        let sess = session_arc.lock().unwrap();
-        let mut channel = sess.channel_session().map_err(|e: ssh2::Error| e.to_string())?;
+        run_monitor_operation(
+            session_arc,
+            &id,
+            "os_snapshot",
+            vec![ssh_log::log_field("command_name", "OS_INFO_CMD")],
+            |sess| {
+                let mut channel = sess
+                    .channel_session()
+                    .map_err(|e: ssh2::Error| e.to_string())?;
 
-        channel.exec(OS_INFO_CMD).map_err(|e: ssh2::Error| e.to_string())?;
+                channel
+                    .exec(OS_INFO_CMD)
+                    .map_err(|e: ssh2::Error| e.to_string())?;
 
-        let mut s = String::new();
-        channel
-            .read_to_string(&mut s)
-            .map_err(|e: std::io::Error| e.to_string())?;
-        channel.wait_close().ok();
-        Ok::<String, String>(s)
+                let mut s = String::new();
+                channel
+                    .read_to_string(&mut s)
+                    .map_err(|e: std::io::Error| e.to_string())?;
+                channel.wait_close().ok();
+                Ok::<String, String>(s)
+            },
+        )
     })
     .await
     .map_err(|e| e.to_string())??;

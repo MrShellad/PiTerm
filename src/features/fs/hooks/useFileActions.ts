@@ -7,6 +7,7 @@ import { FileEntry, SortField } from '@/features/fs/types';
 import { FileActionType } from '../components/FileContextMenu';
 import { ModalType } from '../components/FsActionModals';
 import { open, save } from '@tauri-apps/plugin-dialog';
+import { TerminalService } from '@/features/terminal/application/services/terminal.service';
 // [新增] 引入编辑器配置检查
 import { isEditable } from '../editor/config';
 // [新增] 引入 Tauri 窗口 API
@@ -328,7 +329,7 @@ const handleDoubleClick = useCallback((file: FileEntry) => {
             case 'openTerminal': {
                 const targetPath = file && file.isDir ? file.path : state.currentPath;
                 if (connectionId) {
-                    invoke('write_ssh', { id: connectionId, data: `cd "${targetPath}"\r` })
+                    TerminalService.writeSsh(connectionId, `cd "${targetPath}"\r`)
                         .then(() => showToast(t('fs.msg.termPathUpdated', 'Terminal path updated')))
                         .catch(e => console.error(e));
                 }

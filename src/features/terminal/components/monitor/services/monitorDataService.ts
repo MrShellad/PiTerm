@@ -1,56 +1,79 @@
-// src/features/terminal/components/monitor/services/monitorDataService.ts
 import { invoke } from "@tauri-apps/api/core";
 import { emit } from "@tauri-apps/api/event";
 import { SessionMonitorData } from "@/store/useMonitorStore";
 import { MonitorSyncPayload } from "../types";
 
+const inflightSessionDataRequests = new Map<
+  string,
+  Promise<Partial<SessionMonitorData>>
+>();
+
 const isExpectedMonitorError = (err: unknown) => {
   const message = String(err).toLowerCase();
-  return message.includes("ssh connection not active");
+  return message.includes("ssh connection not active")
+    || message.includes("ssh background session not ready")
+    || message.includes("ssh background session unavailable");
 };
 
 export const MonitorDataService = {
-  /**
-   * 单次抓取服务器的监控数据
-   */
-  fetchSessionData: async (sessionId: string): Promise<Partial<SessionMonitorData>> => {
-    try {
-      return await invoke<Partial<SessionMonitorData>>("get_ssh_combined_info", { id: sessionId });
-    } catch (err) {
-      if (!isExpectedMonitorError(err)) {
-        console.error("Error fetching monitor data:", err);
-      }
-      return {};
+  fetchSessionData: async (
+    sessionId: string
+  ): Promise<Partial<SessionMonitorData>> => {
+    const existingRequest = inflightSessionDataRequests.get(sessionId);
+    if (existingRequest) {
+      return existingRequest;
     }
+
+    const request = (async () => {
+      try {
+        return await invoke<Partial<SessionMonitorData>>(
+          "get_ssh_combined_info",
+          { id: sessionId }
+        );
+      } catch (err) {
+        if (!isExpectedMonitorError(err)) {
+          console.error("Error fetching monitor data:", err);
+        }
+        return {};
+      } finally {
+        inflightSessionDataRequests.delete(sessionId);
+      }
+    })();
+
+    inflightSessionDataRequests.set(sessionId, request);
+    return request;
   },
 
-  /**
-   * 开始轮询，返回清理函数
-   */
   startPolling: (
     sessionId: string,
     intervalMs: number,
     onDataFetched: (updates: Partial<SessionMonitorData>) => void
   ) => {
+    let disposed = false;
+
     const fetchData = async () => {
-      if (!sessionId) return;
-      
+      if (!sessionId || disposed) return;
+
       const updates = await MonitorDataService.fetchSessionData(sessionId);
-      
+      if (disposed) return;
+
       if (Object.keys(updates).length > 0) {
-        // 调用回调更新 Store
         onDataFetched(updates);
-        // 广播给其他窗口 (例如独立出的高级监控窗口)
-        emit("monitor:sync-data", { sessionId, data: updates } as MonitorSyncPayload);
+        emit("monitor:sync-data", {
+          sessionId,
+          data: updates,
+        } as MonitorSyncPayload);
       }
     };
 
-    // 立即执行一次
-    fetchData();
-    // 启动定时器
-    const intervalId = setInterval(fetchData, intervalMs);
+    void fetchData();
+    const intervalId = setInterval(() => {
+      void fetchData();
+    }, intervalMs);
 
-    // 返回清理函数
-    return () => clearInterval(intervalId);
-  }
+    return () => {
+      disposed = true;
+      clearInterval(intervalId);
+    };
+  },
 };

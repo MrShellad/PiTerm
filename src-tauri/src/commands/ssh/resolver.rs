@@ -1,9 +1,9 @@
-use sqlx::{SqlitePool, Row};
-use serde_json::Value;
-use crate::models::{ConnectionType, Proxy, SshConfig, TestConnectionPayload};
-use crate::commands::vault::internal_get_secret;
 use super::utils::clean_private_key;
+use crate::commands::vault::internal_get_secret;
+use crate::models::{ConnectionType, Proxy, SshConfig, TestConnectionPayload};
 use aes_gcm::{Aes256Gcm, Key};
+use serde_json::Value;
+use sqlx::{Row, SqlitePool};
 
 pub async fn load_proxy_for_connection(
     db_pool: &SqlitePool,
@@ -40,7 +40,7 @@ pub async fn resolve_config(
                 connect_timeout, keep_alive_interval, auto_reconnect, max_reconnects 
          FROM servers WHERE id = ?"
     )
-    .bind(server_id) 
+    .bind(server_id)
     .fetch_optional(db_pool)
     .await
     .map_err(|e| format!("DB Query Error: {}", e))?
@@ -49,7 +49,9 @@ pub async fn resolve_config(
     let host: String = row.get("ip");
     let port: u16 = row.get::<i64, _>("port") as u16;
     let username: String = row.get("username");
-    let connection_type: ConnectionType = row.try_get("connection_type").unwrap_or(ConnectionType::Direct);
+    let connection_type: ConnectionType = row
+        .try_get("connection_type")
+        .unwrap_or(ConnectionType::Direct);
     let proxy_id: Option<String> = row.try_get("proxy_id").ok();
     let auth_type: String = row.get("auth_type");
 
@@ -76,18 +78,17 @@ pub async fn resolve_config(
                 final_password = Some(decrypted);
             }
         } else {
-            final_password = row.get("password"); 
+            final_password = row.get("password");
         }
-    } 
-    else if auth_type == "key" || auth_type == "privateKey" {
+    } else if auth_type == "key" || auth_type == "privateKey" {
         let k_id: Option<String> = row.get("key_id");
         if let Some(kid) = k_id {
             let decrypted = internal_get_secret(db_pool, master_key, &kid).await?;
-            
+
             let raw_key = if let Ok(parsed) = serde_json::from_str::<Value>(&decrypted) {
                 if let Some(val) = parsed.get("val").and_then(|v| v.as_str()) {
                     if let Some(pass) = parsed.get("pass").and_then(|v| v.as_str()) {
-                          final_passphrase = Some(pass.to_string());
+                        final_passphrase = Some(pass.to_string());
                     }
                     val.to_string()
                 } else {
@@ -98,7 +99,6 @@ pub async fn resolve_config(
             };
 
             final_private_key = Some(clean_private_key(&raw_key));
-
         } else {
             if let Some(pk) = row.get::<Option<String>, _>("private_key") {
                 final_private_key = Some(clean_private_key(&pk));
@@ -113,7 +113,10 @@ pub async fn resolve_config(
     }
 
     if final_password.is_none() && final_private_key.is_none() {
-        return Err(format!("Auth Failed: No password or private key resolved from database. (Type: {})", auth_type));
+        return Err(format!(
+            "Auth Failed: No password or private key resolved from database. (Type: {})",
+            auth_type
+        ));
     }
 
     let proxy = load_proxy_for_connection(db_pool, &connection_type, proxy_id.as_deref()).await?;
@@ -127,7 +130,7 @@ pub async fn resolve_config(
         proxy,
         password: final_password,
         private_key: final_private_key,
-        passphrase: final_passphrase, 
+        passphrase: final_passphrase,
         password_id: None,
         password_source: None,
         connect_timeout,
@@ -140,7 +143,7 @@ pub async fn resolve_config(
 pub async fn resolve_test_config(
     db_pool: &SqlitePool,
     master_key: Option<&Key<Aes256Gcm>>,
-    payload: TestConnectionPayload
+    payload: TestConnectionPayload,
 ) -> Result<SshConfig, String> {
     let mut final_password: Option<String> = None;
     let mut final_private_key: Option<String> = None;
@@ -190,7 +193,7 @@ pub async fn resolve_test_config(
             }
         } else {
             if let Some(pk) = payload.private_key {
-               final_private_key = Some(clean_private_key(&pk));
+                final_private_key = Some(clean_private_key(&pk));
             }
         }
     }

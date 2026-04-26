@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useFileStore } from "@/store/useFileStore";
-import { useMonitorStore } from "@/store/useMonitorStore";
 import { FileEntry } from "@/features/fs/types";
 import { useTerminalStore } from "@/store/useTerminalStore";
 
@@ -22,9 +21,13 @@ export const useFileManager = (sessionId?: string) => {
   const terminalSessionStatus = useTerminalStore(state =>
     sessionId ? state.sessions[sessionId]?.status : undefined
   );
+  const backgroundStatus = useTerminalStore(state =>
+    sessionId ? state.sessions[sessionId]?.backgroundStatus : undefined
+  );
 
-  const monitorSession = useMonitorStore(state => sessionId ? state.sessions[sessionId] : undefined);
-  const isConnectionReady = terminalSessionStatus === "connected" && !!monitorSession?.os;
+  const isConnectionReady =
+    (terminalSessionStatus === "connected" || terminalSessionStatus === "background")
+    && backgroundStatus === "ready";
 
   const sessionState = sessionId ? getSession(sessionId) : null;
   const currentPath = sessionState?.currentPath || '/';
@@ -38,6 +41,8 @@ export const useFileManager = (sessionId?: string) => {
   const isExpectedFileManagerError = (message: string) => {
     const normalizedMessage = message.toLowerCase();
     return normalizedMessage.includes("ssh connection not active")
+      || normalizedMessage.includes("ssh background session not ready")
+      || normalizedMessage.includes("ssh background session unavailable")
       || normalizedMessage.includes("sftp not enabled")
       || normalizedMessage.includes("channel request failed")
       || normalizedMessage.includes("unable to startup channel");

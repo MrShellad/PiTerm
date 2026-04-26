@@ -1,19 +1,21 @@
+use crate::models::{CommandHistoryItem, HistoryFilterConfig};
 use crate::state::AppState;
-use crate::models::{HistoryFilterConfig, CommandHistoryItem};
-use tauri::{State, Window};
-use sqlx::{Row, SqlitePool, FromRow};
+use serde::{Deserialize, Serialize};
+use sqlx::{FromRow, Row, SqlitePool};
 use std::time::{SystemTime, UNIX_EPOCH};
-use serde::{Serialize, Deserialize};
+use tauri::{State, Window};
 // 辅助函数：判断是否应该记录
 fn should_record(cmd: &str, config: &HistoryFilterConfig) -> bool {
     let trimmed = cmd.trim();
-    if trimmed.is_empty() { return false; }
-    
+    if trimmed.is_empty() {
+        return false;
+    }
+
     // 1. 长度过滤 (现有逻辑)
     if config.ignore_short && trimmed.len() < config.min_length {
         return false;
     }
-    
+
     // 2. 前导空格 (现有逻辑)
     if cmd.starts_with(' ') {
         return false;
@@ -28,10 +30,17 @@ fn should_record(cmd: &str, config: &HistoryFilterConfig) -> bool {
     // 匹配如 --password=xxx, -p yyy, 或包含 token/secret 的赋值
     let lower = trimmed.to_lowercase();
     let sensitive_patterns = [
-        "password", "passwd", "token", "secret", "key", "auth", 
-        "mysql_pwd", "access_key", "credential"
+        "password",
+        "passwd",
+        "token",
+        "secret",
+        "key",
+        "auth",
+        "mysql_pwd",
+        "access_key",
+        "credential",
     ];
-    
+
     for pattern in &sensitive_patterns {
         if lower.contains(pattern) {
             // 如果命令包含敏感词，且看起来像是在传参（包含 = 或 空格）
@@ -79,16 +88,19 @@ pub async fn record_command_history(
     state: State<'_, AppState>,
     server_id: String,
     command: String,
-    source: Option<String> // default 'user'
+    source: Option<String>, // default 'user'
 ) -> Result<(), String> {
     let config = HistoryFilterConfig::default(); // 这里后期可以从 DB 读取配置
-    
+
     if !should_record(&command, &config) {
         return Ok(());
     }
 
     let normalized = command.trim().to_string();
-    let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64;
     let source_str = source.unwrap_or_else(|| "user".to_string());
 
     let mut tx = state.db.begin().await.map_err(|e| e.to_string())?;
@@ -123,7 +135,7 @@ pub async fn record_command_history(
         ON CONFLICT(command_id, server_id) DO UPDATE SET
             last_used_at = excluded.last_used_at,
             exec_count = command_usage.exec_count + 1
-        "#
+        "#,
     )
     .bind(history_id)
     .bind(&server_id)
@@ -138,7 +150,7 @@ pub async fn record_command_history(
         r#"
         INSERT INTO command_events (command_id, server_id, source, executed_at)
         VALUES (?, ?, ?, ?)
-        "#
+        "#,
     )
     .bind(history_id)
     .bind(&server_id)
@@ -159,7 +171,7 @@ pub async fn record_command_history(
 pub async fn search_history_autocomplete(
     state: State<'_, AppState>,
     query: String,
-    limit: i64
+    limit: i64,
 ) -> Result<Vec<CommandHistoryItem>, String> {
     let normalized_query = query.trim();
     if normalized_query.is_empty() {
@@ -173,7 +185,7 @@ pub async fn search_history_autocomplete(
         WHERE normalized_command LIKE ? || '%'
         ORDER BY global_exec_count DESC, last_used_at DESC
         LIMIT ?
-        "#
+        "#,
     )
     .bind(normalized_query)
     .bind(limit)
@@ -189,7 +201,7 @@ pub async fn search_history_autocomplete(
 pub async fn get_server_top_commands(
     state: State<'_, AppState>,
     server_id: String,
-    limit: i64
+    limit: i64,
 ) -> Result<Vec<String>, String> {
     let results = sqlx::query(
         r#"
@@ -199,7 +211,7 @@ pub async fn get_server_top_commands(
         WHERE u.server_id = ?
         ORDER BY u.exec_count DESC
         LIMIT ?
-        "#
+        "#,
     )
     .bind(server_id)
     .bind(limit)
@@ -219,9 +231,9 @@ pub async fn get_server_top_commands(
 #[derive(Debug, Serialize, FromRow)]
 #[serde(rename_all = "camelCase")]
 pub struct ServerHistoryDto {
-    pub id: i64,          // 事件 ID (用于删除)
-    pub command: String,  // 实际命令内容
-    pub created_at: i64,  // 执行时间戳
+    pub id: i64,         // 事件 ID (用于删除)
+    pub command: String, // 实际命令内容
+    pub created_at: i64, // 执行时间戳
 }
 
 /// 获取特定服务器的命令历史 (时间倒序)
@@ -229,7 +241,7 @@ pub struct ServerHistoryDto {
 pub async fn get_command_history(
     state: State<'_, AppState>,
     server_id: String,
-    limit: i64
+    limit: i64,
 ) -> Result<Vec<ServerHistoryDto>, String> {
     // 关联查询：从 events 表拿时间，从 history 表拿命令文本
     let results = sqlx::query_as::<_, ServerHistoryDto>(
@@ -243,7 +255,7 @@ pub async fn get_command_history(
         WHERE e.server_id = ?
         ORDER BY e.executed_at DESC
         LIMIT ?
-        "#
+        "#,
     )
     .bind(server_id)
     .bind(limit)
@@ -258,7 +270,7 @@ pub async fn get_command_history(
 #[tauri::command]
 pub async fn delete_command_history(
     state: State<'_, AppState>,
-    id: i64 // 接收前端传来的 ID
+    id: i64, // 接收前端传来的 ID
 ) -> Result<(), String> {
     sqlx::query("DELETE FROM command_events WHERE id = ?")
         .bind(id)

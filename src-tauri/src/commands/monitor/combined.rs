@@ -1,12 +1,14 @@
 use super::{
     cpu::{parse_cpu_output, RemoteCpuInfo, CPU_INFO_CMD},
     disk::{parse_disk_output, RemoteDiskInfo, DISK_INFO_CMD},
+    get_monitor_session_arc,
     info::{parse_os_output, RemoteOsInfo, OS_INFO_CMD},
     memory::{parse_mem_output, RemoteMemInfo, MEM_INFO_CMD},
     network::{parse_network_output, RemoteNetworkInfo, NETWORK_INFO_CMD},
-    MonitorCache,
+    run_monitor_operation, MonitorCache,
 };
 use crate::commands::ssh::SshState;
+use crate::utils::ssh_log;
 use std::collections::HashMap;
 use std::io::Read;
 use tauri::State;
@@ -109,26 +111,31 @@ pub async fn get_ssh_combined_info(
     monitor_cache: State<'_, MonitorCache>,
     id: String,
 ) -> Result<RemoteCombinedInfo, String> {
-    let session_arc = {
-        let map = ssh_state.sessions.lock().unwrap();
-        match map.get(&id) {
-            Some(conn) => conn.bg_session.clone(),
-            None => return Err("SSH connection not active".to_string()),
-        }
-    };
+    let session_arc = get_monitor_session_arc(&ssh_state, &id, "combined_snapshot")?;
 
     let command = build_combined_monitor_cmd();
+    let monitor_id = id.clone();
     let output = tauri::async_runtime::spawn_blocking(move || {
-        let sess = session_arc.lock().unwrap();
-        let mut channel = sess.channel_session().map_err(|e| e.to_string())?;
-        channel.exec(&command).map_err(|e| e.to_string())?;
+        run_monitor_operation(
+            session_arc,
+            &monitor_id,
+            "combined_snapshot",
+            vec![
+                ssh_log::log_field("command_name", "combined_monitor_snapshot"),
+                ssh_log::log_field("command_section_count", 5),
+            ],
+            |sess| {
+                let mut channel = sess.channel_session().map_err(|e| e.to_string())?;
+                channel.exec(&command).map_err(|e| e.to_string())?;
 
-        let mut data = String::new();
-        channel
-            .read_to_string(&mut data)
-            .map_err(|e| e.to_string())?;
-        channel.wait_close().ok();
-        Ok::<String, String>(data)
+                let mut data = String::new();
+                channel
+                    .read_to_string(&mut data)
+                    .map_err(|e| e.to_string())?;
+                channel.wait_close().ok();
+                Ok::<String, String>(data)
+            },
+        )
     })
     .await
     .map_err(|e| e.to_string())??;

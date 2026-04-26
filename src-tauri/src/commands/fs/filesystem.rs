@@ -24,17 +24,17 @@ pub trait FileSystem {
     fn create_file(&self, path: &str) -> Result<(), String>;
     fn rename(&self, old_path: &str, new_path: &str) -> Result<(), String>;
     fn delete(&self, path: &str, is_dir: bool) -> Result<(), String>;
-    
+
     // Copy: Source Path -> Destination Path
     fn copy(&self, from_path: &str, to_path: &str) -> Result<(), String>;
-    
+
     // Transfer
     fn download(&self, remote_path: &str, local_path: &str) -> Result<(), String>;
     fn upload(&self, local_path: &str, remote_path: &str) -> Result<(), String>;
-    
+
     // Permissions
     fn chmod(&self, path: &str, mode: &str, recursive: bool) -> Result<(), String>;
-    
+
     // Text Read/Write
     fn read_text(&self, path: &str) -> Result<String, String>;
     fn write_text(&self, path: &str, content: &str) -> Result<(), String>;

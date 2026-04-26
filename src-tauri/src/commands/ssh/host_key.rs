@@ -1,17 +1,26 @@
-use tauri::{AppHandle, Manager};
-use std::path::PathBuf;
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
+use ssh2::KnownHostFileKind;
 use std::fs::OpenOptions;
 use std::io::Write;
-use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
-use ssh2::KnownHostFileKind;
+use std::path::PathBuf;
+use tauri::{AppHandle, Manager};
 
 // 辅助函数：获取 known_hosts 路径
 pub fn get_known_hosts_path(app: &AppHandle) -> Option<PathBuf> {
-    app.path().home_dir().ok().map(|p| p.join(".ssh").join("known_hosts"))
+    app.path()
+        .home_dir()
+        .ok()
+        .map(|p| p.join(".ssh").join("known_hosts"))
 }
 
 // 检查主机密钥
-pub fn check_local_host_key(app: &AppHandle, host: &str, port: u16, host_key: &[u8], known_hosts: &mut ssh2::KnownHosts) -> Result<ssh2::CheckResult, String> {
+pub fn check_local_host_key(
+    app: &AppHandle,
+    host: &str,
+    port: u16,
+    host_key: &[u8],
+    known_hosts: &mut ssh2::KnownHosts,
+) -> Result<ssh2::CheckResult, String> {
     let known_hosts_path = get_known_hosts_path(app);
 
     if let Some(path) = &known_hosts_path {
@@ -24,7 +33,13 @@ pub fn check_local_host_key(app: &AppHandle, host: &str, port: u16, host_key: &[
 }
 
 // 保存主机密钥到本地磁盘
-pub fn save_host_key_to_disk(app: &AppHandle, host: &str, port: u16, key_type: &str, host_key: &[u8]) -> Result<(), String> {
+pub fn save_host_key_to_disk(
+    app: &AppHandle,
+    host: &str,
+    port: u16,
+    key_type: &str,
+    host_key: &[u8],
+) -> Result<(), String> {
     let key_base64 = BASE64.encode(host_key);
     let line = if port == 22 {
         format!("{} {} {}\n", host, key_type, key_base64)

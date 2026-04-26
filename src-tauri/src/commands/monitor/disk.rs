@@ -1,5 +1,6 @@
-use super::MonitorCache;
+use super::{get_monitor_session_arc, run_monitor_operation, MonitorCache};
 use crate::commands::ssh::SshState;
+use crate::utils::ssh_log;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::Read;
@@ -72,17 +73,19 @@ struct LsblkDevice {
 fn val_to_u64(value: &Option<serde_json::Value>) -> u64 {
     value
         .as_ref()
-        .and_then(|v| v.as_u64().or_else(|| v.as_str().and_then(|s| s.parse().ok())))
+        .and_then(|v| {
+            v.as_u64()
+                .or_else(|| v.as_str().and_then(|s| s.parse().ok()))
+        })
         .unwrap_or(0)
 }
 
 fn val_to_bool(value: &Option<serde_json::Value>, default_if_none: bool) -> bool {
     match value {
         Some(serde_json::Value::Bool(v)) => *v,
-        Some(serde_json::Value::Number(v)) => v
-            .as_u64()
-            .map(|num| num != 0)
-            .unwrap_or(default_if_none),
+        Some(serde_json::Value::Number(v)) => {
+            v.as_u64().map(|num| num != 0).unwrap_or(default_if_none)
+        }
         Some(serde_json::Value::String(v)) => v == "1" || v.eq_ignore_ascii_case("true"),
         _ => default_if_none,
     }
@@ -197,8 +200,8 @@ pub(crate) fn parse_disk_output(
                 if elapsed > 0.0 {
                     device_read_speed =
                         (current_read.saturating_sub(previous.read_bytes) as f64 / elapsed) as u64;
-                    device_write_speed =
-                        (current_write.saturating_sub(previous.write_bytes) as f64 / elapsed) as u64;
+                    device_write_speed = (current_write.saturating_sub(previous.write_bytes) as f64
+                        / elapsed) as u64;
                 }
             }
 
@@ -246,23 +249,25 @@ pub async fn get_ssh_disk_info(
     monitor_cache: State<'_, MonitorCache>,
     id: String,
 ) -> Result<RemoteDiskInfo, String> {
-    let session_arc = {
-        let map = ssh_state.sessions.lock().unwrap();
-        match map.get(&id) {
-            Some(conn) => conn.bg_session.clone(),
-            None => return Err("SSH connection not active".to_string()),
-        }
-    };
+    let session_arc = get_monitor_session_arc(&ssh_state, &id, "disk_snapshot")?;
 
+    let monitor_id = id.clone();
     let output = tauri::async_runtime::spawn_blocking(move || {
-        let sess = session_arc.lock().unwrap();
-        let mut channel = sess.channel_session().map_err(|e| e.to_string())?;
-        channel.exec(DISK_INFO_CMD).map_err(|e| e.to_string())?;
+        run_monitor_operation(
+            session_arc,
+            &monitor_id,
+            "disk_snapshot",
+            vec![ssh_log::log_field("command_name", "DISK_INFO_CMD")],
+            |sess| {
+                let mut channel = sess.channel_session().map_err(|e| e.to_string())?;
+                channel.exec(DISK_INFO_CMD).map_err(|e| e.to_string())?;
 
-        let mut s = String::new();
-        channel.read_to_string(&mut s).ok();
-        channel.wait_close().ok();
-        Ok::<String, String>(s)
+                let mut s = String::new();
+                channel.read_to_string(&mut s).ok();
+                channel.wait_close().ok();
+                Ok::<String, String>(s)
+            },
+        )
     })
     .await
     .map_err(|e| e.to_string())??;

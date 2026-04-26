@@ -5,15 +5,18 @@ use tauri::Manager; // 用于访问 path
 
 // 初始化数据库连接池
 pub async fn init_db(app: &AppHandle) -> Result<Pool<Sqlite>, String> {
-    let app_dir = app.path().app_data_dir().expect("failed to get app data dir");
-    
+    let app_dir = app
+        .path()
+        .app_data_dir()
+        .expect("failed to get app data dir");
+
     if !app_dir.exists() {
         fs::create_dir_all(&app_dir).map_err(|e| e.to_string())?;
     }
-    
+
     // 统一使用一个数据库文件，例如 database.sqlite
     let db_path = app_dir.join("ishelldb.sqlite");
-    
+
     // sqlx 需要文件存在才能连接
     if !db_path.exists() {
         fs::File::create(&db_path).map_err(|e| e.to_string())?;
@@ -27,20 +30,23 @@ pub async fn init_db(app: &AppHandle) -> Result<Pool<Sqlite>, String> {
         .await
         .map_err(|e| e.to_string())?;
 
-        // 🟢 [新增] 开启 WAL 模式，大幅提升并发写入性能，防止 UI 卡死
+    // 🟢 [新增] 开启 WAL 模式，大幅提升并发写入性能，防止 UI 卡死
     sqlx::query("PRAGMA journal_mode=WAL;")
         .execute(&pool)
         .await
         .map_err(|e| e.to_string())?;
     // --- 执行建表迁移 ---
-    
+
     // 1. Vault 表 (Config & Keys)
     sqlx::query(
         "CREATE TABLE IF NOT EXISTS vault_config (
             key TEXT PRIMARY KEY,
             value TEXT NOT NULL
-        );"
-    ).execute(&pool).await.map_err(|e| e.to_string())?;
+        );",
+    )
+    .execute(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
 
     sqlx::query(
         "CREATE TABLE IF NOT EXISTS vault_keys (
@@ -53,8 +59,11 @@ pub async fn init_db(app: &AppHandle) -> Result<Pool<Sqlite>, String> {
             algorithm TEXT,
             created_at INTEGER NOT NULL,
             updated_at INTEGER NOT NULL
-        );"
-    ).execute(&pool).await.map_err(|e| e.to_string())?;
+        );",
+    )
+    .execute(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
 
     // 2. Server 表
     // 注意：tags 我们存为 TEXT (JSON 字符串)
@@ -91,11 +100,14 @@ pub async fn init_db(app: &AppHandle) -> Result<Pool<Sqlite>, String> {
             keep_alive_interval INTEGER DEFAULT 60,
             auto_reconnect BOOLEAN DEFAULT 0,
             max_reconnects INTEGER DEFAULT 3        
-        );"
-    ).execute(&pool).await.map_err(|e| e.to_string())?;
+        );",
+    )
+    .execute(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
 
     // --- [新增] 3. Snippets 表 ---
-sqlx::query(
+    sqlx::query(
         "CREATE TABLE IF NOT EXISTS snippets (
             id TEXT PRIMARY KEY,
             title TEXT NOT NULL,
@@ -104,8 +116,11 @@ sqlx::query(
             tags TEXT NOT NULL,
             created_at INTEGER NOT NULL,
             updated_at INTEGER NOT NULL
-        );"
-    ).execute(&pool).await.map_err(|e| e.to_string())?;
+        );",
+    )
+    .execute(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
 
     // --- [New] 4. Proxies Table ---
     sqlx::query(
@@ -119,9 +134,12 @@ sqlx::query(
             password TEXT,
             created_at INTEGER NOT NULL,
             updated_at INTEGER NOT NULL
-        );"
-    ).execute(&pool).await.map_err(|e| e.to_string())?;
-// 🟢 [新增] 5. Key Usages Table (密钥使用记录)
+        );",
+    )
+    .execute(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
+    // 🟢 [新增] 5. Key Usages Table (密钥使用记录)
     // 采用联合主键 (key_id, server_id)，保证同一个密钥在同一个服务器只有一条最新记录
     // 使用 ON DELETE CASCADE 确保删除密钥或服务器时自动清理记录
     sqlx::query(
@@ -132,8 +150,11 @@ sqlx::query(
             PRIMARY KEY (key_id, server_id),
             FOREIGN KEY(key_id) REFERENCES vault_keys(id) ON DELETE CASCADE,
             FOREIGN KEY(server_id) REFERENCES servers(id) ON DELETE CASCADE
-        );"
-    ).execute(&pool).await.map_err(|e| e.to_string())?;
+        );",
+    )
+    .execute(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
 
     // 🟢 [新增] 6. Command History Tables (终端命令历史三层架构)
 
@@ -146,14 +167,25 @@ sqlx::query(
             created_at INTEGER NOT NULL,
             last_used_at INTEGER NOT NULL,
             global_exec_count INTEGER DEFAULT 1
-        );"
-    ).execute(&pool).await.map_err(|e| e.to_string())?;
+        );",
+    )
+    .execute(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
 
     // 索引：补全搜索 & 热度排序
-    sqlx::query("CREATE INDEX IF NOT EXISTS idx_history_command ON command_history(normalized_command);")
-        .execute(&pool).await.map_err(|e| e.to_string())?;
-    sqlx::query("CREATE INDEX IF NOT EXISTS idx_history_count ON command_history(global_exec_count DESC);")
-        .execute(&pool).await.map_err(|e| e.to_string())?;
+    sqlx::query(
+        "CREATE INDEX IF NOT EXISTS idx_history_command ON command_history(normalized_command);",
+    )
+    .execute(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
+    sqlx::query(
+        "CREATE INDEX IF NOT EXISTS idx_history_count ON command_history(global_exec_count DESC);",
+    )
+    .execute(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
 
     // 6.2 服务器统计表
     sqlx::query(
@@ -166,8 +198,11 @@ sqlx::query(
             exec_count INTEGER DEFAULT 1,
             FOREIGN KEY(command_id) REFERENCES command_history(id) ON DELETE CASCADE,
             UNIQUE(command_id, server_id)
-        );"
-    ).execute(&pool).await.map_err(|e| e.to_string())?;
+        );",
+    )
+    .execute(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
 
     // 索引：查询某服务器的高频命令
     sqlx::query("CREATE INDEX IF NOT EXISTS idx_usage_server_rank ON command_usage(server_id, exec_count DESC);")
@@ -182,8 +217,11 @@ sqlx::query(
             source TEXT DEFAULT 'user',
             executed_at INTEGER NOT NULL,
             FOREIGN KEY(command_id) REFERENCES command_history(id) ON DELETE CASCADE
-        );"
-    ).execute(&pool).await.map_err(|e| e.to_string())?;
+        );",
+    )
+    .execute(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
 
     // 索引：查询流水线
     sqlx::query("CREATE INDEX IF NOT EXISTS idx_events_timeline ON command_events(server_id, executed_at DESC);")
@@ -198,8 +236,11 @@ sqlx::query(
             is_default BOOLEAN DEFAULT 0,
             created_at INTEGER NOT NULL,
             updated_at INTEGER NOT NULL
-        );"
-    ).execute(&pool).await.map_err(|e| e.to_string())?;
+        );",
+    )
+    .execute(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
 
     // 7.2 样式定义 (Style)
     sqlx::query(
@@ -213,8 +254,11 @@ sqlx::query(
             is_underline BOOLEAN DEFAULT 0,
             created_at INTEGER NOT NULL,
             updated_at INTEGER NOT NULL
-        );"
-    ).execute(&pool).await.map_err(|e| e.to_string())?;
+        );",
+    )
+    .execute(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
 
     // 7.3 规则本体 (Rule)
     sqlx::query(
@@ -232,22 +276,32 @@ sqlx::query(
             updated_at INTEGER NOT NULL,
             FOREIGN KEY(set_id) REFERENCES highlight_rule_sets(id) ON DELETE CASCADE,
             FOREIGN KEY(style_id) REFERENCES highlight_styles(id)
-        );"
-    ).execute(&pool).await.map_err(|e| e.to_string())?;
+        );",
+    )
+    .execute(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
 
     // 索引优化
-    sqlx::query("CREATE INDEX IF NOT EXISTS idx_highlight_rules_set_id ON highlight_rules(set_id);")
-        .execute(&pool).await.map_err(|e| e.to_string())?;
-    
     sqlx::query(
-    "CREATE TABLE IF NOT EXISTS highlight_assignments (
+        "CREATE INDEX IF NOT EXISTS idx_highlight_rules_set_id ON highlight_rules(set_id);",
+    )
+    .execute(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS highlight_assignments (
         target_id TEXT PRIMARY KEY, -- 'global' 或者 proxy 的 UUID
         target_type TEXT NOT NULL,  -- 'global' 或 'proxy'
         set_id TEXT NOT NULL,       -- 绑定的规则集 ID
         created_at INTEGER NOT NULL,
         FOREIGN KEY(set_id) REFERENCES highlight_rule_sets(id) ON DELETE CASCADE
-    );"
-).execute(&pool).await.map_err(|e| e.to_string())?;
-    
+    );",
+    )
+    .execute(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
     Ok(pool)
 }
