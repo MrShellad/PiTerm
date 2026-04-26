@@ -1,15 +1,7 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { invoke } from '@tauri-apps/api/core';
 import { emit } from '@tauri-apps/api/event';
-import { 
-  mkdir, 
-  readTextFile, 
-  writeTextFile, 
-  BaseDirectory, 
-  exists 
-} from '@tauri-apps/plugin-fs'; 
-import { type as getOsType } from '@tauri-apps/plugin-os';
 import { getVersion } from '@tauri-apps/api/app';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -26,67 +18,11 @@ import { SETTING_ITEMS } from '../domain/constants';
 
 // 引入高亮服务 (如果你的 highlight.service 中没有写 assign 相关的方法，下面代码里的 invoke 也能直接兜底)
 import { HighlightService } from './services/highlight.service';
+import { createDiskStorage } from './services/storage.service';
 
 // =========================================================
 // 自定义文件存储适配器 (保留你的原始逻辑)
 // =========================================================
-const createDiskStorage = (filename: string): StateStorage => ({
-  getItem: async (_name: string): Promise<string | null> => {
-    try {
-      const fileExists = await exists(filename, { baseDir: BaseDirectory.AppConfig });
-      if (!fileExists) return null;
-      
-      const content = await readTextFile(filename, { baseDir: BaseDirectory.AppConfig });
-      try {
-        const json = JSON.parse(content);
-        if (json && json.meta && json.state) {
-          return JSON.stringify(json.state);
-        }
-        return content;
-      } catch (e) {
-        return content;
-      }
-    } catch (e) {
-      console.error('Failed to read settings file:', e);
-      return null;
-    }
-  },
-  
-  setItem: async (_name: string, value: string): Promise<void> => {
-    try {
-      const dirExists = await exists('', { baseDir: BaseDirectory.AppConfig });
-      if (!dirExists) {
-        await mkdir('', { baseDir: BaseDirectory.AppConfig, recursive: true });
-      }
-
-      let platform = 'unknown';
-      let appVersion = 'unknown';
-      try {
-        const [osType, ver] = await Promise.all([getOsType(), getVersion()]);
-        platform = osType;
-        appVersion = ver;
-      } catch (err) {}
-
-      const fileContent = {
-        meta: {
-          platform,
-          version: appVersion,
-          lastUpdated: new Date().toISOString(),
-        },
-        state: JSON.parse(value)
-      };
-
-      await writeTextFile(filename, JSON.stringify(fileContent, null, 2), { baseDir: BaseDirectory.AppConfig });
-    } catch (e) {
-      console.error('Failed to write settings file:', e);
-    }
-  },
-  
-  removeItem: async (_name: string): Promise<void> => {
-    console.warn('removeItem not implemented for disk storage');
-  },
-});
-
 // =========================================================
 // Store 状态接口定义
 // =========================================================
@@ -113,6 +49,7 @@ interface SettingsState {
   setSearchQuery: (query: string) => void;
   updateSetting: (id: string, value: any) => void;
   updateSettings: (newSettings: Record<string, any>) => void;
+  syncSettings: (newSettings: Record<string, any>) => void;
   
   addCustomTheme: (theme: CustomTheme) => void;
   removeCustomTheme: (id: string) => void;
@@ -154,6 +91,11 @@ const defaultSettings = SETTING_ITEMS.reduce((acc, item) => {
   return acc;
 }, {} as Record<string, any>);
 
+const hasSettingsChanges = (
+  current: Record<string, any>,
+  updates: Record<string, any>
+) => Object.entries(updates).some(([key, value]) => !Object.is(current[key], value));
+
 // =========================================================
 // Store 实现
 // =========================================================
@@ -179,6 +121,7 @@ export const useSettingsStore = create<SettingsState>()(
       
       updateSetting: (id, value) => {
         set((state) => {
+          if (Object.is(state.settings[id], value)) return state;
           const newSettings = { ...state.settings, [id]: value };
           emit('app:settings-change', newSettings).catch(console.error);
           return { settings: newSettings };
@@ -187,9 +130,17 @@ export const useSettingsStore = create<SettingsState>()(
 
       updateSettings: (newSettingsPartial) => {
         set((state) => {
+          if (!hasSettingsChanges(state.settings, newSettingsPartial)) return state;
           const newSettings = { ...state.settings, ...newSettingsPartial };
           emit('app:settings-change', newSettings).catch(console.error);
           return { settings: newSettings };
+        });
+      },
+
+      syncSettings: (newSettingsPartial) => {
+        set((state) => {
+          if (!hasSettingsChanges(state.settings, newSettingsPartial)) return state;
+          return { settings: { ...state.settings, ...newSettingsPartial } };
         });
       },
 

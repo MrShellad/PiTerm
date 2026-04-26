@@ -21,7 +21,7 @@ export const AdvancedMonitorPage = () => {
     // 🟢 [2] 直接使用 Store 获取设置
     // Zustand 会自动处理从 settings.json 文件的 hydrate (加载) 过程
     const settings = useSettingsStore((s) => s.settings);
-    const updateSettings = useSettingsStore((s) => s.updateSettings);
+    const syncSettings = useSettingsStore((s) => s.syncSettings);
 
     // 🟢 [3] 核心外观同步逻辑
     // 当 settings 从磁盘加载完成，或收到更新时，自动应用样式
@@ -54,7 +54,7 @@ export const AdvancedMonitorPage = () => {
     useEffect(() => {
         const unlistenPromises = [
             // 当主窗口修改设置时，更新本地 Store，这将触发上面的 useEffect 重新应用样式
-            listen<any>("app:settings-change", (event) => updateSettings(event.payload)),
+            listen<any>("app:settings-change", (event) => syncSettings(event.payload)),
             
             // 兼容旧的主题事件
             listen<string>("app:theme-change", (event) => {
@@ -67,7 +67,7 @@ export const AdvancedMonitorPage = () => {
         return () => { 
             unlistenPromises.forEach(p => p.then(unlisten => unlisten())); 
         };
-    }, []);
+    }, [syncSettings]);
 
     // --- 业务逻辑 ---
     useEffect(() => {

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettingsStore } from '../application/useSettingsStore';
+import { useSettingsHydration } from '../application/useSettingsHydration';
 import { invoke } from '@tauri-apps/api/core';
 import { enable, disable } from '@tauri-apps/plugin-autostart'; 
 
@@ -8,10 +9,13 @@ export const useSettingsEffects = () => {
   const { i18n } = useTranslation();
   const settings = useSettingsStore((s) => s.settings);
   const updateSetting = useSettingsStore((s) => s.updateSetting); 
+  const settingsHydrated = useSettingsHydration();
   // 🟢 [修改] 移除了 useDashboardStore
 
   // 1. 监听语言变化
   useEffect(() => {
+    if (!settingsHydrated) return;
+
     const langSetting = settings['general.language'];
     let targetLang = 'zh'; 
     if (langSetting === 'auto') {
@@ -23,10 +27,12 @@ export const useSettingsEffects = () => {
     if (i18n.language !== targetLang) {
       i18n.changeLanguage(targetLang);
     }
-  }, [settings['general.language'], i18n]);
+  }, [settingsHydrated, settings['general.language'], i18n]);
 
   // 2. 监听开机自启 (保持不变)
   useEffect(() => {
+    if (!settingsHydrated) return;
+
     const launchAtStartup = settings['general.launchAtStartup'];
     const syncAutostart = async () => {
        try {
@@ -34,19 +40,23 @@ export const useSettingsEffects = () => {
        } catch (e) { console.error('Autostart sync failed:', e); }
     };
     syncAutostart();
-  }, [settings['general.launchAtStartup']]);
+  }, [settingsHydrated, settings['general.launchAtStartup']]);
 
   // 3. 监听关闭行为 (保持不变)
   useEffect(() => {
+    if (!settingsHydrated) return;
+
     const minimizeToTray = settings['general.minimizeToTray'];
     const closeBehavior = settings['general.closeBehavior']; 
     invoke('update_app_config', { minimizeToTray, closeBehavior }).catch(_err => {});
-  }, [settings['general.minimizeToTray'], settings['general.closeBehavior']]);
+  }, [settingsHydrated, settings['general.minimizeToTray'], settings['general.closeBehavior']]);
 
   // =========================================================
   // 4. 外观设置 (仅处理类名和终端主题，不再处理壁纸同步)
   // =========================================================
   useEffect(() => {
+    if (!settingsHydrated) return;
+
     const appTheme = settings['appearance.appTheme']; 
     const syncTerminal = settings['appearance.syncTerminalTheme'];
     const lightTermTheme = settings['appearance.lightTerminalTheme'];
@@ -87,6 +97,7 @@ export const useSettingsEffects = () => {
       settings['appearance.lightTerminalTheme'],
       settings['appearance.darkTerminalTheme'],
       // 🟢 [修改] 移除了壁纸依赖
+      settingsHydrated,
       updateSetting 
   ]);
 };

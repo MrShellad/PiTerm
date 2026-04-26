@@ -1,10 +1,12 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useSettingsStore } from '@/features/settings/application/useSettingsStore';
+import { useSettingsHydration } from '@/features/settings/application/useSettingsHydration';
 import { useKeyStore } from '@/store/useKeyStore';
 import { toast } from 'sonner';
 
 export const useSecurityEffects = () => {
   const settings = useSettingsStore((s) => s.settings);
+  const settingsHydrated = useSettingsHydration();
   const { lockVault, status } = useKeyStore();
 
   // 1. 获取配置
@@ -30,6 +32,8 @@ export const useSecurityEffects = () => {
   // --- A. 自动待机锁定逻辑 ---
   useEffect(() => {
     // 0 = 禁用功能
+    if (!settingsHydrated) return;
+
     if (idleTimeoutMinutes <= 0) {
       if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
       return;
@@ -68,10 +72,12 @@ export const useSecurityEffects = () => {
       if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
       events.forEach(event => window.removeEventListener(event, handleActivity, true));
     };
-  }, [idleTimeoutMinutes, status, doLock]);
+  }, [settingsHydrated, idleTimeoutMinutes, status, doLock]);
 
   // --- B. 快捷键锁定逻辑 ---
   useEffect(() => {
+    if (!settingsHydrated) return;
+
     if (!lockShortcut) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -107,5 +113,5 @@ export const useSecurityEffects = () => {
     window.addEventListener('keydown', handleKeyDown, true);
     
     return () => window.removeEventListener('keydown', handleKeyDown, true);
-  }, [lockShortcut, doLock]);
+  }, [settingsHydrated, lockShortcut, doLock]);
 };

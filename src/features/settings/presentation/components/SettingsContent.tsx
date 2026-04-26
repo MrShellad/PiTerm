@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { clsx } from "clsx";
 import { useSettingsStore } from "../../application/useSettingsStore";
+import { useSettingsHydration } from "../../application/useSettingsHydration";
 import { useSettingsLogic } from "../../application/useSettingsLogic";
 import { SettingItemRenderer } from "./SettingItemRenderer";
 import { TerminalPreview } from "./TerminalPreview";
@@ -18,6 +19,7 @@ export const SettingsContent = () => {
   const updateSettings = useSettingsStore(s => s.updateSettings);
 
   const initAppVersion = useSettingsStore(s => s.initAppVersion);
+  const settingsHydrated = useSettingsHydration();
 
   const { currentTitle, displayItems: searchResults } = useSettingsLogic();
 
@@ -25,8 +27,10 @@ export const SettingsContent = () => {
   const [isPreviewExpanded, setIsPreviewExpanded] = useState(true);
 
     useEffect(() => {
-    initAppVersion();
-  }, [initAppVersion]);
+    if (settingsHydrated) {
+      initAppVersion();
+    }
+  }, [settingsHydrated, initAppVersion]);
   
   return (
     <div className={clsx(

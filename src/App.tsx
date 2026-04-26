@@ -17,6 +17,7 @@ import { emit } from "@tauri-apps/api/event";
 
 import { useServerStore } from "@/features/server/application/useServerStore";
 import { useSettingsStore } from "@/features/settings/application/useSettingsStore";
+import { useSettingsHydration } from "@/features/settings/application/useSettingsHydration";
 import { AdvancedMonitorPage } from "@/features/monitor/presentation/AdvancedMonitorPage";
 import { useSecurityEffects } from '@/features/settings/hooks/useSecurityEffects';
 
@@ -30,6 +31,7 @@ function App() {
   
   const settings = useSettingsStore(s => s.settings);
   const initDeviceIdentity = useSettingsStore(s => s.initDeviceIdentity);
+  const settingsHydrated = useSettingsHydration();
 
   // 🟢 修复 1：使用精确的 selector 读取状态，确保 React 能够100%监听到状态变化
   const vaultStatus = useKeyStore(s => s.status);
@@ -44,10 +46,10 @@ function App() {
   }, [checkVaultStatus]);
 
   useEffect(() => {
-    if (initDeviceIdentity) {
+    if (settingsHydrated && initDeviceIdentity) {
       initDeviceIdentity();
     }
-  }, [initDeviceIdentity]);
+  }, [settingsHydrated, initDeviceIdentity]);
 
   useEffect(() => {
     if (appTheme) {

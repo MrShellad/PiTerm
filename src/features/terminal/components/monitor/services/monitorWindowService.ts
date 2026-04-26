@@ -55,7 +55,7 @@ export const MonitorWindowService = {
             if (currentData) {
               emit("monitor:sync-data", { sessionId, data: currentData } as MonitorSyncPayload);
             }
-            emit("app:settings-change", currentSettings);
+            emitTo(ADVANCED_MONITOR_LABEL, "app:settings-change", currentSettings);
             win.show();
           }, 500);
         });

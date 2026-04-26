@@ -6,6 +6,7 @@ import {
 } from "lucide-react"; 
 import { useTranslation } from "react-i18next";
 import { LayoutGroup } from "framer-motion";
+import { clsx } from "clsx";
 
 import { useTerminalStore } from "@/store/useTerminalStore";
 import { useServerStore } from "@/features/server/application/useServerStore";
@@ -30,6 +31,29 @@ interface Props {
     onToggle?: () => void;
 }
 
+const MonitorSkeletonCard = ({ className }: { className?: string }) => (
+  <div
+    className={clsx(
+      "min-h-[7rem] w-full p-4 rounded-2xl border",
+      "border-white/40 dark:border-white/5 bg-white/40 dark:bg-white/5",
+      "shadow-sm backdrop-blur-xl animate-pulse",
+      className
+    )}
+  >
+    <div className="flex items-center gap-3">
+      <div className="h-10 w-10 rounded-xl bg-slate-200/70 dark:bg-white/10" />
+      <div className="flex-1 space-y-2">
+        <div className="h-3.5 rounded bg-slate-200/70 dark:bg-white/10 w-1/3" />
+        <div className="h-3 rounded bg-slate-200/60 dark:bg-white/5 w-1/2" />
+      </div>
+    </div>
+    <div className="mt-5 space-y-2">
+      <div className="h-2.5 rounded bg-slate-200/60 dark:bg-white/5 w-1/4" />
+      <div className="h-6 rounded bg-slate-200/70 dark:bg-white/10 w-2/5" />
+    </div>
+  </div>
+);
+
 export const TerminalMonitor = ({ collapsed = false, onToggle }: Props) => {
   const { t } = useTranslation();
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -39,7 +63,9 @@ export const TerminalMonitor = ({ collapsed = false, onToggle }: Props) => {
   const sessionId = currentTab?.sessions?.[0];
   const sessionObj = sessionId ? terminalSessions[sessionId] : undefined;
   const isShellAvailable = sessionObj?.status === 'connected' || sessionObj?.status === 'background';
+  const isConnecting = sessionObj?.status === 'connecting';
   const isBackgroundReady = sessionObj?.backgroundStatus === 'ready';
+  const isBackgroundUnavailable = sessionObj?.backgroundStatus === 'unavailable';
   const serverConfig = useServerStore(state => state.servers.find(s => s.id === sessionObj?.serverId));
   
   const { sessions, setSessionData, updateHistory } = useMonitorStore();
@@ -68,7 +94,7 @@ export const TerminalMonitor = ({ collapsed = false, onToggle }: Props) => {
 
   // 🟢 2. 委托给 DataService 负责轮询抓取
   useEffect(() => {
-    if (!sessionId || !isShellAvailable || !isBackgroundReady) return;
+    if (!sessionId || !isShellAvailable) return;
     
     const cleanup = MonitorDataService.startPolling(sessionId, 3000, (updates) => {
         setSessionData(sessionId, updates);
@@ -78,7 +104,7 @@ export const TerminalMonitor = ({ collapsed = false, onToggle }: Props) => {
     });
 
     return cleanup;
-  }, [sessionId, isShellAvailable, isBackgroundReady, setSessionData, updateHistory]);
+  }, [sessionId, isShellAvailable, setSessionData, updateHistory]);
 
   if (collapsed) {
       return (
@@ -90,7 +116,18 @@ export const TerminalMonitor = ({ collapsed = false, onToggle }: Props) => {
       );
   }
 
-  if (!sessionId || !currentSessionData) return null;
+  if (!sessionId) return null;
+
+  const monitorStatusText = isConnecting
+    ? t('monitor.connecting', 'Connecting to server...')
+    : !isShellAvailable
+      ? t('monitor.waitingForShell', 'Waiting for shell session...')
+      : isBackgroundUnavailable
+        ? t('monitor.backgroundUnavailable', 'Monitor session unavailable')
+        : !isBackgroundReady
+          ? t('monitor.preparing', 'Preparing monitor session...')
+          : t('monitor.loading', 'Loading monitor data...');
+  const showSkeleton = !currentSessionData;
 
   return (
     <div className="h-full w-full flex flex-col bg-slate-50/30 dark:bg-transparent overflow-hidden relative">
@@ -116,17 +153,33 @@ export const TerminalMonitor = ({ collapsed = false, onToggle }: Props) => {
       </div>
 
       <div className="flex-1 w-full overflow-y-auto px-3 pb-20 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-        <LayoutGroup id="monitor-group">
-          <div className="flex flex-col gap-3 pt-1"> 
-            {CARD_DESCRIPTORS.map(({ id, Component, icon, color }) => (
-              <Component
-                key={id} id={id} icon={icon} color={color} data={currentSessionData} 
-                isExpanded={expandedId === id}
-                onToggle={(id: string) => setExpandedId(prev => prev === id ? null : id)}
-              />
+        {showSkeleton ? (
+          <div className="flex flex-col gap-3 pt-1">
+            <div className="rounded-2xl border border-dashed border-slate-200/80 dark:border-white/10 bg-white/30 dark:bg-white/[0.03] px-3 py-2.5">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+                <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                  {monitorStatusText}
+                </span>
+              </div>
+            </div>
+            {CARD_DESCRIPTORS.map(({ id }) => (
+              <MonitorSkeletonCard key={id} />
             ))}
           </div>
-        </LayoutGroup>
+        ) : (
+          <LayoutGroup id="monitor-group">
+            <div className="flex flex-col gap-3 pt-1"> 
+              {CARD_DESCRIPTORS.map(({ id, Component, icon, color }) => (
+                <Component
+                  key={id} id={id} icon={icon} color={color} data={currentSessionData} 
+                  isExpanded={expandedId === id}
+                  onToggle={(id: string) => setExpandedId(prev => prev === id ? null : id)}
+                />
+              ))}
+            </div>
+          </LayoutGroup>
+        )}
       </div>
 
       <div className="absolute bottom-0 left-0 right-0 p-3 pt-2 bg-slate-50/80 dark:bg-[#1a1b26]/80 backdrop-blur-md z-30 border-t border-slate-200/50 dark:border-white/5">

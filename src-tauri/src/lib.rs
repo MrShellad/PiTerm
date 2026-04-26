@@ -7,6 +7,7 @@ pub mod utils;
 // 🟢 [修改 1] 更新引用列表，确保包含所有需要的类型
 use crate::state::AppState;
 use commands::monitor::MonitorCache;
+use commands::settings::{load_app_settings, save_app_settings, SettingsFileState};
 use commands::ssh::{HostKeyVerificationCache, SshState};
 use commands::vault::VaultState;
 use std::sync::Mutex;
@@ -93,6 +94,7 @@ pub fn run() {
         .manage(SshState::default())
         .manage(HostKeyVerificationCache::default())
         .manage(MonitorCache::new())
+        .manage(SettingsFileState::default())
         .manage(VaultState(Mutex::new(None)))
         // 初始化窗口配置状态
         .manage(WindowConfigState {
@@ -255,6 +257,8 @@ pub fn run() {
             delete_command_history,
             // 注册更新配置命令
             update_app_config,
+            load_app_settings,
+            save_app_settings,
             // 高亮规则相关命令
             get_highlight_sets,
             create_highlight_set,

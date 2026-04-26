@@ -5,6 +5,7 @@ pub mod history;
 pub mod monitor;
 pub mod proxy;
 pub mod server;
+pub mod settings;
 pub mod snippet;
 pub mod ssh;
 pub mod system;
