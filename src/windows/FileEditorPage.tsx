@@ -1,6 +1,5 @@
 import { useSearchParams } from 'react-router-dom';
 import { FileEditor } from '@/features/fs/editor/FileEditor';
-import { Toaster } from 'sonner';
 import { FileEntry } from '@/features/fs/types';
 
 export const FileEditorPage = () => {
@@ -29,13 +28,10 @@ export const FileEditorPage = () => {
     };
 
     return (
-        <>
-            <FileEditor 
-                sessionId={sessionId} 
-                file={mockFile} 
-                isStandalone={true} 
-            />
-            <Toaster position="bottom-center" />
-        </>
+        <FileEditor
+            sessionId={sessionId}
+            file={mockFile}
+            isStandalone={true}
+        />
     );
 };

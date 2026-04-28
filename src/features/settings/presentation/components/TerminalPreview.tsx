@@ -3,6 +3,7 @@ import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebglAddon } from "@xterm/addon-webgl";
 import "@xterm/xterm/css/xterm.css";
+import { Code2, History, Sparkles } from "lucide-react";
 import { useSettingsStore } from "@/features/settings/application/useSettingsStore";
 import { TERMINAL_THEMES } from "@/features/terminal/constants";
 import { cn } from "@/lib/utils";
@@ -20,7 +21,13 @@ const DEMO_CONTENT = [
 
 const ROWS_TO_SHOW = 8;
 
-export const TerminalPreview = () => {
+interface TerminalPreviewProps {
+  showAutocompletePreview?: boolean;
+}
+
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+export const TerminalPreview = ({ showAutocompletePreview = false }: TerminalPreviewProps) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -40,6 +47,9 @@ export const TerminalPreview = () => {
   const cursorStyle = settings['terminal.cursorStyle'] || 'block';
   const padding = Number(settings['terminal.padding'] || 12);
   const paddingBottom = Number(settings['terminal.paddingBottom'] || 0);
+  const autocompleteEnabled = settings['terminal.autocompleteEnabled'] ?? true;
+  const autocompleteScale = clamp(Number(settings['terminal.autocompletePopupScale'] ?? 1), 0.8, 1.3);
+  const autocompleteOpacity = clamp(Number(settings['terminal.autocompletePopupOpacity'] ?? 0.96), 0.5, 1);
 
   const allThemes = { ...TERMINAL_THEMES, ...customThemes };
   const themeObj = allThemes[themeId] || allThemes['default'];
@@ -151,7 +161,7 @@ export const TerminalPreview = () => {
   return (
     <div 
       className={cn(
-        "w-full max-w-2xl mx-auto rounded-lg overflow-hidden border shadow-sm",
+        "relative w-full max-w-2xl mx-auto rounded-lg overflow-hidden border shadow-sm",
         "transition-colors duration-200",
         "bg-slate-50/50 dark:bg-slate-900/20",
         "border-slate-200 dark:border-slate-800",
@@ -169,6 +179,70 @@ export const TerminalPreview = () => {
         // 动态高度，确保不发生 overflow 裁剪
         style={{ height: `${contentHeight}px` }}
       />
+
+      {showAutocompletePreview && (
+        <div
+          className={cn(
+            "absolute right-6 bottom-4 w-[280px] rounded-lg border shadow-2xl overflow-hidden pointer-events-none",
+            "font-sans transition-all duration-150",
+            !autocompleteEnabled && "grayscale"
+          )}
+          style={{
+            backgroundColor: themeObj.background || '#1e1e1e',
+            borderColor: 'rgba(128,128,128,0.22)',
+            color: themeObj.foreground || '#ffffff',
+            opacity: autocompleteEnabled ? autocompleteOpacity : 0.42,
+            transform: `scale(${autocompleteScale})`,
+            transformOrigin: 'bottom right',
+            boxShadow: '0 18px 45px -18px rgba(0,0,0,0.65)'
+          }}
+        >
+          <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/10 bg-white/5">
+            <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide opacity-80">
+              <Sparkles className="w-3 h-3 text-blue-400" />
+              Autocomplete
+            </span>
+            {!autocompleteEnabled && (
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-500/15 text-red-300">
+                Off
+              </span>
+            )}
+          </div>
+
+          <div className="p-1.5 space-y-0.5">
+            {[
+              { icon: History, value: 'systemctl status nginx', meta: 'history', selected: true },
+              { icon: Code2, value: 'docker compose logs -f', meta: 'snippet', selected: false },
+              { icon: History, value: 'journalctl -u ssh -n 80', meta: 'history', selected: false }
+            ].map((item) => {
+              const Icon = item.icon;
+              return (
+                <div
+                  key={item.value}
+                  className={cn(
+                    "flex items-center gap-2.5 px-2.5 py-1 rounded border border-transparent",
+                    item.selected ? "bg-blue-500/25 border-blue-500/40" : "opacity-70"
+                  )}
+                >
+                  <span className={cn(
+                    "shrink-0 p-0.5 rounded",
+                    item.meta === 'snippet' ? "bg-amber-500/20" : "bg-slate-500/20"
+                  )}>
+                    <Icon className={cn("w-3 h-3", item.meta === 'snippet' && "text-amber-400")} />
+                  </span>
+                  <span className="min-w-0 flex-1 truncate font-mono text-xs">{item.value}</span>
+                  <span className="shrink-0 text-[9px] opacity-45">{item.meta}</span>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="px-3 py-1 border-t border-white/10 bg-white/5 flex items-center justify-between text-[9px] opacity-65">
+            <span>Tab apply</span>
+            <span>Esc close</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

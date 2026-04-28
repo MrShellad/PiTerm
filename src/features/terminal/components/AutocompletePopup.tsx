@@ -14,6 +14,8 @@ interface Props {
   items: SuggestionItem[];
   selectedIndex: number;
   onSelect: (item: SuggestionItem) => void;
+  scale?: number;
+  opacity?: number;
   theme: {
     background: string;
     foreground: string;
@@ -21,7 +23,18 @@ interface Props {
   };
 }
 
-export const AutocompletePopup = ({ visible, cursorInfo, items, selectedIndex, onSelect, theme }: Props) => {
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+export const AutocompletePopup = ({
+  visible,
+  cursorInfo,
+  items,
+  selectedIndex,
+  onSelect,
+  scale = 1,
+  opacity = 1,
+  theme
+}: Props) => {
   const listRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [placement, setPlacement] = useState<'top' | 'bottom'>('top');
@@ -56,6 +69,8 @@ export const AutocompletePopup = ({ visible, cursorInfo, items, selectedIndex, o
   if (!visible || items.length === 0) return null;
 
   // 3. 构建固定定位样式
+  const safeScale = clamp(Number(scale) || 1, 0.75, 1.5);
+  const safeOpacity = clamp(Number(opacity) || 1, 0.2, 1);
   const style: React.CSSProperties = {
     position: 'fixed',
     left: cursorInfo.x,
@@ -65,6 +80,9 @@ export const AutocompletePopup = ({ visible, cursorInfo, items, selectedIndex, o
     boxShadow: '0 10px 30px -10px rgba(0,0,0,0.5)',
     zIndex: 99999,
     minWidth: '260px',
+    opacity: safeOpacity,
+    transform: `scale(${safeScale})`,
+    transformOrigin: placement === 'top' ? 'bottom left' : 'top left',
     maxWidth: '420px', // 限制最大宽度
   };
 

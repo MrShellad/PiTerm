@@ -55,3 +55,10 @@ Thumbs.db
 # Misc
 # ========================
 coverage/
+
+# Windows SDK packages and generated files
+.winapp
+/Assets
+Package.appxmanifest
+winapp.yaml
+dist_msix/

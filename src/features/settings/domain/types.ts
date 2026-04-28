@@ -52,7 +52,9 @@ export interface SettingItem {
   categoryId: SettingCategory;
   type: SettingItemType;
   labelKey: string;       
+  label?: string;
   descKey?: string;       
+  desc?: string;
   defaultValue?: any;
   options?: SettingOption[]; 
   dependencyId?: string;

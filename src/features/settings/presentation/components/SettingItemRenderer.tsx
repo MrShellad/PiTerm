@@ -61,7 +61,7 @@ export const SettingItemRenderer = ({ item, value, onChange }: Props) => {
                 <div className="text-sm font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap">
                     {t(item.labelKey)}
                 </div>
-                {item.descKey && <div className="text-xs text-slate-500 mt-0.5 max-w-[150px] truncate opacity-80">{t(item.descKey)}</div>}
+                {item.descKey && <div className="text-xs text-slate-500 mt-0.5 max-w-[150px] truncate opacity-80">{t(item.descKey, { defaultValue: item.desc ?? item.descKey })}</div>}
             </div>
             <div className="flex-1 min-w-0 flex justify-end"><FontSelector value={value} onChange={onChange} /></div>
         </div>
@@ -93,7 +93,7 @@ export const SettingItemRenderer = ({ item, value, onChange }: Props) => {
       <div className={containerClass}>
         <div className="flex-1 mr-4">
           <div className="text-sm font-medium text-slate-900 dark:text-slate-100">{displayLabel}</div>
-          {item.descKey && <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">{t(item.descKey)}</div>}
+          {item.descKey && <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">{t(item.descKey, { defaultValue: item.desc ?? item.descKey })}</div>}
         </div>
         <div className="shrink-0 w-48 flex justify-end">
            <ShortcutInput value={value} onChange={onChange} />
@@ -106,7 +106,7 @@ export const SettingItemRenderer = ({ item, value, onChange }: Props) => {
     <div className={containerClass}>
       <div className="flex-1 mr-4">
         <div className="text-sm font-medium text-slate-900 dark:text-slate-100">{displayLabel}</div>
-        {item.descKey && <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">{t(item.descKey)}</div>}
+        {item.descKey && <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">{t(item.descKey, { defaultValue: item.desc ?? item.descKey })}</div>}
       </div>
       <div className="shrink-0 w-48 flex justify-end items-center">
         {item.type === 'switch' && (

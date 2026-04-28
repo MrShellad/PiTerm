@@ -67,7 +67,7 @@ export const SliderItemRenderer = ({
             className="py-1 cursor-pointer"
         />
         
-         {item.descKey && <div className="text-[10px] text-slate-400 mt-2.5">{t(item.descKey)}</div>}
+         {item.descKey && <div className="text-[10px] text-slate-400 mt-2.5">{t(item.descKey, { defaultValue: item.desc ?? item.descKey })}</div>}
       </div>
     </div>
   );

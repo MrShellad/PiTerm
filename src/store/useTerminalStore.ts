@@ -18,6 +18,7 @@ export interface TerminalSession {
   serverName: string;
   status: 'connecting' | 'connected' | 'background' | 'disconnected' | 'error';
   backgroundStatus: 'connecting' | 'ready' | 'unavailable';
+  autocompleteEnabled?: boolean;
   connectTimestamp?: number;
 }
 
@@ -56,6 +57,7 @@ interface TerminalState {
     sessionId: string,
     backgroundStatus: TerminalSession['backgroundStatus']
   ) => void;
+  setSessionAutocompleteEnabled: (sessionId: string, enabled: boolean) => void;
   
   toggleBroadcastMode: () => void;
   
@@ -131,6 +133,7 @@ export const useTerminalStore = create<TerminalState>()(
                 serverName: payload?.name || 'Unknown',
                 status: 'connecting',
                 backgroundStatus: 'connecting',
+                autocompleteEnabled: true,
                 connectTimestamp: Date.now()
             };
             
@@ -248,6 +251,21 @@ export const useTerminalStore = create<TerminalState>()(
                 sessions: {
                     ...state.sessions,
                     [sessionId]: { ...state.sessions[sessionId], backgroundStatus }
+                }
+            };
+        });
+      },
+
+      setSessionAutocompleteEnabled: (sessionId, enabled) => {
+        set((state) => {
+            if (!state.sessions[sessionId]) return state;
+            return {
+                sessions: {
+                    ...state.sessions,
+                    [sessionId]: {
+                        ...state.sessions[sessionId],
+                        autocompleteEnabled: enabled
+                    }
                 }
             };
         });

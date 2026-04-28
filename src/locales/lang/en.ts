@@ -286,6 +286,11 @@ export const en = {
       historynoSession: "No available session",
       broadcastOn: "Broadcast On",
       broadcastOff: "Broadcast Off",
+      autocompleteOn: "Autocomplete popup: ON",
+      autocompleteOff: "Autocomplete popup: OFF",
+      autocompleteDisabledGlobally:
+        "Autocomplete is disabled in Terminal settings",
+      autocompleteNoSession: "No active session",
       commondelete: "Delete",
       historyempty: "Empty"
     },
@@ -650,6 +655,15 @@ export const en = {
           canvas: "Canvas (Better compatibility)",
           dom: "DOM (Slow - Debug only)"
         },
+        autocompleteEnabled: "Autocomplete Popup",
+        autocompleteEnabledDesc:
+          "Master switch for command history and snippet suggestions",
+        autocompletePopupScale: "Popup Scale",
+        autocompletePopupScaleDesc:
+          "Adjust the size of the autocomplete floating window",
+        autocompletePopupOpacity: "Popup Opacity",
+        autocompletePopupOpacityDesc:
+          "Adjust the transparency of the autocomplete floating window",
         theme: "Color Scheme",
         fontSize: "Font Size",
         fontWeight: "Font Weight",

@@ -130,8 +130,8 @@ export const TerminalMonitor = ({ collapsed = false, onToggle }: Props) => {
   const showSkeleton = !currentSessionData;
 
   return (
-    <div className="h-full w-full flex flex-col bg-slate-50/30 dark:bg-transparent overflow-hidden relative">
-      <div className="flex items-center justify-between p-3 pb-2 shrink-0 z-10 bg-slate-50/30 dark:bg-transparent">
+    <div className="h-full w-full flex flex-col bg-transparent overflow-hidden relative">
+      <div className="flex items-center justify-between p-3 pb-2 shrink-0 z-10 bg-transparent">
         <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500 px-1">
           {serverConfig?.name || 'Resource Monitor'}
         </h2>
@@ -182,7 +182,7 @@ export const TerminalMonitor = ({ collapsed = false, onToggle }: Props) => {
         )}
       </div>
 
-      <div className="absolute bottom-0 left-0 right-0 p-3 pt-2 bg-slate-50/80 dark:bg-[#1a1b26]/80 backdrop-blur-md z-30 border-t border-slate-200/50 dark:border-white/5">
+      <div className="absolute bottom-0 left-0 right-0 p-3 pt-2 bg-transparent backdrop-blur-md z-30 border-t border-slate-200/50 dark:border-white/5">
         <Button 
             variant="outline" size="sm" 
             className="w-full text-xs font-medium border-dashed border-slate-300 dark:border-slate-700 text-slate-500 hover:text-blue-600 gap-2 shadow-sm transition-all active:scale-[0.98]"

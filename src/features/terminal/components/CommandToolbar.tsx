@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, Radio, FolderTree, Book } from "lucide-react";
+import { Send, Radio, FolderTree, Book, Sparkles } from "lucide-react";
 import { clsx } from "clsx";
 
 import { GlassTooltip } from "@/components/common/GlassTooltip";
@@ -36,6 +36,12 @@ export const CommandToolbar = () => {
     toggleBroadcast,
     sendCommand
   } = useCommandSender();
+  const autocompleteGloballyEnabled = settings['terminal.autocompleteEnabled'] ?? true;
+  const activeSessionAutocompleteEnabled = useTerminalStore(
+    s => activeSessionId ? (s.sessions[activeSessionId]?.autocompleteEnabled ?? true) : false
+  );
+  const setSessionAutocompleteEnabled = useTerminalStore(s => s.setSessionAutocompleteEnabled);
+  const isAutocompleteEffective = autocompleteGloballyEnabled && activeSessionAutocompleteEnabled;
 
   const toggleFileManager = () => {
     if (isFileManagerOpen) {
@@ -58,6 +64,19 @@ export const CommandToolbar = () => {
   };
 
   const handleManualSend = () => sendCommand(inputValue);
+
+  const handleAutocompleteToggle = () => {
+      if (!activeSessionId || !autocompleteGloballyEnabled) return;
+      setSessionAutocompleteEnabled(activeSessionId, !activeSessionAutocompleteEnabled);
+  };
+
+  const autocompleteTooltip = !activeSessionId
+      ? t('cmd.autocompleteNoSession', 'No active session')
+      : !autocompleteGloballyEnabled
+          ? t('cmd.autocompleteDisabledGlobally', 'Autocomplete is disabled in Terminal settings')
+          : isAutocompleteEffective
+              ? t('cmd.autocompleteOn', 'Autocomplete popup: ON')
+              : t('cmd.autocompleteOff', 'Autocomplete popup: OFF');
 
   const inputStyle = {
       color: themeObj.foreground,
@@ -116,6 +135,29 @@ export const CommandToolbar = () => {
         </GlassTooltip>
 
         {/* 3. 输入框 */}
+        <GlassTooltip content={autocompleteTooltip} side="top">
+            <Button
+                size="icon"
+                variant="ghost"
+                onClick={handleAutocompleteToggle}
+                disabled={!activeSessionId || !autocompleteGloballyEnabled}
+                className={clsx(
+                    "shrink-0 h-7 w-7 rounded transition-all",
+                    isAutocompleteEffective
+                        ? "text-blue-500 bg-blue-500/10 hover:bg-blue-500/20"
+                        : "hover:bg-white/10"
+                )}
+                style={{
+                    color: isAutocompleteEffective ? undefined : themeObj.foreground,
+                    opacity: !activeSessionId || !autocompleteGloballyEnabled
+                        ? 0.35
+                        : isAutocompleteEffective ? 1 : 0.6
+                }}
+            >
+                <Sparkles className="w-3.5 h-3.5" />
+            </Button>
+        </GlassTooltip>
+
         <Input 
             value={safeInputValue}
             onChange={(e) => setInputValue(e.target.value)}

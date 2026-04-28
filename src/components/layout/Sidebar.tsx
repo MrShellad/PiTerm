@@ -35,7 +35,7 @@ const buttonBaseClass = clsx(
 );
 
 const iconWrapperClass = clsx(
-  "flex items-center justify-center w-12 h-full shrink-0",
+  "flex items-center justify-center w-11 h-full shrink-0",
   "transition-transform duration-300"
 );
 
@@ -184,26 +184,34 @@ export const Sidebar = () => {
         "flex flex-col h-full shrink-0 z-20",
         "bg-transparent", 
         "transition-[width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden",
-        collapsed ? "w-20" : "w-56"
+        collapsed ? "w-[64px]" : "w-60"
       )}
     >
       {/* Header */}
-      <div className="flex items-center h-16 px-4 mb-2 shrink-0">
+      <div className={clsx(
+          "flex items-center h-16 mb-2 shrink-0 transition-all duration-300",
+          collapsed ? "px-2.5" : "px-4"
+      )}>
         <div className="flex items-center font-bold text-lg overflow-hidden w-full">
-          <div className="flex items-center justify-center w-12 h-12 shrink-0">
-            {/* 🟢 [修改] 移除了背景色容器，直接显示图片，并调整大小为 w-8 h-8 */}
-            <img src={Logo} alt="Logo" className="w-16 h-16 object-contain" />
+          <div className="flex items-center justify-center w-11 h-12 shrink-0">
+            <img src={Logo} alt="Logo" className="w-10 h-10 object-contain" />
           </div>
         </div>
       </div>
 
       {/* Menu */}
-      <div className="flex-1 overflow-y-auto py-2 flex flex-col gap-1 px-4 custom-scrollbar">
+      <div className={clsx(
+          "flex-1 overflow-y-auto py-2 flex flex-col gap-1 custom-scrollbar transition-all duration-300",
+          collapsed ? "px-2" : "px-4"
+      )}>
         {menuItems.map(renderMenuItem)}
       </div>
 
       {/* Footer */}
-      <div className="p-3 flex flex-col gap-1 px-4 shrink-0">
+      <div className={clsx(
+          "p-3 flex flex-col gap-1 shrink-0 transition-all duration-300",
+          collapsed ? "px-2" : "px-4"
+      )}>
         <NavLink to="/settings" className="w-full">
           {({ isActive }) => (
             <FooterButton

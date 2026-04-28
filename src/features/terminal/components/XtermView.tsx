@@ -7,6 +7,8 @@ import { useTerminalAutocomplete } from "../application/useTerminalAutocomplete"
 import { AutocompletePopup } from "./AutocompletePopup";
 import { PasswordModal } from "@/components/common/PasswordModal"; 
 import { Loader2 } from "lucide-react"; 
+import { useSettingsStore } from "@/features/settings/application/useSettingsStore";
+import { useTerminalStore } from "@/store/useTerminalStore";
 
 interface Props {
   sessionId: string;
@@ -29,6 +31,14 @@ export const XtermView = ({ sessionId, isActive }: Props) => {
   } = useTerminalSession(sessionId, isActive);
 
   const { menuConfig, menuItems, handleClose } = useTerminalContextMenu(containerRef, termRef, sessionId);
+  const settings = useSettingsStore(s => s.settings);
+  const sessionAutocompleteEnabled = useTerminalStore(
+    s => s.sessions[sessionId]?.autocompleteEnabled ?? true
+  );
+  const autocompleteEnabled =
+    (settings['terminal.autocompleteEnabled'] ?? true) && sessionAutocompleteEnabled;
+  const autocompleteScale = Number(settings['terminal.autocompletePopupScale'] ?? 1);
+  const autocompleteOpacity = Number(settings['terminal.autocompletePopupOpacity'] ?? 0.96);
 
   // 联想 Hook
   const { 
@@ -37,7 +47,7 @@ export const XtermView = ({ sessionId, isActive }: Props) => {
     suggestions, 
     selectedIndex, 
     applyCompletion 
-  } = useTerminalAutocomplete(termRef.current, sessionId);
+  } = useTerminalAutocomplete(termRef.current, sessionId, { enabled: autocompleteEnabled });
 
   return (
     <div 
@@ -64,11 +74,13 @@ export const XtermView = ({ sessionId, isActive }: Props) => {
       
       {/* 自动补全弹窗 */}
       <AutocompletePopup
-            visible={acVisible}
+            visible={autocompleteEnabled && acVisible}
             cursorInfo={cursorInfo || { x: 0, y: 0, lineHeight: 0 }}
             items={suggestions}
             selectedIndex={selectedIndex}
             onSelect={applyCompletion}
+            scale={autocompleteScale}
+            opacity={autocompleteOpacity}
             theme={{
                 background: style.themeObj.background || '#1e1e1e',
                 foreground: style.themeObj.foreground || '#ffffff',

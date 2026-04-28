@@ -10,7 +10,7 @@ export const useThemeSyncLogic = () => {
   // 1. 获取动态 Label
   const getDisplayLabel = (item: SettingItem) => {
     const isSyncOn = settings['appearance.syncBackgroundTheme'];
-    let displayLabel = t(item.labelKey);
+    let displayLabel = t(item.labelKey, { defaultValue: item.label ?? item.labelKey });
 
     if (isSyncOn === false) { 
        if (item.id === 'appearance.darkBackgroundImage') displayLabel = t('settings.appearance.background', 'Background Image');

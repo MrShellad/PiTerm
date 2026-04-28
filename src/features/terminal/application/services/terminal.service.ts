@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 
 const WRITE_BATCH_DELAY_MS = 8;
 const WRITE_BATCH_MAX_CHARS = 4096;
+const LOW_LATENCY_INPUT_MAX_CHARS = 8;
 
 type WriteWaiter = {
   resolve: () => void;
@@ -41,6 +42,9 @@ const clearWriteTimer = (queue: TerminalWriteQueue) => {
 const shouldFlushImmediately = (buffer: string, data: string) =>
   data.includes('\r') ||
   data.includes('\n') ||
+  data === '\x7f' ||
+  data.startsWith('\x1b') ||
+  data.length <= LOW_LATENCY_INPUT_MAX_CHARS ||
   buffer.length >= WRITE_BATCH_MAX_CHARS;
 
 const flushWriteQueue = (id: string): Promise<void> => {

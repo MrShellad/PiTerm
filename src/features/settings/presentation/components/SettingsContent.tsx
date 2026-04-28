@@ -89,7 +89,7 @@ export const SettingsContent = () => {
                   ? "opacity-100 max-h-[500px]" 
                   : "opacity-0 max-h-0 overflow-hidden" 
           )}>
-              <TerminalPreview />
+              <TerminalPreview showAutocompletePreview={activeCategory === 'terminal'} />
           </div>
       </div>
 
