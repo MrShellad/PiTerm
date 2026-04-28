@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTransferStore, TransferTask } from '@/store/useTransferStore';
+import { listen } from '@tauri-apps/api/event';
 import { 
   X, Upload, Download, CheckCircle2, AlertCircle, 
   Loader2, Trash2, FolderOpen, AlertTriangle, Ban 
@@ -8,14 +9,43 @@ import { formatBytes } from '@/utils/format';
 import { clsx } from 'clsx';
 import { useTranslation } from 'react-i18next';
 
+interface SftpTransferProgressPayload {
+    transferId: string;
+    transferred: number;
+    total: number;
+    progress: number;
+    speed: number;
+}
+
 export const TransferManager = () => {
     const { t } = useTranslation();
     // [新增] 从 store 中解构 cancelTask
-    const { isOpen, tasks, toggleOpen, clearCompleted, removeTask, cancelTask } = useTransferStore();
+    const { isOpen, tasks, toggleOpen, clearCompleted, removeTask, cancelTask, updateProgress } = useTransferStore();
 
     // 删除确认弹窗的状态
     const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
     const [deleteFileChecked, setDeleteFileChecked] = useState(false);
+
+    useEffect(() => {
+        let unlisten: (() => void) | undefined;
+        let disposed = false;
+
+        listen<SftpTransferProgressPayload>('sftp_transfer_progress', (event) => {
+            const { transferId, transferred, total, progress, speed } = event.payload;
+            updateProgress(transferId, progress, transferred, speed, total);
+        }).then((fn) => {
+            if (disposed) {
+                fn();
+            } else {
+                unlisten = fn;
+            }
+        }).catch(console.error);
+
+        return () => {
+            disposed = true;
+            unlisten?.();
+        };
+    }, [updateProgress]);
 
     if (!isOpen) return null;
 
@@ -171,6 +201,13 @@ const TransferItem = ({
 }) => {
     const isUpload = task.type === 'upload';
     const isRunning = task.status === 'running';
+    const progress = Math.max(0, Math.min(100, task.progress || 0));
+    const totalSize = task.size || 0;
+    const transferred = task.transferred || 0;
+    const transferAmount = totalSize > 0
+        ? `${formatBytes(transferred)} / ${formatBytes(totalSize)}`
+        : formatBytes(transferred);
+    const speedText = isRunning ? `${formatBytes(task.speed || 0)}/s` : '';
     
     // @ts-ignore
     const dateStr = new Date(task.startTime).toLocaleString();
@@ -237,20 +274,25 @@ const TransferItem = ({
                             : `${t('fs.transfer.to', 'To')}: ${task.localPath}`
                         }
                     </span>
-                    {task.size > 0 && <span>{formatBytes(task.size)}</span>}
+                    {totalSize > 0 && <span>{formatBytes(totalSize)}</span>}
                 </div>
-                
-                {/* Date Display */}
-                <div className="text-[9px] text-slate-400 mt-0.5 text-right">
-                    {dateStr}
+
+                <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1">
+                    <span>{transferAmount}</span>
+                    <span>
+                        {isRunning ? `${Math.round(progress)}% · ${speedText}` : dateStr}
+                    </span>
                 </div>
 
                 {/* Progress Bar */}
-                {task.status === 'running' && (
+                {task.status !== 'error' && (
                     <div className="h-1 w-full bg-slate-200 dark:bg-slate-700 rounded-full mt-1.5 overflow-hidden">
                         <div 
-                            className="h-full bg-blue-500 rounded-full transition-all duration-300" 
-                            style={{ width: `${task.progress || 0}%` }}
+                            className={clsx(
+                                "h-full rounded-full transition-all duration-300",
+                                task.status === 'completed' ? "bg-green-500" : "bg-blue-500"
+                            )}
+                            style={{ width: `${progress}%` }}
                         />
                     </div>
                 )}

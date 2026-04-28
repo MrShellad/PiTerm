@@ -4,6 +4,10 @@ use ssh2::Session;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::Path;
+use std::time::{Duration, Instant};
+
+const TRANSFER_BUFFER_SIZE: usize = 128 * 1024;
+const TRANSFER_PROGRESS_INTERVAL: Duration = Duration::from_millis(150);
 
 pub struct SftpFileSystem<'a> {
     session: &'a Session,
@@ -12,6 +16,117 @@ pub struct SftpFileSystem<'a> {
 impl<'a> SftpFileSystem<'a> {
     pub fn new(session: &'a Session) -> Self {
         Self { session }
+    }
+
+    fn copy_with_progress<R, W, F>(
+        mut reader: R,
+        mut writer: W,
+        total: u64,
+        mut on_progress: F,
+    ) -> Result<(), String>
+    where
+        R: Read,
+        W: Write,
+        F: FnMut(u64, u64),
+    {
+        let mut buffer = vec![0_u8; TRANSFER_BUFFER_SIZE];
+        let mut transferred = 0_u64;
+        let mut last_emit = Instant::now() - TRANSFER_PROGRESS_INTERVAL;
+        let mut last_reported = 0_u64;
+
+        on_progress(0, total);
+
+        loop {
+            let read_len = reader
+                .read(&mut buffer)
+                .map_err(|e| format!("Read stream failed: {}", e))?;
+            if read_len == 0 {
+                break;
+            }
+
+            writer
+                .write_all(&buffer[..read_len])
+                .map_err(|e| format!("Write stream failed: {}", e))?;
+
+            transferred = transferred.saturating_add(read_len as u64);
+            if last_emit.elapsed() >= TRANSFER_PROGRESS_INTERVAL || transferred == total {
+                on_progress(transferred, total);
+                last_reported = transferred;
+                last_emit = Instant::now();
+            }
+        }
+
+        writer
+            .flush()
+            .map_err(|e| format!("Flush stream failed: {}", e))?;
+        if transferred != last_reported {
+            on_progress(transferred, total);
+        }
+
+        Ok(())
+    }
+
+    pub fn download_with_progress<F>(
+        &self,
+        remote_path: &str,
+        local_path: &str,
+        on_progress: F,
+    ) -> Result<(), String>
+    where
+        F: FnMut(u64, u64),
+    {
+        self.session.set_timeout(0);
+
+        let result = (|| {
+            let sftp = self.session.sftp().map_err(|e| e.to_string())?;
+            let remote_path = Path::new(remote_path);
+            let mut remote_file = sftp
+                .open(remote_path)
+                .map_err(|e| format!("Open remote failed: {}", e))?;
+            let total = remote_file
+                .stat()
+                .ok()
+                .and_then(|stat| stat.size)
+                .unwrap_or(0);
+            let local_file =
+                File::create(local_path).map_err(|e| format!("Create local failed: {}", e))?;
+
+            Self::copy_with_progress(&mut remote_file, local_file, total, on_progress)
+                .map_err(|e| format!("Download failed: {}", e))
+        })();
+
+        self.session.set_timeout(3000);
+        result
+    }
+
+    pub fn upload_with_progress<F>(
+        &self,
+        local_path: &str,
+        remote_path: &str,
+        on_progress: F,
+    ) -> Result<(), String>
+    where
+        F: FnMut(u64, u64),
+    {
+        self.session.set_timeout(0);
+
+        let result = (|| {
+            let total = std::fs::metadata(local_path)
+                .map_err(|e| format!("Read local metadata failed: {}", e))?
+                .len();
+            let mut local_file =
+                File::open(local_path).map_err(|e| format!("Open local failed: {}", e))?;
+            let sftp = self.session.sftp().map_err(|e| e.to_string())?;
+            let remote_file = sftp
+                .create(Path::new(remote_path))
+                .map_err(|e| format!("Create remote failed: {}", e))?;
+
+            Self::copy_with_progress(&mut local_file, remote_file, total, on_progress)
+                .map_err(|e| format!("Upload failed: {}", e))
+        })();
+
+        self.session.set_timeout(3000);
+        result
     }
 
     // === Helper: Unix permissions to string ===
@@ -187,40 +302,11 @@ impl<'a> FileSystem for SftpFileSystem<'a> {
     }
 
     fn download(&self, remote_path: &str, local_path: &str) -> Result<(), String> {
-        self.session.set_timeout(0); // Infinite timeout
-        let sftp = self.session.sftp().map_err(|e| e.to_string())?;
-
-        let mut remote_file = sftp
-            .open(Path::new(remote_path))
-            .map_err(|e| format!("Open remote failed: {}", e))?;
-        let mut local_file =
-            File::create(local_path).map_err(|e| format!("Create local failed: {}", e))?;
-
-        std::io::copy(&mut remote_file, &mut local_file)
-            .map_err(|e| format!("Download failed: {}", e))?;
-
-        self.session.set_timeout(3000); // Restore default
-        Ok(())
+        self.download_with_progress(remote_path, local_path, |_, _| {})
     }
 
     fn upload(&self, local_path: &str, remote_path: &str) -> Result<(), String> {
-        self.session.set_timeout(0);
-        let sftp = self.session.sftp().map_err(|e| e.to_string())?;
-
-        let mut local_file =
-            File::open(local_path).map_err(|e| format!("Open local failed: {}", e))?;
-        let mut remote_file = sftp
-            .create(Path::new(remote_path))
-            .map_err(|e| format!("Create remote failed: {}", e))?;
-
-        std::io::copy(&mut local_file, &mut remote_file)
-            .map_err(|e| format!("Upload failed: {}", e))?;
-        remote_file
-            .flush()
-            .map_err(|e| format!("Flush failed: {}", e))?;
-
-        self.session.set_timeout(3000);
-        Ok(())
+        self.upload_with_progress(local_path, remote_path, |_, _| {})
     }
 
     fn chmod(&self, path: &str, mode: &str, recursive: bool) -> Result<(), String> {

@@ -3,7 +3,44 @@ use super::session::get_sftp_session_arc;
 use super::sftp_impl::SftpFileSystem;
 use crate::commands::ssh::SshState;
 use crate::utils::ssh_log;
-use tauri::State;
+use serde::Serialize;
+use std::time::Instant;
+use tauri::{AppHandle, Emitter, Runtime, State};
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SftpTransferProgressPayload {
+    transfer_id: String,
+    transferred: u64,
+    total: u64,
+    progress: f64,
+    speed: u64,
+}
+
+fn emit_sftp_transfer_progress<R: Runtime>(
+    app: &AppHandle<R>,
+    transfer_id: &str,
+    transferred: u64,
+    total: u64,
+    speed: u64,
+) {
+    let progress = if total > 0 {
+        ((transferred as f64 / total as f64) * 100.0).clamp(0.0, 100.0)
+    } else {
+        100.0
+    };
+
+    let _ = app.emit(
+        "sftp_transfer_progress",
+        SftpTransferProgressPayload {
+            transfer_id: transfer_id.to_string(),
+            transferred,
+            total,
+            progress,
+            speed,
+        },
+    );
+}
 
 macro_rules! run_sftp {
     ($ssh_state:expr, $id:expr, $operation:expr, [$($field:expr),* $(,)?], |$fs:ident| $block:expr) => {{
@@ -137,12 +174,16 @@ pub async fn sftp_copy(
 }
 
 #[tauri::command]
-pub async fn sftp_download_file(
+pub async fn sftp_download_file<R: Runtime>(
+    app: AppHandle<R>,
     ssh_state: State<'_, SshState>,
     id: String,
     remote_path: String,
     local_path: String,
+    transfer_id: Option<String>,
 ) -> Result<(), String> {
+    let progress_app = app.clone();
+    let progress_transfer_id = transfer_id.clone();
     let res = run_sftp!(
         &ssh_state,
         id,
@@ -151,18 +192,48 @@ pub async fn sftp_download_file(
             ssh_log::log_field("remote_path", remote_path.clone()),
             ssh_log::log_field("local_path", local_path.clone())
         ],
-        |fs| fs.download(&remote_path, &local_path)
+        |fs| {
+            if let Some(transfer_id) = progress_transfer_id.clone() {
+                let mut last_transferred = 0_u64;
+                let mut last_tick = Instant::now();
+                fs.download_with_progress(&remote_path, &local_path, move |transferred, total| {
+                    let now = Instant::now();
+                    let elapsed = now.duration_since(last_tick).as_secs_f64();
+                    let speed = if elapsed > 0.0 {
+                        (transferred.saturating_sub(last_transferred) as f64 / elapsed) as u64
+                    } else {
+                        0
+                    };
+
+                    last_transferred = transferred;
+                    last_tick = now;
+                    emit_sftp_transfer_progress(
+                        &progress_app,
+                        &transfer_id,
+                        transferred,
+                        total,
+                        speed,
+                    );
+                })
+            } else {
+                fs.download(&remote_path, &local_path)
+            }
+        }
     );
     Ok(res)
 }
 
 #[tauri::command]
-pub async fn sftp_upload_file(
+pub async fn sftp_upload_file<R: Runtime>(
+    app: AppHandle<R>,
     ssh_state: State<'_, SshState>,
     id: String,
     local_path: String,
     remote_path: String,
+    transfer_id: Option<String>,
 ) -> Result<(), String> {
+    let progress_app = app.clone();
+    let progress_transfer_id = transfer_id.clone();
     let res = run_sftp!(
         &ssh_state,
         id,
@@ -171,7 +242,33 @@ pub async fn sftp_upload_file(
             ssh_log::log_field("local_path", local_path.clone()),
             ssh_log::log_field("remote_path", remote_path.clone())
         ],
-        |fs| fs.upload(&local_path, &remote_path)
+        |fs| {
+            if let Some(transfer_id) = progress_transfer_id.clone() {
+                let mut last_transferred = 0_u64;
+                let mut last_tick = Instant::now();
+                fs.upload_with_progress(&local_path, &remote_path, move |transferred, total| {
+                    let now = Instant::now();
+                    let elapsed = now.duration_since(last_tick).as_secs_f64();
+                    let speed = if elapsed > 0.0 {
+                        (transferred.saturating_sub(last_transferred) as f64 / elapsed) as u64
+                    } else {
+                        0
+                    };
+
+                    last_transferred = transferred;
+                    last_tick = now;
+                    emit_sftp_transfer_progress(
+                        &progress_app,
+                        &transfer_id,
+                        transferred,
+                        total,
+                        speed,
+                    );
+                })
+            } else {
+                fs.upload(&local_path, &remote_path)
+            }
+        }
     );
     Ok(res)
 }

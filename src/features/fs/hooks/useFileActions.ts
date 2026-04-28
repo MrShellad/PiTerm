@@ -26,6 +26,13 @@ const pathUtils = {
     }
 };
 
+const createTransferId = (type: 'upload' | 'download') => {
+    const randomPart = typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : Math.random().toString(36).slice(2);
+    return `${type}-${Date.now()}-${randomPart}`;
+};
+
 export const useFileActions = (sessionId: string) => {
     const { t } = useTranslation();
     const { setPath, setSort, getSession, triggerReload, setClipboard } = useFileStore();
@@ -126,6 +133,7 @@ const handleDoubleClick = useCallback((file: FileEntry) => {
         if (!connectionId) return; 
         const state = getSession(sessionId);
         const currentPath = state.currentPath;
+        let transferId: string | null = null;
 
         try {
             const selected = await open({
@@ -142,7 +150,7 @@ const handleDoubleClick = useCallback((file: FileEntry) => {
             if (!fileName) return;
 
             const remotePath = pathUtils.join(currentPath, fileName);
-            const transferId = Date.now().toString(); 
+            transferId = createTransferId('upload'); 
             addTask({
                 id: transferId,
                 type: 'upload',
@@ -152,6 +160,8 @@ const handleDoubleClick = useCallback((file: FileEntry) => {
                 size: 0,
                 status: 'running',
                 progress: 0,
+                transferred: 0,
+                speed: 0,
                 startTime: Date.now()
             });
 
@@ -161,7 +171,8 @@ const handleDoubleClick = useCallback((file: FileEntry) => {
             await invoke('sftp_upload_file', {
                 id: connectionId,
                 localPath,
-                remotePath
+                remotePath,
+                transferId
             });
 
             updateStatus(transferId, 'completed');
@@ -169,6 +180,9 @@ const handleDoubleClick = useCallback((file: FileEntry) => {
             refresh(); 
         } catch (error: any) {
             console.error("Upload failed:", error);
+            if (transferId) {
+                updateStatus(transferId, 'error', error?.toString?.() || String(error));
+            }
             showToast(t('fs.msg.uploadFailed', 'Upload failed'), 'error');
         } finally {
             setIsSubmitting(false);
@@ -178,7 +192,7 @@ const handleDoubleClick = useCallback((file: FileEntry) => {
     const handleDownload = useCallback(async (file: FileEntry) => {
         if (!connectionId) return;
 
-        const transferId = Date.now().toString();
+        const transferId = createTransferId('download');
 
         try {
             if (file.isDir) {
@@ -202,6 +216,8 @@ const handleDoubleClick = useCallback((file: FileEntry) => {
                 size: file.size,
                 status: 'running',
                 progress: 0,
+                transferred: 0,
+                speed: 0,
                 startTime: Date.now()
             });
 
@@ -211,7 +227,8 @@ const handleDoubleClick = useCallback((file: FileEntry) => {
             await invoke('sftp_download_file', {
                 id: connectionId,
                 remotePath: file.path,
-                localPath
+                localPath,
+                transferId
             });
 
             updateStatus(transferId, 'completed');

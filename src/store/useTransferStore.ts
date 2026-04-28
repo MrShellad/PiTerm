@@ -9,6 +9,8 @@ export interface TransferTask {
     size: number;
     status: 'running' | 'completed' | 'error';
     progress: number;
+    transferred: number;
+    speed: number;
     startTime: number; 
     error?: string;
     // 如果您使用 AbortController 来控制取消，可以考虑不放在 Store 里，
@@ -22,7 +24,7 @@ interface TransferState {
     toggleOpen: () => void;
     addTask: (task: TransferTask) => void;
     updateStatus: (id: string, status: TransferTask['status'], error?: string) => void;
-    updateProgress: (id: string, progress: number) => void;
+    updateProgress: (id: string, progress: number, transferred: number, speed: number, size?: number) => void;
     clearCompleted: () => void;
     
     // [新增] 删除单个任务，支持传入是否物理删除文件的标志
@@ -45,13 +47,26 @@ export const useTransferStore = create<TransferState>((set, get) => ({
 
     updateStatus: (id, status, error) => set((state) => ({
         tasks: state.tasks.map(t => 
-            t.id === id ? { ...t, status, error } : t
+            t.id === id ? {
+                ...t,
+                status,
+                error,
+                speed: 0,
+                progress: status === 'completed' ? 100 : t.progress,
+                transferred: status === 'completed' ? (t.size || t.transferred) : t.transferred
+            } : t
         )
     })),
 
-    updateProgress: (id, progress) => set((state) => ({
+    updateProgress: (id, progress, transferred, speed, size) => set((state) => ({
         tasks: state.tasks.map(t => 
-            t.id === id ? { ...t, progress } : t
+            t.id === id && t.status === 'running' ? {
+                ...t,
+                progress: Math.max(0, Math.min(100, progress)),
+                transferred,
+                speed,
+                size: size && size > 0 ? size : t.size
+            } : t
         )
     })),
 
@@ -75,7 +90,7 @@ export const useTransferStore = create<TransferState>((set, get) => ({
             // 更新 UI 状态为 Error (并标记为用户取消)
             set((state) => ({
                 tasks: state.tasks.map(t => 
-                    t.id === id ? { ...t, status: 'error', error: '用户取消' } : t
+                    t.id === id ? { ...t, status: 'error', error: '用户取消', speed: 0 } : t
                 )
             }));
         }
