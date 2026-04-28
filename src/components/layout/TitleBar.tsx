@@ -21,6 +21,7 @@ export const TitleBar = () => {
 
   return (
     <div
+      data-tauri-drag-region
       className={clsx(
         "h-10 flex w-full select-none app-region-drag",
         // 🟢 [修改] 移除背景色和边框，改为全透明

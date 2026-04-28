@@ -8,7 +8,6 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { KeyManagerPanel } from '@/features/keys/KeyManagerPanel';
 import { GlobalVaultModal } from '@/features/keys/components/GlobalVaultModal';
-import { VaultAuthForm } from '@/features/keys/components/VaultAuthForm';
 import { ServerListPage } from '@/features/server/list';
 import { useServerStore } from '@/features/server/application/useServerStore';
 import { SettingsPage } from '@/features/settings/presentation/SettingsPage';
@@ -28,7 +27,6 @@ export function MainAppShell() {
   const initDeviceIdentity = useSettingsStore(s => s.initDeviceIdentity);
   const settingsHydrated = useSettingsHydration();
 
-  const vaultStatus = useKeyStore(s => s.status);
   const checkVaultStatus = useKeyStore(s => s.checkVaultStatus);
 
   const appTheme = settings?.['appearance.appTheme'];
@@ -112,14 +110,6 @@ export function MainAppShell() {
 
   return (
     <BrowserRouter>
-      {vaultStatus !== 'unlocked' && (
-        <div className="fixed inset-0 z-[9999] bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center animate-in fade-in duration-300">
-          <div className="w-full max-w-md px-4">
-            <VaultAuthForm />
-          </div>
-        </div>
-      )}
-
       <GlobalVaultModal />
       <Toaster richColors closeButton position="top-center" style={{ zIndex: 999999 }} />
 

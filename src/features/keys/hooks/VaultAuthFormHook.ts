@@ -14,6 +14,11 @@ export const useVaultAuthForm = ({ onSuccess }: UseVaultAuthFormProps = {}) => {
     const [setupStep, setSetupStep] = useState<1 | 2>(1); // 1: 输入PIN, 2: 确认PIN
     const [firstPin, setFirstPin] = useState('');
     const [error, setError] = useState('');
+    const [focusSignal, setFocusSignal] = useState(0);
+
+    const requestPinFocus = () => {
+        setFocusSignal(signal => signal + 1);
+    };
 
     const handlePinChange = async (val: string) => {
         setPassword(val);
@@ -28,19 +33,24 @@ export const useVaultAuthForm = ({ onSuccess }: UseVaultAuthFormProps = {}) => {
                 } else {
                     setError(t('keys.error.wrongPwd', 'Incorrect password'));
                     setPassword(''); // 错误时自动清空输入框
+                    requestPinFocus();
                 }
             } else if (status === 'uninitialized') {
                 if (setupStep === 1) {
                     setFirstPin(val);
                     setSetupStep(2);
                     setPassword(''); // 清空，准备输入确认密码
+                    requestPinFocus();
                 } else {
                     if (val === firstPin) {
                         await setupVault(val);
                         onSuccess?.();
                     } else {
                         setError(t('keys.error.pwdMismatch', 'Passwords do not match'));
-                        resetSetup(); // 两次不一致，全部清空重头开始
+                        setSetupStep(1);
+                        setFirstPin('');
+                        setPassword(''); // 两次不一致，全部清空重头开始
+                        requestPinFocus();
                     }
                 }
             }
@@ -52,6 +62,7 @@ export const useVaultAuthForm = ({ onSuccess }: UseVaultAuthFormProps = {}) => {
         setFirstPin('');
         setPassword('');
         setError('');
+        requestPinFocus();
     };
 
     const getTitle = () => {
@@ -76,6 +87,7 @@ export const useVaultAuthForm = ({ onSuccess }: UseVaultAuthFormProps = {}) => {
         status,
         isLoading,
         password,
+        focusSignal,
         setupStep,
         error,
         handlePinChange,

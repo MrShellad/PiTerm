@@ -9,20 +9,28 @@ const PinInput = ({
     value, 
     onChange, 
     disabled, 
-    autoFocus 
+    autoFocus,
+    focusSignal = 0
 }: { 
     value: string; 
     onChange: (v: string) => void; 
     disabled?: boolean; 
     autoFocus?: boolean;
+    focusSignal?: number;
 }) => {
     const refs = useRef<(HTMLInputElement | null)[]>([]);
 
     useEffect(() => {
-        if (autoFocus && refs.current[0]) {
-            refs.current[0].focus();
+        if (!autoFocus || disabled || value.length !== 0) {
+            return;
         }
-    }, [autoFocus]);
+
+        const frame = requestAnimationFrame(() => {
+            refs.current[0]?.focus();
+        });
+
+        return () => cancelAnimationFrame(frame);
+    }, [autoFocus, disabled, focusSignal, value]);
 
     const handleChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value;
@@ -107,6 +115,7 @@ export const VaultAuthForm = ({ onSuccess }: Props) => {
         status,
         isLoading,
         password,
+        focusSignal,
         setupStep,
         error,
         handlePinChange,
@@ -141,6 +150,7 @@ export const VaultAuthForm = ({ onSuccess }: Props) => {
                     onChange={handlePinChange} 
                     disabled={isLoading} 
                     autoFocus 
+                    focusSignal={focusSignal}
                 />
 
                 <div className="h-6 flex items-center justify-center">
