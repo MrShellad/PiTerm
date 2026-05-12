@@ -101,11 +101,13 @@ export const ProviderPicker = ({
           variant="ghost"
           role="combobox"
           size="sm"
-          className="h-7 w-fit -ml-2 px-2 text-xs text-muted-foreground font-normal hover:text-foreground hover:bg-muted/60"
+          className="h-7 w-full min-w-0 justify-between px-2 text-xs text-muted-foreground font-normal hover:text-foreground hover:bg-muted/60"
         >
-          <Layers className="w-3.5 h-3.5 mr-1.5 opacity-70" />
-          <span className="truncate max-w-[180px] text-left">
-            {safeValue || t('server.form.selectProvider', 'Select Provider...')}
+          <span className="flex items-center min-w-0">
+            <Layers className="w-3.5 h-3.5 mr-1.5 opacity-70 shrink-0" />
+            <span className="truncate text-left">
+              {safeValue || t('server.form.selectProvider', 'Select Provider...')}
+            </span>
           </span>
           <ChevronsUpDown className="ml-1 h-3 w-3 opacity-50 shrink-0" />
         </Button>

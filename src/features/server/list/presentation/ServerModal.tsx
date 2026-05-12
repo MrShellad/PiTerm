@@ -83,7 +83,7 @@ export const ServerModal = ({ open, onOpenChange, initialData, onClose }: Server
       title={modalTitle}
       icon={<ServerIcon className="w-5 h-5" />}
       // 🟢 建议使用 max-w-4xl，给左右分栏留出呼吸空间
-      className="max-w-3xl h-[750px] flex flex-col z-[50]"
+      className="max-w-4xl h-[750px] flex flex-col z-[50]"
     >
       <ServerForm 
         initialData={formDefaultValues}

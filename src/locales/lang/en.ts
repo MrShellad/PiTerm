@@ -105,12 +105,12 @@ export const en = {
         becomeSponsor: "Become a sponsor"
       },
       quickConnect: {
-        hint: "Format: user@host or user@host:port",
+        hint: "Format: user@host, user@host:port, or user@[IPv6]:port",
         title: "Start Connection",
         error: "Failed to initialize connection",
         connecting: "Connecting to {{host}}...",
         invalidFormat:
-          "Invalid format. Please use: user@host:port",
+          "Invalid format. Use: user@host, user@host:port, or user@[IPv6]:port",
         disclaimerTitle: "Disclaimer"
       }
     },
@@ -177,9 +177,11 @@ export const en = {
         actions: "Actions"
       },
       sort: {
+        custom: "Sort Weight",
         newest: "Created (Newest)",
         oldest: "Created (Oldest)",
         nameAsc: "Name (A–Z)",
+        nameDesc: "Name (Z–A)",
         idDesc: "ID (Descending)",
         idAsc: "ID (Ascending)"
       },

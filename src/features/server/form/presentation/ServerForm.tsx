@@ -67,7 +67,10 @@ export const ServerForm = ({ initialData, onClose }: ServerFormProps) => {
             <Button type="button" variant="ghost" onClick={onClose}>
               {t('common.cancel', 'Cancel')}
             </Button>
-            <Button type="submit" className="min-w-[100px] gap-2 shadow-sm">
+            <Button
+              type="submit"
+              className="min-w-[100px] gap-2 bg-blue-600 text-white shadow-sm hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500"
+            >
               <Save className="w-4 h-4" />
               {t('common.save', 'Save')}
             </Button>

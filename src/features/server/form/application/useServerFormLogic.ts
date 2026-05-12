@@ -64,7 +64,7 @@ export const useServerFormLogic = ({ initialData, onClose }: UseServerFormLogicP
     // 计算 Source
     merged.passwordSource = rawPasswordId ? 'store' : 'manual';
     merged.keySource = rawKeyId ? 'store' : 'manual';
-    if (!merged.provider) merged.provider = "Custom";
+    merged.provider = (merged.provider || "").trim();
 
     return merged as ServerFormValues;
   }, [initialData]);

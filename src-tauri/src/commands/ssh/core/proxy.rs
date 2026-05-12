@@ -1,5 +1,5 @@
 use std::io::{Read, Write};
-use std::net::{Ipv4Addr, SocketAddr, TcpStream, ToSocketAddrs};
+use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, TcpStream, ToSocketAddrs};
 use std::time::Duration;
 
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
@@ -12,8 +12,24 @@ fn socket_io_timeout(timeout: Duration) -> Duration {
     Duration::from_secs(timeout.as_secs().max(DEFAULT_IO_TIMEOUT_SECS))
 }
 
+fn strip_ipv6_brackets(host: &str) -> &str {
+    host.strip_prefix('[')
+        .and_then(|value| value.strip_suffix(']'))
+        .unwrap_or(host)
+}
+
+fn http_authority(host: &str, port: u16) -> String {
+    let normalized_host = strip_ipv6_brackets(host);
+
+    if normalized_host.parse::<Ipv6Addr>().is_ok() {
+        format!("[{}]:{}", normalized_host, port)
+    } else {
+        format!("{}:{}", normalized_host, port)
+    }
+}
+
 fn resolve_socket_addrs(host: &str, port: u16) -> Result<Vec<SocketAddr>, String> {
-    (host, port)
+    (strip_ipv6_brackets(host), port)
         .to_socket_addrs()
         .map(|iter| iter.collect())
         .map_err(|e| format!("DNS Error: {}", e))
@@ -77,10 +93,11 @@ fn connect_http_proxy(
     timeout: Duration,
 ) -> Result<TcpStream, String> {
     let mut stream = connect_proxy_stream(proxy, timeout)?;
+    let target_authority = http_authority(&config.host, config.port);
 
     let mut request = format!(
-        "CONNECT {}:{} HTTP/1.1\r\nHost: {}:{}\r\nProxy-Connection: Keep-Alive\r\n",
-        config.host, config.port, config.host, config.port
+        "CONNECT {} HTTP/1.1\r\nHost: {}\r\nProxy-Connection: Keep-Alive\r\n",
+        target_authority, target_authority
     );
 
     if let Some(auth) = encode_proxy_auth(proxy) {
@@ -141,13 +158,21 @@ fn connect_socks4_proxy(
     timeout: Duration,
 ) -> Result<TcpStream, String> {
     let mut stream = connect_proxy_stream(proxy, timeout)?;
-    let mut request = Vec::with_capacity(9 + config.host.len());
+    let normalized_host = strip_ipv6_brackets(&config.host);
+
+    if normalized_host.parse::<Ipv6Addr>().is_ok() {
+        return Err(
+            "SOCKS4 proxy does not support IPv6 targets; use SOCKS5 or HTTP proxy".to_string(),
+        );
+    }
+
+    let mut request = Vec::with_capacity(9 + normalized_host.len());
 
     request.push(0x04);
     request.push(0x01);
     request.extend_from_slice(&config.port.to_be_bytes());
 
-    match config.host.parse::<Ipv4Addr>() {
+    match normalized_host.parse::<Ipv4Addr>() {
         Ok(ipv4) => request.extend_from_slice(&ipv4.octets()),
         Err(_) => request.extend_from_slice(&[0, 0, 0, 1]),
     }
@@ -155,8 +180,8 @@ fn connect_socks4_proxy(
     request.extend_from_slice(proxy.username.as_deref().unwrap_or("").as_bytes());
     request.push(0);
 
-    if config.host.parse::<Ipv4Addr>().is_err() {
-        request.extend_from_slice(config.host.as_bytes());
+    if normalized_host.parse::<Ipv4Addr>().is_err() {
+        request.extend_from_slice(normalized_host.as_bytes());
         request.push(0);
     }
 
@@ -184,25 +209,27 @@ fn connect_socks4_proxy(
 }
 
 fn write_socks5_target(request: &mut Vec<u8>, host: &str) -> Result<(), String> {
-    if let Ok(ipv4) = host.parse::<Ipv4Addr>() {
+    let normalized_host = strip_ipv6_brackets(host);
+
+    if let Ok(ipv4) = normalized_host.parse::<Ipv4Addr>() {
         request.push(0x01);
         request.extend_from_slice(&ipv4.octets());
         return Ok(());
     }
 
-    if let Ok(ipv6) = host.parse::<std::net::Ipv6Addr>() {
+    if let Ok(ipv6) = normalized_host.parse::<Ipv6Addr>() {
         request.push(0x04);
         request.extend_from_slice(&ipv6.octets());
         return Ok(());
     }
 
-    if host.len() > u8::MAX as usize {
+    if normalized_host.len() > u8::MAX as usize {
         return Err("SOCKS5 target host is too long".to_string());
     }
 
     request.push(0x03);
-    request.push(host.len() as u8);
-    request.extend_from_slice(host.as_bytes());
+    request.push(normalized_host.len() as u8);
+    request.extend_from_slice(normalized_host.as_bytes());
     Ok(())
 }
 

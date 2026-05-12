@@ -7,7 +7,14 @@ export type ViewMode = 'grid' | 'list';
 export type CardSize = 'sm' | 'md' | 'lg';
 
 // 排序选项
-export type SortOption = 'created_desc' | 'created_asc' | 'id_desc' | 'id_asc';
+export type SortOption =
+  | 'sort_asc'
+  | 'created_desc'
+  | 'created_asc'
+  | 'name_asc'
+  | 'name_desc'
+  | 'id_desc'
+  | 'id_asc';
 
 // 列表的筛选/视图状态
 export interface ServerListState {

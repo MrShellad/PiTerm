@@ -12,10 +12,10 @@ export const NetworkSettings = ({ register, errors, t }: NetworkSettingsProps) =
   return (
     <div className="space-y-4">
       {/* Host & Port Row */}
-      <div className="grid grid-cols-12 gap-4">
+      <div className="grid grid-cols-7 gap-4">
         
         {/* --- Host Input --- */}
-        <div className="col-span-9">
+        <div className="col-span-5">
           <CustomInput
             label={t('server.form.host', 'Host Address')}
             placeholder="192.168.1.1"
@@ -32,7 +32,7 @@ export const NetworkSettings = ({ register, errors, t }: NetworkSettingsProps) =
         </div>
         
         {/* --- Port Input --- */}
-        <div className="col-span-3">
+        <div className="col-span-2">
           <CustomInput
             label={t('server.form.port', 'Port')}
             type="number"

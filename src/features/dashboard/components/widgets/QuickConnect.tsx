@@ -9,6 +9,62 @@ import { Server } from "@/features/server/domain/types";
 import { v4 as uuidv4 } from 'uuid';
 import { cn } from "@/lib/utils"; // 🟢 引入 cn 工具函数以匹配 DashboardHeader 风格
 
+type QuickConnectTarget = {
+  username: string;
+  host: string;
+  port: number;
+};
+
+const parsePort = (value?: string): number | null => {
+  if (value === undefined) return 22;
+  if (value.length === 0) return null;
+  if (!/^\d+$/.test(value)) return null;
+
+  const port = Number(value);
+  return port >= 1 && port <= 65535 ? port : null;
+};
+
+const parseQuickConnectTarget = (rawInput: string): QuickConnectTarget | null => {
+  const value = rawInput.trim();
+  if (!value) return null;
+
+  const atIndex = value.lastIndexOf("@");
+  const username = atIndex >= 0 ? value.slice(0, atIndex) || "root" : "root";
+  const target = atIndex >= 0 ? value.slice(atIndex + 1) : value;
+
+  if (!target) return null;
+
+  if (target.startsWith("[")) {
+    const closeIndex = target.indexOf("]");
+    if (closeIndex <= 1) return null;
+
+    const host = target.slice(1, closeIndex);
+    const remainder = target.slice(closeIndex + 1);
+    const port =
+      remainder.length === 0
+        ? 22
+        : remainder.startsWith(":")
+          ? parsePort(remainder.slice(1))
+          : null;
+
+    return port ? { username, host, port } : null;
+  }
+
+  const colonCount = (target.match(/:/g) || []).length;
+
+  if (colonCount === 0) {
+    return { username, host: target, port: 22 };
+  }
+
+  if (colonCount === 1) {
+    const [host, portValue] = target.split(":");
+    const port = parsePort(portValue);
+    return host && port ? { username, host, port } : null;
+  }
+
+  return { username, host: target, port: 22 };
+};
+
 export const QuickConnect = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -21,17 +77,14 @@ export const QuickConnect = () => {
     if (!input.trim()) return;
 
     // 1. 解析格式
-    const regex = /^(([^@]+)@)?([^:]+)(:(\d+))?$/;
-    const match = input.match(regex);
+    const parsed = parseQuickConnectTarget(input);
 
-    if (!match) {
-      toast.error(t('dashboard.quickConnect.invalidFormat', 'Invalid format. Use: user@host:port'));
+    if (!parsed) {
+      toast.error(t('dashboard.quickConnect.invalidFormat', 'Invalid format. Use: user@host, user@host:port, or user@[IPv6]:port'));
       return;
     }
 
-    const username = match[2] || "root";
-    const host = match[3];
-    const port = parseInt(match[5] || "22", 10);
+    const { username, host, port } = parsed;
 
     toast.info(t('dashboard.quickConnect.connecting', 'Connecting to {{host}}...', { host }));
 
@@ -110,7 +163,7 @@ export const QuickConnect = () => {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="root@192.168.1.1:22"
+                  placeholder="root@[2001:db8::1]:22"
                   className={cn(
                     "w-full py-3.5 pl-12 pr-32 rounded-xl transition-all font-mono text-sm outline-none",
                     "bg-white/40 dark:bg-slate-950/40 border border-white/20 dark:border-slate-800/50",
@@ -138,7 +191,7 @@ export const QuickConnect = () => {
           </div>
           
           <p className="mt-3 text-xs text-slate-400 dark:text-slate-500 px-1 italic">
-            {t('dashboard.quickConnect.hint', 'Format: user@host or user@host:port')}
+            {t('dashboard.quickConnect.hint', 'Format: user@host, user@host:port, or user@[IPv6]:port')}
           </p>
         </div>
       </div>

@@ -78,6 +78,9 @@ export const useServerStore = create<ServerState>()(
             icon: s.icon || 'server',
             status: 'disconnected', 
             os: s.os || 'linux',
+            createdAt: s.createdAt ?? s.created_at ?? 0,
+            updatedAt: s.updatedAt ?? s.updated_at ?? 0,
+            lastConnectedAt: s.lastConnectedAt ?? s.last_connected_at,
             connectTimeout: s.connectTimeout ?? s.connect_timeout,
             keepAliveInterval: s.keepAliveInterval ?? s.keep_alive_interval,
             autoReconnect: s.autoReconnect ?? s.auto_reconnect,
@@ -131,7 +134,7 @@ export const useServerStore = create<ServerState>()(
             port: serverData.port ?? existingServer?.port ?? 22,
             username: serverData.username ?? existingServer?.username ?? 'root',
             icon: serverData.icon ?? existingServer?.icon ?? 'server',
-            provider: serverData.provider ?? existingServer?.provider ?? 'Custom',
+            provider: serverData.provider?.trim() ?? existingServer?.provider ?? '',
             sort: serverData.sort ?? existingServer?.sort ?? 0,
             tags: serverData.tags ?? existingServer?.tags ?? [],
 

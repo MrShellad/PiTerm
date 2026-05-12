@@ -140,7 +140,7 @@ export const ServerCard = ({ data, size, onConnect, onCopyIP, onPin, onDelete, o
                "text-slate-500 dark:text-slate-400",
                currentSize.providerClass
              )}>
-                {data.provider || 'Managed'}
+                {data.provider || null}
              </span>
           </div>
         </div>
@@ -165,7 +165,7 @@ export const ServerCard = ({ data, size, onConnect, onCopyIP, onPin, onDelete, o
              <InteractiveCardBadge 
                onClick={handleCopy}
                isHighlighted={isCopied}
-               className={cn("w-full relative group/ip transition-all", currentSize.badgeClass)}
+               className={cn("mt-1 w-full relative group/ip transition-all", currentSize.badgeClass)}
              >
                 <span className="truncate font-mono tracking-tight opacity-80 group-hover/ip:opacity-100 transition-opacity">
                    {isCopied ? t('common.copied', 'Copied!') : data.ip}

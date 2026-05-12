@@ -31,6 +31,12 @@ fn prune_pending_host_keys(cache: &mut HashMap<String, PendingHostKey>) {
     cache.retain(|_, entry| !entry.is_expired());
 }
 
+fn strip_ipv6_brackets(host: &str) -> &str {
+    host.strip_prefix('[')
+        .and_then(|value| value.strip_suffix(']'))
+        .unwrap_or(host)
+}
+
 #[tauri::command]
 pub async fn check_host_key(
     app: AppHandle,
@@ -48,7 +54,8 @@ pub async fn check_host_key(
 
     tauri::async_runtime::spawn_blocking(move || {
         utils::emit_ssh_log(&app, "Connecting to target host (TCP)...");
-        let tcp = TcpStream::connect(format!("{}:{}", host, port)).map_err(|e| {
+        let connect_host = strip_ipv6_brackets(&host);
+        let tcp = TcpStream::connect((connect_host, port)).map_err(|e| {
             let err = format!("Network unreachable: {}", e);
             utils::emit_ssh_log(&app, &err);
             err

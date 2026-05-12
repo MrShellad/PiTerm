@@ -25,7 +25,7 @@ export const useFormSubmit = (onSuccess?: () => void) => {
         ip: data.host,
         port: data.port,
         username: data.username,
-        provider: data.provider || "Custom",
+        provider: data.provider?.trim() || "",
         
         authType: data.authType, 
         os: data.os,

@@ -59,11 +59,11 @@ export const ServerGeneralInfo = () => {
             />
 
             {/* 2. Provider Picker (服务商) */}
-            <div className="flex flex-col gap-1.5 w-full">
-              <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            <div className="flex items-center gap-3 w-full">
+              <Label className="shrink-0 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                 {t('server.form.provider', 'Provider')}
               </Label>
-              <div className="relative w-full">
+              <div className="relative min-w-0 flex-1">
                 <ProviderPicker 
                   value={values.provider}
                   suggestions={safeProviderSuggestions}

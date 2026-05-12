@@ -17,7 +17,6 @@ export const useServerGeneralLogic = () => {
   // --- 2. 派生数据 (Memoized Data) ---
   const existingProviders = useMemo(() => {
     const set = new Set(servers.map(s => s.provider).filter(Boolean));
-    ["AWS", "Aliyun", "Tencent", "Vultr", "DigitalOcean"].forEach(p => set.add(p));
     return Array.from(set);
   }, [servers]);
 
@@ -49,7 +48,10 @@ export const useServerGeneralLogic = () => {
   };
 
   const handleProviderSelect = (val: string) => {
-    setValue("provider", val === currentProvider ? "" : val);
+    const trimmed = val.trim();
+    if (!trimmed) return;
+
+    setValue("provider", trimmed === currentProvider ? "" : trimmed, { shouldDirty: true });
     setOpenProvider(false);
   };
 

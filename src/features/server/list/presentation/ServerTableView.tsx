@@ -222,9 +222,11 @@ export const ServerTableView = ({ servers, actions, onEdit, onTagClick, isLoadin
                           {server.name}
                           {server.isPinned && <Pin className="w-3 h-3 text-blue-500 rotate-45 fill-blue-500/20 shrink-0" />}
                       </div>
-                      <div className="server-table__provider">
-                          {server.provider || t('server.list.managedServer', 'Managed Server')}
-                      </div>
+                      {server.provider ? (
+                        <div className="server-table__provider">
+                            {server.provider}
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 </TableCell>

@@ -2,6 +2,7 @@ import {
   ArrowDownWideNarrow, 
   Calendar, 
   Hash,
+  SlidersHorizontal,
 } from "lucide-react";
 import { ActionToolbar } from "@/components/common/ActionToolbar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -22,19 +23,23 @@ export const ServerListHeader = ({ state, allTags, actions, onAddClick }: Props)
   // 1. 排序组件
   const SortAction = (
     <Select value={state.sortBy} onValueChange={(v) => actions.setSortBy(v as SortOption)}>
-      <SelectTrigger className="h-9 w-[130px] sm:w-[150px] text-xs bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-0">
+      <SelectTrigger className="h-9 w-[140px] sm:w-[170px] text-xs bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-0">
          <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 truncate">
            {state.sortBy.includes('created') && <Calendar className="w-3.5 h-3.5 opacity-70 shrink-0"/>}
+           {state.sortBy.includes('sort') && <SlidersHorizontal className="w-3.5 h-3.5 opacity-70 shrink-0"/>}
            {state.sortBy.includes('id') && <Hash className="w-3.5 h-3.5 opacity-70 shrink-0"/>}
            {state.sortBy.includes('name') && <ArrowDownWideNarrow className="w-3.5 h-3.5 opacity-70 shrink-0"/>}
            <SelectValue />
          </div>
       </SelectTrigger>
       <SelectContent>
+        <SelectItem value="sort_asc">{t('server.sort.custom', 'Sort Weight')}</SelectItem>
         <SelectItem value="created_desc">{t('server.sort.newest', 'Newest')}</SelectItem>
         <SelectItem value="created_asc">{t('server.sort.oldest', 'Oldest')}</SelectItem>
-        <SelectItem value="name_asc">{t('server.sort.nameAsc', 'Name')}</SelectItem>
+        <SelectItem value="name_asc">{t('server.sort.nameAsc', 'Name (A-Z)')}</SelectItem>
+        <SelectItem value="name_desc">{t('server.sort.nameDesc', 'Name (Z-A)')}</SelectItem>
         <SelectItem value="id_desc">{t('server.sort.idDesc', 'ID')}</SelectItem>
+        <SelectItem value="id_asc">{t('server.sort.idAsc', 'ID (Ascending)')}</SelectItem>
       </SelectContent>
     </Select>
   );

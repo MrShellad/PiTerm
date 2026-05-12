@@ -33,7 +33,7 @@ export const useServerListLogic = () => {
     activeTags: [],
     viewMode: 'grid',
     cardSize: 'md',
-    sortBy: 'created_desc'
+    sortBy: 'sort_asc'
   });
 
   const [deleteModalState, setDeleteModalState] = useState<{
@@ -93,14 +93,32 @@ export const useServerListLogic = () => {
       );
     }
 
+    const compareText = (left: string | undefined, right: string | undefined) =>
+      (left || '').localeCompare(right || '', undefined, { numeric: true, sensitivity: 'base' });
+
+    const compareNumber = (left: number | undefined, right: number | undefined) =>
+      (left ?? 0) - (right ?? 0);
+
     result.sort((a, b) => {
       if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+
       switch (state.sortBy) {
-        case 'created_desc': return b.id.localeCompare(a.id);
-        case 'created_asc': return a.id.localeCompare(b.id);
-        case 'id_desc': return b.id.localeCompare(a.id);
-        case 'id_asc': return a.id.localeCompare(b.id);
-        default: return 0;
+        case 'sort_asc':
+          return compareNumber(a.sort, b.sort) || compareText(a.name, b.name) || compareText(a.id, b.id);
+        case 'created_desc':
+          return compareNumber(b.createdAt, a.createdAt) || compareText(a.name, b.name);
+        case 'created_asc':
+          return compareNumber(a.createdAt, b.createdAt) || compareText(a.name, b.name);
+        case 'name_asc':
+          return compareText(a.name, b.name) || compareText(a.id, b.id);
+        case 'name_desc':
+          return compareText(b.name, a.name) || compareText(a.id, b.id);
+        case 'id_desc':
+          return compareText(b.id, a.id);
+        case 'id_asc':
+          return compareText(a.id, b.id);
+        default:
+          return 0;
       }
     });
 
