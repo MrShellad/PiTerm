@@ -10,7 +10,7 @@ export function MonitorWindowApp() {
   return (
     <BrowserRouter>
       <AdvancedMonitorPage />
-      <Toaster richColors closeButton position="top-center" style={{ zIndex: 999999 }} />
+      <Toaster richColors closeButton position="top-center" className="!z-[999999]" />
     </BrowserRouter>
   );
 }

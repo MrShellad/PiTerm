@@ -103,7 +103,7 @@ pub async fn save_server(
             .await?;
 
             server.password_id = Some(new_pass_id);
-            server.password_source = Some("vault".to_string());
+            server.password_source = Some("store".to_string());
             server.password = None;
         }
     }
@@ -130,7 +130,7 @@ pub async fn save_server(
             .await?;
 
             server.key_id = Some(new_key_id);
-            server.key_source = Some("vault".to_string());
+            server.key_source = Some("store".to_string());
             server.private_key = None;
         }
     }

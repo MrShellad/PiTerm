@@ -62,12 +62,11 @@ export const MonitorCard = ({
       animate={{
         marginBottom: isExpanded ? 12 : 0, 
       }}
-      style={{ borderRadius: 16 }} 
       transition={{ 
         layout: { duration: 0.35, ease: [0.32, 0.72, 0, 1] } 
       }}
       className={clsx(
-        "relative w-full overflow-hidden backdrop-blur-xl", 
+        "relative w-full overflow-hidden backdrop-blur-xl rounded-2xl", 
         "border", 
         "transition-colors duration-300", 
         className, // 🟢 [应用] 将传入的 className 应用到最外层

@@ -1,4 +1,4 @@
-use ssh2::{Channel, MethodType, Session};
+use ssh2::{Channel, Session};
 
 use crate::commands::ssh::utils::auth_method_label;
 use crate::models::SshConfig;
@@ -8,20 +8,6 @@ use super::{
     auth::authenticate_session, proxy::establish_tcp_stream, with_connection_context,
     DEFAULT_CONNECT_TIMEOUT_SECS, SHELL_BLOCKING_IO_TIMEOUT_MS,
 };
-
-pub fn configure_legacy_algorithms(sess: &mut Session) {
-    let kex_methods = "curve25519-sha256,curve25519-sha256@libssh.org,ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521,diffie-hellman-group-exchange-sha256,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512,diffie-hellman-group14-sha256,diffie-hellman-group14-sha1,diffie-hellman-group1-sha1,diffie-hellman-group-exchange-sha1";
-    let hostkey_methods = "ssh-ed25519,ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,rsa-sha2-512,rsa-sha2-256,ssh-rsa,ssh-dss";
-    let cipher_methods = "aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr,aes256-cbc,aes192-cbc,aes128-cbc,3des-cbc";
-    let mac_methods = "hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-sha2-512,hmac-sha2-256,hmac-sha1";
-
-    let _ = sess.method_pref(MethodType::Kex, kex_methods);
-    let _ = sess.method_pref(MethodType::HostKey, hostkey_methods);
-    let _ = sess.method_pref(MethodType::CryptCs, cipher_methods);
-    let _ = sess.method_pref(MethodType::CryptSc, cipher_methods);
-    let _ = sess.method_pref(MethodType::MacCs, mac_methods);
-    let _ = sess.method_pref(MethodType::MacSc, mac_methods);
-}
 
 pub fn establish_base_session(
     config: &SshConfig,
@@ -75,7 +61,6 @@ pub fn establish_base_session(
     ));
 
     let mut sess = Session::new().map_err(|e| format!("Session Init Error: {}", e))?;
-    configure_legacy_algorithms(&mut sess);
     sess.set_timeout(
         config
             .connect_timeout

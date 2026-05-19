@@ -97,11 +97,11 @@ export const FileEditor = ({ sessionId, file, isStandalone = false, onRefresh }:
     };
 
     return (
-        <div className="flex flex-col h-screen w-screen bg-white dark:bg-[#1e1e1e] overflow-hidden">
+        <div className="flex flex-col h-screen w-screen bg-background overflow-hidden">
             {/* Toolbar (作为自定义标题栏) */}
             <div 
                 data-tauri-drag-region // [关键] 允许按住此区域拖动整个窗口
-                className="flex items-center justify-between px-4 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#2d2d2d] select-none shrink-0"
+                className="flex items-center justify-between px-4 py-2 border-b border-border bg-muted/50 select-none shrink-0"
             >
                 <div className="flex items-center gap-3 pointer-events-none">
                     <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded">
@@ -109,14 +109,14 @@ export const FileEditor = ({ sessionId, file, isStandalone = false, onRefresh }:
                     </div>
                     <div className="flex flex-col">
                         <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-slate-700 dark:text-slate-200 max-w-[300px] truncate">
+                            <span className="text-xs font-bold text-foreground max-w-[300px] truncate leading-none">
                                 {file.name}
                             </span>
                             {isDirty && (
                                 <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" title="Unsaved" />
                             )}
                         </div>
-                        <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono truncate max-w-[400px]">
+                        <div className="text-[10px] text-muted-foreground font-mono truncate max-w-[400px] leading-none mt-1">
                             {file.path}
                         </div>
                     </div>

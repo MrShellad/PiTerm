@@ -1,9 +1,9 @@
 use crate::models::{CommandHistoryItem, HistoryFilterConfig};
 use crate::state::AppState;
-use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, Row, SqlitePool};
+use serde::Serialize;
+use sqlx::{FromRow, Row};
 use std::time::{SystemTime, UNIX_EPOCH};
-use tauri::{State, Window};
+use tauri::State;
 // 辅助函数：判断是否应该记录
 fn should_record(cmd: &str, config: &HistoryFilterConfig) -> bool {
     let trimmed = cmd.trim();

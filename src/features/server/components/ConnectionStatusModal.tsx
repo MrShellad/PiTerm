@@ -32,7 +32,7 @@ export const ConnectionStatusModal = ({ open, logs, serverName, onClose, isError
 
   return (
     <AlertDialog open={open}>
-      <AlertDialogContent className="max-w-[450px] p-0 border-none bg-[#1e1e1e] text-zinc-300 shadow-2xl rounded-xl overflow-hidden font-mono select-none">
+      <AlertDialogContent className="max-w-[450px] p-0 border-none bg-background text-foreground shadow-2xl rounded-xl overflow-hidden font-mono select-none">
         <AlertDialogTitle className="sr-only">
           {isError
             ? t('server.sshlog.failed', 'Connection Failed')
@@ -44,10 +44,10 @@ export const ConnectionStatusModal = ({ open, logs, serverName, onClose, isError
             : t('server.sshlog.descriptionFallback', 'SSH connection log dialog.')}
         </AlertDialogDescription>
         {/* Header */}
-        <div className="p-4 bg-[#252526] flex items-center justify-between border-b border-white/5">
+        <div className="p-4 bg-muted flex items-center justify-between border-b border-border/50">
           <div className="flex items-center gap-2">
             <Terminal className="w-4 h-4 text-blue-400" />
-            <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest leading-none">
                 {isError 
                   ? t('server.sshlog.failed', 'Connection Failed') 
                   : t('server.sshlog.connecting', 'Connecting...')}
@@ -65,9 +65,9 @@ export const ConnectionStatusModal = ({ open, logs, serverName, onClose, isError
         {/* Content */}
         <div className="p-5 space-y-4">
           <div className="flex flex-col">
-            <div className="text-[13px] font-bold text-white truncate">{serverName}</div>
+            <div className="text-[13px] font-bold text-foreground truncate leading-none">
             {/* 🟢 [修改] 添加本地化: 建立安全隧道 */}
-            <div className="text-[10px] text-zinc-500 uppercase tracking-tighter">
+            <div className="text-[10px] text-muted-foreground uppercase tracking-tighter leading-none mt-1">
               {t('server.sshlog.tunnel', 'Establishing Secure Tunnel')}
             </div>
           </div>

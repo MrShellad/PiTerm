@@ -8,7 +8,7 @@ mod shell_io;
 mod transport;
 
 pub use shell_io::{spawn_shell_reader_thread, spawn_shell_writer_thread};
-pub use transport::{configure_legacy_algorithms, create_shell_channel, establish_base_session};
+pub use transport::{create_shell_channel, establish_base_session};
 
 const DEFAULT_CONNECT_TIMEOUT_SECS: u64 = 10;
 const DEFAULT_IO_TIMEOUT_SECS: u64 = 60;

@@ -111,7 +111,7 @@ export function MainAppShell() {
   return (
     <BrowserRouter>
       <GlobalVaultModal />
-      <Toaster richColors closeButton position="top-center" style={{ zIndex: 999999 }} />
+      <Toaster richColors closeButton position="top-center" className="!z-[999999]" />
 
       <Routes>
         <Route path="/" element={<MainLayout />}>

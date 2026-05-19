@@ -7,7 +7,7 @@ use tauri::{AppHandle, State};
 
 use crate::state::AppState;
 
-use super::core::configure_legacy_algorithms;
+
 use super::host_key;
 use super::state::{HostKeyVerificationCache, PendingHostKey};
 use super::utils;
@@ -64,7 +64,7 @@ pub async fn check_host_key(
         utils::emit_ssh_log(&app, "Initiating SSH protocol handshake...");
         let mut sess = ssh2::Session::new().map_err(|e| e.to_string())?;
 
-        configure_legacy_algorithms(&mut sess);
+
         sess.set_timeout(10_000);
 
         sess.set_tcp_stream(tcp);

@@ -10,7 +10,7 @@ export function EditorWindowApp() {
   return (
     <BrowserRouter>
       <FileEditorPage />
-      <Toaster richColors closeButton position="bottom-center" style={{ zIndex: 999999 }} />
+      <Toaster richColors closeButton position="bottom-center" className="!z-[999999]" />
     </BrowserRouter>
   );
 }
