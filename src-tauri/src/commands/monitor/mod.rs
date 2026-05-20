@@ -1,7 +1,6 @@
-use crate::commands::ssh::SshState;
+use crate::commands::ssh::{SshState, SshSession};
 use crate::utils::ssh_log::{self, SshLogRecord};
 use serde_json::Value;
-use ssh2::Session;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use tauri::State;
@@ -42,11 +41,11 @@ impl MonitorCache {
     }
 }
 
-pub(crate) fn get_monitor_session_arc(
+pub(crate) fn get_monitor_session(
     ssh_state: &State<'_, SshState>,
     id: &str,
     operation: &'static str,
-) -> Result<Arc<Mutex<Session>>, String> {
+) -> Result<Arc<SshSession>, String> {
     let map = ssh_state.sessions.lock().map_err(|e| e.to_string())?;
     let conn = map.get(id).ok_or_else(|| {
         ssh_log::warn(
@@ -62,8 +61,8 @@ pub(crate) fn get_monitor_session_arc(
     })?;
     conn.touch_client_heartbeat();
 
-    if let Some(session_arc) = conn.bg_session_arc() {
-        return Ok(session_arc);
+    if let Some(session) = conn.bg_session_arc() {
+        return Ok(session);
     }
 
     let (event, message) = if conn.bg_session_is_connecting() {
@@ -89,22 +88,47 @@ pub(crate) fn get_monitor_session_arc(
     Err(message)
 }
 
-pub(crate) fn run_monitor_operation<T, F>(
-    session_arc: Arc<Mutex<Session>>,
+pub async fn exec_ssh_command(
+    session: &SshSession,
+    command: &str,
+) -> Result<String, String> {
+    let channel = session
+        .channel_open_session()
+        .await
+        .map_err(|e| format!("Failed to open channel: {}", e))?;
+
+    channel
+        .exec(true, command)
+        .await
+        .map_err(|e| format!("Failed to execute command: {}", e))?;
+
+    let mut output = String::new();
+    use tokio::io::AsyncReadExt;
+    let mut stream = channel.into_stream();
+    stream
+        .read_to_string(&mut output)
+        .await
+        .map_err(|e| format!("Failed to read command output: {}", e))?;
+
+    Ok(output)
+}
+
+pub async fn run_monitor_operation_async<T, F, Fut>(
     session_id: &str,
     operation: &'static str,
     fields: Vec<(String, Value)>,
     action: F,
 ) -> Result<T, String>
 where
-    F: FnOnce(&Session) -> Result<T, String>,
+    F: FnOnce() -> Fut,
+    Fut: std::future::Future<Output = Result<T, String>>,
 {
-    ssh_log::run_timed_session_operation(
-        session_arc,
+    ssh_log::run_timed_session_operation_async(
         "ssh.monitor",
         operation,
         session_id,
         fields,
         action,
     )
+    .await
 }

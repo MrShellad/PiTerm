@@ -16,27 +16,27 @@ pub struct FileEntry {
 }
 
 // === Core Abstract Interface ===
-// All file system operations should be synchronous/blocking here.
-// Async scheduling is handled by the 'commands' layer.
+// All file system operations should be asynchronous.
+#[async_trait::async_trait]
 pub trait FileSystem {
-    fn read_dir(&self, path: &str) -> Result<Vec<FileEntry>, String>;
-    fn mkdir(&self, path: &str) -> Result<(), String>;
-    fn create_file(&self, path: &str) -> Result<(), String>;
-    fn rename(&self, old_path: &str, new_path: &str) -> Result<(), String>;
-    fn delete(&self, path: &str, is_dir: bool) -> Result<(), String>;
+    async fn read_dir(&self, path: &str) -> Result<Vec<FileEntry>, String>;
+    async fn mkdir(&self, path: &str) -> Result<(), String>;
+    async fn create_file(&self, path: &str) -> Result<(), String>;
+    async fn rename(&self, old_path: &str, new_path: &str) -> Result<(), String>;
+    async fn delete(&self, path: &str, is_dir: bool) -> Result<(), String>;
 
     // Copy: Source Path -> Destination Path
-    fn copy(&self, from_path: &str, to_path: &str) -> Result<(), String>;
+    async fn copy(&self, from_path: &str, to_path: &str) -> Result<(), String>;
 
     // Transfer
-    fn download(&self, remote_path: &str, local_path: &str) -> Result<(), String>;
-    fn upload(&self, local_path: &str, remote_path: &str) -> Result<(), String>;
+    async fn download(&self, remote_path: &str, local_path: &str) -> Result<(), String>;
+    async fn upload(&self, local_path: &str, remote_path: &str) -> Result<(), String>;
 
     // Permissions
-    fn chmod(&self, path: &str, mode: &str, recursive: bool) -> Result<(), String>;
+    async fn chmod(&self, path: &str, mode: &str, recursive: bool) -> Result<(), String>;
 
     // Text Read/Write
-    fn read_text(&self, path: &str) -> Result<String, String>;
-    fn write_text(&self, path: &str, content: &str) -> Result<(), String>;
-    fn get_home_dir(&self) -> Result<String, String>;
+    async fn read_text(&self, path: &str) -> Result<String, String>;
+    async fn write_text(&self, path: &str, content: &str) -> Result<(), String>;
+    async fn get_home_dir(&self) -> Result<String, String>;
 }

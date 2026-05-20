@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use std::thread;
 use std::time::Duration;
 
 use tauri::{AppHandle, Emitter};
@@ -37,7 +36,7 @@ pub(super) fn spawn_background_session_connector(
     server_id: String,
     instance_id: u64,
 ) {
-    thread::spawn(move || {
+    tokio::spawn(async move {
         emit_background_session_event(&app, &session_id, "connecting", None);
 
         for attempt in 1..=SSH_BACKGROUND_CONNECT_MAX_ATTEMPTS {
@@ -72,16 +71,17 @@ pub(super) fn spawn_background_session_connector(
                 .field("max_attempts", SSH_BACKGROUND_CONNECT_MAX_ATTEMPTS),
             );
 
-            match core::establish_base_session(&config, Some(&session_id), "background") {
+            let base_sess_res: Result<crate::commands::ssh::state::SshSession, String> = core::establish_base_session(&config, Some(&session_id), "background").await;
+            match base_sess_res {
                 Ok(bg_session) => {
                     let Some(conn) =
                         get_ssh_session_if_instance(&sessions, &session_id, instance_id)
                     else {
                         let _ = bg_session.disconnect(
-                            None,
+                            russh::Disconnect::ByApplication,
                             "PiTerm background session abandoned",
-                            None,
-                        );
+                            "en",
+                        ).await;
                         ssh_log::debug(
                             SshLogRecord::new(
                                 "ssh.command",
@@ -96,7 +96,7 @@ pub(super) fn spawn_background_session_connector(
                         return;
                     };
 
-                    conn.install_bg_session(bg_session);
+                    conn.install_bg_session(Arc::new(bg_session));
                     ssh_log::info(
                         SshLogRecord::new(
                             "ssh.command",
@@ -133,7 +133,7 @@ pub(super) fn spawn_background_session_connector(
                             )
                             .field("error", error),
                         );
-                        thread::sleep(SSH_BACKGROUND_CONNECT_RETRY_DELAY);
+                        tokio::time::sleep(SSH_BACKGROUND_CONNECT_RETRY_DELAY).await;
                         continue;
                     }
 

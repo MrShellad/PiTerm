@@ -229,6 +229,41 @@ pub async fn internal_add_secret(
     Ok(new_id)
 }
 
+pub async fn internal_update_secret(
+    pool: &Pool<Sqlite>,
+    master_key: &Key<Aes256Gcm>,
+    id: &str,
+    name: &str,
+    content: &str,
+    username: Option<String>,
+) -> Result<(), String> {
+    println!(
+        "🔐 [Internal Update] Encrypting with Key Fingerprint: {}",
+        get_key_fingerprint(master_key)
+    );
+
+    let encrypted_json = encrypt_data(master_key, content.as_bytes())?;
+    let now = Utc::now().timestamp_millis();
+
+    sqlx::query(
+        "UPDATE vault_keys 
+         SET name = ?, username = ?, encrypted_content = ?, updated_at = ? 
+         WHERE id = ?"
+    )
+    .bind(name)
+    .bind(username)
+    .bind(&encrypted_json)
+    .bind(now)
+    .bind(id)
+    .execute(pool)
+    .await
+    .map_err(|e| format!("Database error: {}", e))?;
+
+    println!("✅ [Internal Update] Secret updated for ID: {}", id);
+    Ok(())
+}
+
+
 pub async fn internal_get_secret(
     pool: &Pool<Sqlite>,
     master_key: &Key<Aes256Gcm>,

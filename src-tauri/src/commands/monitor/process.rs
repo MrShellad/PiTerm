@@ -1,7 +1,6 @@
-use super::{get_monitor_session_arc, run_monitor_operation};
+use super::{get_monitor_session, run_monitor_operation_async};
 use crate::commands::ssh::SshState;
 use crate::utils::ssh_log;
-use std::io::Read;
 use tauri::State;
 
 #[derive(serde::Serialize)]
@@ -18,28 +17,18 @@ pub async fn get_ssh_process_list(
     ssh_state: State<'_, SshState>,
     id: String,
 ) -> Result<Vec<RemoteProcessInfo>, String> {
-    let session_arc = get_monitor_session_arc(&ssh_state, &id, "process_snapshot")?;
+    let session = get_monitor_session(&ssh_state, &id, "process_snapshot")?;
 
-    let output = tauri::async_runtime::spawn_blocking(move || {
-        run_monitor_operation(
-            session_arc,
-            &id,
-            "process_snapshot",
-            vec![ssh_log::log_field("command_name", "top_process_list")],
-            |sess| {
-                let mut channel = sess.channel_session().map_err(|e| e.to_string())?;
-                let cmd = "ps -eo pid,comm,%cpu,rss --sort=-%cpu | head -n 51";
-
-                channel.exec(cmd).map_err(|e| e.to_string())?;
-                let mut s = String::new();
-                channel.read_to_string(&mut s).ok();
-                channel.wait_close().ok();
-                Ok::<String, String>(s)
-            },
-        )
-    })
-    .await
-    .map_err(|e| e.to_string())??;
+    let output = run_monitor_operation_async(
+        &id,
+        "process_snapshot",
+        vec![ssh_log::log_field("command_name", "top_process_list")],
+        || async {
+            let cmd = "ps -eo pid,comm,%cpu,rss --sort=-%cpu | head -n 51";
+            super::exec_ssh_command(&session, cmd).await
+        },
+    )
+    .await?;
 
     let mut processes = Vec::new();
     let mut lines = output.lines();

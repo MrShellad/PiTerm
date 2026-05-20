@@ -1,85 +1,29 @@
-use std::io::{ErrorKind, Read, Write};
-use std::sync::{Arc, Mutex};
-use std::thread;
-use std::time::{Duration, Instant};
-
-use ssh2::{Channel, Session};
+use std::sync::Arc;
 use tauri::{AppHandle, Emitter};
 
 use crate::commands::ssh::state::{
-    get_ssh_session_if_instance, SshConnection, SshWriteRequest, TerminalExitEvent,
-    SSH_KEEPALIVE_FAILURE_THRESHOLD,
+    get_ssh_session_if_instance, SshConnection, SshResizeRequest, SshWriteRequest,
+    TerminalExitEvent,
 };
 use crate::utils::ssh_log::{self, SshLogRecord};
 
-use super::{SHELL_IDLE_SLEEP_MS, SHELL_KEEPALIVE_INTERVAL_SECS, SHELL_WRITE_BATCH_LIMIT};
+use super::SHELL_WRITE_BATCH_LIMIT;
 
-fn maybe_send_shell_keepalive(
-    session: &Session,
-    id: &str,
-    instance_id: u64,
-    keepalive_failures: &mut u8,
-    last_error: &mut Option<String>,
-    last_keepalive_at: &mut Instant,
-) -> Option<&'static str> {
-    if last_keepalive_at.elapsed() < Duration::from_secs(SHELL_KEEPALIVE_INTERVAL_SECS) {
-        return None;
-    }
-
-    *last_keepalive_at = Instant::now();
-
-    if let Err(keepalive_err) = session.keepalive_send() {
-        *keepalive_failures = keepalive_failures.saturating_add(1);
-        let error_text = keepalive_err.to_string();
-        ssh_log::warn(
-            SshLogRecord::new(
-                "ssh.shell",
-                "reader_keepalive_failed",
-                "Shell reader keepalive probe failed",
-            )
-            .session_id(id.to_string())
-            .instance_id(instance_id)
-            .field("attempt", *keepalive_failures)
-            .field("threshold", SSH_KEEPALIVE_FAILURE_THRESHOLD)
-            .field("error", error_text.clone()),
-        );
-        *last_error = Some(error_text);
-
-        if *keepalive_failures >= SSH_KEEPALIVE_FAILURE_THRESHOLD {
-            return Some("keepalive_failure_threshold_reached");
-        }
-    } else {
-        if *keepalive_failures > 0 {
-            ssh_log::debug(
-                SshLogRecord::new(
-                    "ssh.shell",
-                    "reader_keepalive_recovered",
-                    "Shell reader keepalive probe recovered",
-                )
-                .session_id(id.to_string())
-                .instance_id(instance_id)
-                .field("previous_failures", *keepalive_failures),
-            );
-        }
-        *keepalive_failures = 0;
-    }
-
-    None
-}
-
-pub fn spawn_shell_writer_thread(
-    channel: Arc<Mutex<Channel>>,
-    sessions: Arc<Mutex<std::collections::HashMap<String, SshConnection>>>,
+pub fn spawn_shell_writer_thread<W>(
+    mut write_half: W,
+    sessions: Arc<std::sync::Mutex<std::collections::HashMap<String, SshConnection>>>,
     id: String,
     instance_id: u64,
     mut write_rx: tokio::sync::mpsc::Receiver<SshWriteRequest>,
-) {
-    thread::spawn(move || {
+) where
+    W: tokio::io::AsyncWrite + Unpin + Send + 'static,
+{
+    tokio::spawn(async move {
         ssh_log::info(
             SshLogRecord::new(
                 "ssh.shell",
-                "writer_thread_started",
-                "Started shell writer thread",
+                "writer_task_started",
+                "Started shell writer async task",
             )
             .session_id(id.clone())
             .instance_id(instance_id),
@@ -87,7 +31,7 @@ pub fn spawn_shell_writer_thread(
 
         let mut total_bytes_written = 0u64;
 
-        while let Some(first_request) = write_rx.blocking_recv() {
+        while let Some(first_request) = write_rx.recv().await {
             let mut payload = first_request.data;
             let mut responders = vec![first_request.result_tx];
 
@@ -103,17 +47,23 @@ pub fn spawn_shell_writer_thread(
             }
 
             let payload_len = payload.len();
-            let write_result = match get_ssh_session_if_instance(&sessions, &id, instance_id) {
+            
+            use tokio::io::AsyncWriteExt;
+            let write_result: Result<(), String> = match get_ssh_session_if_instance(&sessions, &id, instance_id) {
                 Some(conn) if conn.shell_is_active() => {
-                    let mut chan_lock = match channel.lock() {
-                        Ok(guard) => guard,
-                        Err(poisoned) => poisoned.into_inner(),
-                    };
-
-                    chan_lock
-                        .write_all(payload.as_bytes())
-                        .and_then(|_| chan_lock.flush())
-                        .map_err(|err| err.to_string())
+                    match write_half.write_all(payload.as_bytes()).await {
+                        Ok(_) => match write_half.flush().await {
+                            Ok(_) => Ok(()),
+                            Err(err) => {
+                                let err: std::io::Error = err;
+                                Err(err.to_string())
+                            }
+                        },
+                        Err(err) => {
+                            let err: std::io::Error = err;
+                            Err(err.to_string())
+                        }
+                    }
                 }
                 Some(_) => Err("SSH shell not active".to_string()),
                 None => Err("SSH connection not active".to_string()),
@@ -143,8 +93,8 @@ pub fn spawn_shell_writer_thread(
         ssh_log::debug(
             SshLogRecord::new(
                 "ssh.shell",
-                "writer_thread_exited",
-                "Shell writer thread exited",
+                "writer_task_exited",
+                "Shell writer async task exited",
             )
             .session_id(id)
             .instance_id(instance_id)
@@ -155,122 +105,78 @@ pub fn spawn_shell_writer_thread(
 
 pub fn spawn_shell_reader_thread(
     app: AppHandle,
-    session: Session,
-    channel: Arc<Mutex<Channel>>,
-    sessions: Arc<Mutex<std::collections::HashMap<String, SshConnection>>>,
+    mut shell_channel: russh::Channel<russh::client::Msg>,
+    sessions: Arc<std::sync::Mutex<std::collections::HashMap<String, SshConnection>>>,
     id: String,
     instance_id: u64,
+    mut resize_rx: tokio::sync::mpsc::Receiver<SshResizeRequest>,
 ) {
-    thread::spawn(move || {
+    tokio::spawn(async move {
         ssh_log::info(
             SshLogRecord::new(
                 "ssh.shell",
-                "reader_thread_started",
-                "Started shell reader thread",
+                "reader_task_started",
+                "Started shell reader async task",
             )
             .session_id(id.clone())
             .instance_id(instance_id),
         );
 
-        let mut buf = [0u8; 8192];
-        let mut keepalive_failures = 0u8;
         let mut total_bytes_read = 0u64;
         let mut last_error: Option<String> = None;
-        let mut last_keepalive_at = Instant::now();
 
         let exit_reason = loop {
-            let (read_result, is_eof) = {
-                let mut chan_lock = match channel.lock() {
-                    Ok(guard) => guard,
-                    Err(poisoned) => poisoned.into_inner(),
-                };
+            tokio::select! {
+                channel_msg = shell_channel.wait() => {
+                    match channel_msg {
+                        Some(russh::ChannelMsg::Data { data }) => {
+                            total_bytes_read = total_bytes_read.saturating_add(data.len() as u64);
+                            let data = String::from_utf8_lossy(&data).to_string();
+                            let _ = app.emit(&format!("term-data-{}", id), data);
+                        }
+                        Some(russh::ChannelMsg::ExtendedData { data, .. }) => {
+                            total_bytes_read = total_bytes_read.saturating_add(data.len() as u64);
+                            let data = String::from_utf8_lossy(&data).to_string();
+                            let _ = app.emit(&format!("term-data-{}", id), data);
+                        }
+                        Some(russh::ChannelMsg::Eof) | Some(russh::ChannelMsg::Close) | None => {
+                            break "channel_eof";
+                        }
+                        Some(_) => {}
+                    }
+                }
+                resize_request = resize_rx.recv() => {
+                    let Some(request) = resize_request else {
+                        continue;
+                    };
+                    let result = match get_ssh_session_if_instance(&sessions, &id, instance_id) {
+                        Some(conn) if conn.shell_is_active() => shell_channel
+                            .window_change(request.cols, request.rows, 0, 0)
+                            .await
+                            .map_err(|e| format!("PTY resize failed: {}", e)),
+                        Some(_) => Err("SSH shell not active".to_string()),
+                        None => Err("SSH connection not active".to_string()),
+                    };
 
-                session.set_blocking(false);
-                let result = chan_lock.read(&mut buf);
-                session.set_blocking(true);
-                let is_eof = match &result {
-                    Ok(0) => chan_lock.eof(),
-                    Err(_) => chan_lock.eof(),
-                    _ => false,
-                };
-
-                (result, is_eof)
-            };
-
-            match read_result {
-                Ok(count) if count > 0 => {
-                    if keepalive_failures > 0 {
-                        ssh_log::debug(
+                    if let Err(err) = &result {
+                        last_error = Some(err.clone());
+                        ssh_log::warn(
                             SshLogRecord::new(
                                 "ssh.shell",
-                                "reader_keepalive_recovered",
-                                "Shell reader observed data after keepalive failures",
+                                "resize_failed",
+                                "Failed to resize SSH shell PTY",
                             )
                             .session_id(id.clone())
                             .instance_id(instance_id)
-                            .field("previous_failures", keepalive_failures),
+                            .field("rows", request.rows)
+                            .field("cols", request.cols)
+                            .field("error", err.clone()),
                         );
-                        keepalive_failures = 0;
-                    }
-                    total_bytes_read = total_bytes_read.saturating_add(count as u64);
-                    let data = String::from_utf8_lossy(&buf[..count]).to_string();
-                    let _ = app.emit(&format!("term-data-{}", id), data);
-                }
-                Ok(_) => {
-                    if is_eof {
-                        break "channel_eof";
                     }
 
-                    if let Some(reason) = maybe_send_shell_keepalive(
-                        &session,
-                        &id,
-                        instance_id,
-                        &mut keepalive_failures,
-                        &mut last_error,
-                        &mut last_keepalive_at,
-                    ) {
-                        break reason;
-                    }
-
-                    thread::sleep(Duration::from_millis(SHELL_IDLE_SLEEP_MS));
-                    continue;
-                }
-                Err(err) if matches!(err.kind(), ErrorKind::TimedOut | ErrorKind::WouldBlock) => {
-                    if is_eof {
-                        break "channel_eof_after_timeout";
-                    }
-
-                    if let Some(reason) = maybe_send_shell_keepalive(
-                        &session,
-                        &id,
-                        instance_id,
-                        &mut keepalive_failures,
-                        &mut last_error,
-                        &mut last_keepalive_at,
-                    ) {
-                        break reason;
-                    }
-
-                    thread::sleep(Duration::from_millis(SHELL_IDLE_SLEEP_MS));
-                    continue;
-                }
-                Err(err) => {
-                    let error_text = err.to_string();
-
-                    if is_eof {
-                        last_error = Some(error_text);
-                        break "channel_closed_after_read_error";
-                    } else {
-                        last_error = Some(error_text);
-                        break "channel_read_error";
-                    }
+                    let _ = request.result_tx.send(result);
                 }
             }
-        };
-
-        let exit_status = match channel.lock() {
-            Ok(chan) => chan.exit_status().ok(),
-            Err(poisoned) => poisoned.into_inner().exit_status().ok(),
         };
 
         let existing = get_ssh_session_if_instance(&sessions, &id, instance_id);
@@ -278,42 +184,49 @@ pub fn spawn_shell_reader_thread(
             let shell_marked_closed = conn.mark_shell_closed();
             let mut record = SshLogRecord::new(
                 "ssh.shell",
-                "reader_thread_exited",
+                "reader_task_exited",
                 if shell_marked_closed {
-                    "Shell reader thread exited; background session preserved"
+                    "Shell reader task exited; background session preserved"
                 } else {
-                    "Shell reader thread exited after shell was already marked inactive"
+                    "Shell reader task exited after shell was already marked inactive"
                 },
             )
             .session_id(id.clone())
             .instance_id(instance_id)
             .field("reason", exit_reason)
             .field("bytes_read", total_bytes_read)
-            .field("keepalive_failures", keepalive_failures)
             .field("session_active", true)
             .field("shell_marked_closed", shell_marked_closed);
 
-            if let Some(status) = exit_status {
-                record = record.field("exit_status", status);
-            }
             if let Some(error_text) = last_error {
                 record = record.field("error", error_text);
             }
 
             ssh_log::warn(record);
-            let _ = app.emit(
-                &format!("term-exit-{}", id),
-                TerminalExitEvent {
-                    session_active: true,
-                    reason: exit_reason.to_string(),
-                },
-            );
+
+            let auto_reconnect = conn.config.auto_reconnect.unwrap_or(false);
+            if auto_reconnect && (exit_reason == "channel_eof" || exit_reason == "channel_read_error") {
+                crate::commands::ssh::session_commands::handle_auto_reconnect(
+                    app.clone(),
+                    sessions.clone(),
+                    id.clone(),
+                    instance_id,
+                );
+            } else {
+                let _ = app.emit(
+                    &format!("term-exit-{}", id),
+                    TerminalExitEvent {
+                        session_active: true,
+                        reason: exit_reason.to_string(),
+                    },
+                );
+            }
         } else {
             ssh_log::debug(
                 SshLogRecord::new(
                     "ssh.shell",
-                    "reader_thread_stale_exit",
-                    "Shell reader thread exited for a stale session instance",
+                    "reader_task_stale_exit",
+                    "Shell reader task exited for a stale session instance",
                 )
                 .session_id(id)
                 .instance_id(instance_id)

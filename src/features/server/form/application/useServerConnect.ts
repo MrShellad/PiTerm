@@ -71,7 +71,7 @@ export const useServerConnect = () => {
     if (status !== 'unlocked') {
         // 🟢 本地化 Toast (这句之前可能翻译过，这里复用 key)
         toast.info(t('server.locked_connect', 'Please unlock the Vault to connect.'));
-        openGlobalUnlockModal();
+        openGlobalUnlockModal(() => connect(server));
         return;
     }
     

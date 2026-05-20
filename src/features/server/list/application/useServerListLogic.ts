@@ -154,7 +154,7 @@ export const useServerListLogic = () => {
     handleConnect: (server: Server) => {
       if (!isUnlocked) {
         toast.info(t('server.vault.locked_connect', "Please unlock the Vault to connect."));
-        openGlobalUnlockModal();
+        openGlobalUnlockModal(() => connect(server));
         return; 
       }
       connect(server);

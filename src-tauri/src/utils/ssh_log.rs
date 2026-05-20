@@ -2,13 +2,12 @@ use chrono::Local;
 use regex::Regex;
 use serde::Serialize;
 use serde_json::{Map, Value};
-use ssh2::Session;
 use std::collections::BTreeMap;
 use std::fs::{self, File, OpenOptions};
 use std::io::Write;
 use std::net::{Ipv4Addr, Ipv6Addr};
-use std::path::{Component, Path, PathBuf};
-use std::sync::{Arc, Mutex, OnceLock};
+use std::path::{Path, PathBuf, Component};
+use std::sync::{Mutex, OnceLock};
 use std::time::Instant;
 use tauri::{AppHandle, Manager};
 
@@ -171,8 +170,7 @@ pub fn error(record: SshLogRecord) {
     log(SshLogLevel::Error, record);
 }
 
-pub fn run_timed_session_operation<T, F>(
-    session_arc: Arc<Mutex<Session>>,
+pub async fn run_timed_session_operation_async<T, F, Fut>(
     component: &'static str,
     operation: &'static str,
     session_id: &str,
@@ -180,7 +178,8 @@ pub fn run_timed_session_operation<T, F>(
     action: F,
 ) -> Result<T, String>
 where
-    F: FnOnce(&Session) -> Result<T, String>,
+    F: FnOnce() -> Fut,
+    Fut: std::future::Future<Output = Result<T, String>>,
 {
     debug(
         SshLogRecord::new(component, operation, "Background SSH operation requested")
@@ -188,25 +187,8 @@ where
             .extend_fields(extra_fields.clone()),
     );
 
-    let lock_started = Instant::now();
-    let session = session_arc.lock().map_err(|e| {
-        let err = format!("SSH session lock failed: {}", e);
-        error(
-            SshLogRecord::new(
-                component,
-                operation,
-                "Failed to lock background SSH session",
-            )
-            .session_id(session_id.to_string())
-            .field("error", err.clone())
-            .extend_fields(extra_fields.clone()),
-        );
-        err
-    })?;
-    let lock_wait_ms = lock_started.elapsed().as_millis() as u64;
-
     let started = Instant::now();
-    let result = action(&session);
+    let result = action().await;
     let duration_ms = started.elapsed().as_millis() as u64;
 
     let base_record = SshLogRecord::new(
@@ -219,7 +201,6 @@ where
         },
     )
     .session_id(session_id.to_string())
-    .field("lock_wait_ms", lock_wait_ms)
     .field("duration_ms", duration_ms)
     .extend_fields(extra_fields);
 

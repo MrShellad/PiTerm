@@ -53,10 +53,10 @@ export const HostKeyVerificationModal = ({ open, data, onConfirm, onCancel }: Pr
           <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center mb-3 text-amber-600 dark:text-amber-500">
             <ShieldAlert className="w-6 h-6" />
           </div>
-          <AlertDialogTitle className="text-lg font-bold text-amber-800 dark:text-amber-200">
+          <AlertDialogTitle className="text-lg font-bold text-amber-900 dark:text-amber-200">
             {t('server.verify.title', 'Unknown Host')}
           </AlertDialogTitle>
-          <AlertDialogDescription className="text-sm text-amber-700/80 dark:text-amber-400 mt-2">
+          <AlertDialogDescription className="text-sm text-amber-800/90 dark:text-amber-300 mt-2 font-medium">
             {t('server.verify.desc', 'The authenticity of host cannot be established. Connecting to this server for the first time.')}
           </AlertDialogDescription>
         </div>
@@ -88,7 +88,7 @@ export const HostKeyVerificationModal = ({ open, data, onConfirm, onCancel }: Pr
               className="relative group cursor-pointer"
               onClick={handleCopy}
             >
-              <div className="w-full p-3 bg-slate-100 dark:bg-black/40 border border-slate-200 dark:border-slate-800 rounded-lg font-mono text-xs break-all text-slate-600 dark:text-slate-300 transition-colors group-hover:border-blue-500/50 group-hover:bg-blue-50/50 dark:group-hover:bg-blue-900/10">
+              <div className="w-full p-3 bg-slate-100 dark:bg-black/60 border border-slate-200 dark:border-slate-800 rounded-lg font-mono text-xs break-all text-slate-800 dark:text-slate-200 transition-colors group-hover:border-blue-500/50 group-hover:bg-blue-50/50 dark:group-hover:bg-blue-950/30">
                 {data.fingerprint}
               </div>
               <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -101,9 +101,9 @@ export const HostKeyVerificationModal = ({ open, data, onConfirm, onCancel }: Pr
             </div>
           </div>
 
-          <div className="flex gap-3 text-xs text-slate-500 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800/50">
+          <div className="flex gap-3 text-xs text-slate-600 dark:text-slate-300 bg-slate-100/60 dark:bg-slate-950/30 p-3 rounded-lg border border-slate-200 dark:border-slate-800/50">
             <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
-            <p>
+            <p className="leading-normal font-medium">
               {t('server.verify.warning', 'To prevent MITM attacks, please verify that this fingerprint matches the server\'s key.')}
             </p>
           </div>

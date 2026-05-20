@@ -1,8 +1,7 @@
-use super::{get_monitor_session_arc, run_monitor_operation, MonitorCache};
+use super::{get_monitor_session, run_monitor_operation_async, MonitorCache};
 use crate::commands::ssh::SshState;
 use crate::utils::ssh_log;
 use std::collections::HashMap;
-use std::io::Read;
 use std::time::Instant;
 use tauri::State;
 
@@ -194,33 +193,17 @@ pub async fn get_ssh_network_info(
     monitor_cache: State<'_, MonitorCache>,
     id: String,
 ) -> Result<RemoteNetworkInfo, String> {
-    let session_arc = get_monitor_session_arc(&ssh_state, &id, "network_snapshot")?;
+    let session = get_monitor_session(&ssh_state, &id, "network_snapshot")?;
 
-    let monitor_id = id.clone();
-    let output = tauri::async_runtime::spawn_blocking(move || {
-        run_monitor_operation(
-            session_arc,
-            &monitor_id,
-            "network_snapshot",
-            vec![ssh_log::log_field("command_name", "NETWORK_INFO_CMD")],
-            |sess| {
-                let mut channel = sess
-                    .channel_session()
-                    .map_err(|e: ssh2::Error| e.to_string())?;
-
-                channel
-                    .exec(NETWORK_INFO_CMD)
-                    .map_err(|e: ssh2::Error| e.to_string())?;
-
-                let mut s = String::new();
-                channel.read_to_string(&mut s).ok();
-                channel.wait_close().ok();
-                Ok::<String, String>(s)
-            },
-        )
-    })
-    .await
-    .map_err(|e| e.to_string())??;
+    let output = run_monitor_operation_async(
+        &id,
+        "network_snapshot",
+        vec![ssh_log::log_field("command_name", "NETWORK_INFO_CMD")],
+        || async {
+            super::exec_ssh_command(&session, NETWORK_INFO_CMD).await
+        },
+    )
+    .await?;
 
     parse_network_output(&output, &monitor_cache, &id)
 }

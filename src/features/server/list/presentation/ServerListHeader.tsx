@@ -49,7 +49,7 @@ export const ServerListHeader = ({ state, allTags, actions, onAddClick }: Props)
 
   return (
     <div className={clsx(
-        "sticky top-2 z-10 p-4 mx-2 mb-2 rounded-xl shadow-sm", 
+        "sticky top-2 z-10 p-4 mx-2 mb-4 rounded-xl shadow-sm", 
         "bg-white/60 dark:bg-slate-900/60 backdrop-blur-md", 
         "border border-white/40 dark:border-white/10", 
         "transition-all duration-300"
@@ -59,19 +59,16 @@ export const ServerListHeader = ({ state, allTags, actions, onAddClick }: Props)
         searchQuery={state.searchQuery}
         onSearchChange={actions.setSearch}
         searchPlaceholder={t('server.list.searchPlaceholder', 'Search...')}
-        // [修复 1] 移除了 searchWrapperClassName，因为组件已不支持且不需要
         
         // --- 标签 ---
         tags={allTags}
         activeTag={state.activeTags[0] ?? null} 
-        // 使用新逻辑：单选切换
         onTagChange={actions.setFilterTag}
 
         // --- 视图与大小 ---
         viewMode={state.viewMode}
         onViewModeChange={(mode) => actions.setViewMode(mode)}
         
-        // [修复 2] 明确 size 类型为 CardSize，解决 "implicitly has any type" 报错
         cardSize={isGridView ? state.cardSize : undefined}
         onCardSizeChange={isGridView ? (size: CardSize) => actions.setCardSize(size) : undefined}
 

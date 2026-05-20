@@ -28,6 +28,10 @@ interface KeyState {
     // 存储解密密钥/主密码 (用于前端加密代理等敏感信息)
     encryptionKey: string | null;
 
+    // 暂存需要解锁后自动执行的动作
+    pendingAction: (() => void) | null;
+    setPendingAction: (action: (() => void) | null) => void;
+
     // Actions
     checkVaultStatus: () => Promise<void>;
     setupVault: (password: string) => Promise<void>;
@@ -61,7 +65,7 @@ interface KeyState {
     closeModal: () => void;
 
     // 全局解锁弹窗控制 (GlobalVaultModal)
-    openGlobalUnlockModal: () => void;
+    openGlobalUnlockModal: (onSuccessAction?: () => void) => void;
     closeGlobalUnlockModal: () => void;
     
     getDecryptedContent: (id: string) => Promise<DecryptedData | null>;
@@ -76,7 +80,9 @@ export const useKeyStore = create<KeyState>((set, get) => ({
     isGlobalUnlockModalOpen: false,
     
     encryptionKey: null,
+    pendingAction: null,
 
+    setPendingAction: (action) => set({ pendingAction: action }),
     setEncryptionKey: (key) => set({ encryptionKey: key }),
 
     checkVaultStatus: async () => {
@@ -205,12 +211,18 @@ export const useKeyStore = create<KeyState>((set, get) => ({
     openModal: (mode, keyId) => set({ modalState: { isOpen: true, mode, keyId } }),
     closeModal: () => set({ modalState: { isOpen: false, mode: 'add', keyId: undefined } }),
 
-    openGlobalUnlockModal: () => {
+    openGlobalUnlockModal: (onSuccessAction) => {
         get().checkVaultStatus(); 
-        set({ isGlobalUnlockModalOpen: true });
+        set({ 
+            isGlobalUnlockModalOpen: true,
+            pendingAction: onSuccessAction || null
+        });
     },
 
-    closeGlobalUnlockModal: () => set({ isGlobalUnlockModalOpen: false }),
+    closeGlobalUnlockModal: () => set({ 
+        isGlobalUnlockModalOpen: false,
+        pendingAction: null
+    }),
 
     getDecryptedContent: async (id) => {
         const key = get().keys.find(k => k.id === id);

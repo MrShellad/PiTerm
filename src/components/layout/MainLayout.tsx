@@ -1,7 +1,7 @@
-import { Outlet, useLocation } from "react-router-dom";
+import { useLocation, useOutlet } from "react-router-dom";
 import { useEffect, useState } from "react";
 import clsx from "clsx";
-
+import { AnimatePresence, motion } from "framer-motion";
 import { TitleBar } from "./TitleBar";
 import { Sidebar } from "./Sidebar";
 import { TerminalLayout } from "@/features/terminal/TerminalLayout";
@@ -12,6 +12,7 @@ import { useLocalImage } from "@/hooks/useLocalImage";
 
 export const MainLayout = () => {
   const location = useLocation();
+  const currentOutlet = useOutlet();
   const settings = useSettingsStore(s => s.settings);
 
   // 1. 解析当前主题 (用于判断显示 Light 还是 Dark 壁纸)
@@ -137,8 +138,22 @@ export const MainLayout = () => {
               <TerminalLayout />
             </div>
             <div className={clsx("h-full w-full flex flex-col overflow-hidden bg-transparent", isTerminalPage && "hidden")}>
-              <div className="flex-1 overflow-y-auto p-0">
-                <Outlet />
+              <div className="flex-1 overflow-hidden p-0 relative">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={location.pathname}
+                    initial={{ opacity: 0, marginTop: "20px" }}
+                    animate={{ opacity: 1, marginTop: "0px" }}
+                    exit={{ opacity: 0, marginTop: "-20px" }}
+                    transition={{ 
+                      duration: 0.25, 
+                      ease: "linear" 
+                    }}
+                    className="h-full w-full overflow-y-auto overflow-x-hidden"
+                  >
+                    {currentOutlet}
+                  </motion.div>
+                </AnimatePresence>
               </div>
             </div>
           </main>

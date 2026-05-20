@@ -377,7 +377,7 @@ fn connect_via_proxy(config: &SshConfig, timeout: Duration) -> Result<TcpStream,
     }
 }
 
-pub(super) fn establish_tcp_stream(config: &SshConfig) -> Result<TcpStream, String> {
+pub fn establish_tcp_stream(config: &SshConfig) -> Result<TcpStream, String> {
     let timeout = sanitized_connect_timeout(config);
 
     match config.connection_type {

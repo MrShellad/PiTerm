@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Server } from "@/features/server/domain/types";
 import { ICON_MAP } from "@/features/server/domain/constants";
@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { motion, Variants } from "framer-motion";
+import { TableVirtuoso } from "react-virtuoso";
 
 import { GlassTooltip } from "@/components/common/GlassTooltip";
 import "@/styles/components/server/server-table.css";
@@ -121,13 +122,64 @@ const IpCell = ({ ip, onCopy }: { ip: string, onCopy: (text: string) => void }) 
 };
 
 const tableRowVariants: Variants = {
-  hidden: { opacity: 0, filter: "blur(4px)" },
-  visible: { opacity: 1, filter: "blur(0px)", transition: { duration: 0.25, ease: "easeOut" } }
+  hidden: { opacity: 0, y: 8 },
+  visible: (index: number) => ({ 
+    opacity: 1, 
+    y: 0, 
+    transition: { 
+      duration: 0.25, 
+      ease: "easeOut",
+      delay: Math.min(index * 0.02, 0.2) // 限制最大延迟时间
+    } 
+  })
 };
+
+// 🟢 [优化] 提升组件定义到外部，并使用 React.memo，避免每次重渲染都创建新引用的组件，导致严重的性能卡顿。
+const TableComponent = React.memo((props: any) => (
+  <Table {...props} className="server-table" />
+));
+TableComponent.displayName = "TableComponent";
+
+const TableHeadComponent = React.memo(
+  React.forwardRef<HTMLTableSectionElement, any>((props, ref) => (
+    <TableHeader ref={ref} {...props} className="server-table__header sticky top-0 z-10 bg-[hsl(var(--card))]" />
+  ))
+);
+TableHeadComponent.displayName = "TableHeadComponent";
+
+const TableBodyComponent = React.memo(
+  React.forwardRef<HTMLTableSectionElement, any>((props, ref) => (
+    <tbody ref={ref} {...props} />
+  ))
+);
+TableBodyComponent.displayName = "TableBodyComponent";
+
+// 自定义虚拟化 TableRow 组件，保留 Framer Motion 动画和 Pin 状态样式
+// 使用 context 来安全地获取外部的 servers 数据，无需在渲染函数内动态声明组件
+const TableRowComponent = React.memo(({ children, context, ...props }: any) => {
+  const index = props["data-index"];
+  const servers = context?.servers || [];
+  const server = servers[index];
+  if (!server) return <tr {...props}>{children}</tr>;
+
+  return (
+    <motion.tr 
+      {...props} 
+      layout="position"
+      custom={index}
+      variants={tableRowVariants}
+      initial="hidden"
+      animate="visible"
+      className={cn("server-table__row group", server.isPinned && "is-pinned")}
+    >
+      {children}
+    </motion.tr>
+  );
+});
+TableRowComponent.displayName = "TableRowComponent";
 
 export const ServerTableView = ({ servers, actions, onEdit, onTagClick, isLoading }: Props) => {
   const { t } = useTranslation();
-  const listKey = servers.map(s => s.id).join(',');
 
   const getExpirationStatus = (server: Server) => {
     if (!server.enableExpiration || !server.expireDate) return null;
@@ -147,10 +199,23 @@ export const ServerTableView = ({ servers, actions, onEdit, onTagClick, isLoadin
     };
   };
 
+  // 🟢 [优化] 缓存 components 对象的引用，使其恒定不变
+  const virtuosoComponents = React.useMemo(() => ({
+    Table: TableComponent,
+    TableHead: TableHeadComponent,
+    TableRow: TableRowComponent,
+    TableBody: TableBodyComponent
+  }), []);
+
+  // 🟢 [优化] 缓存 context 对象的引用，将 servers 传给内部组件
+  const contextValue = React.useMemo(() => ({
+    servers
+  }), [servers]);
+
   // 🟢 [优化] 处理 Loading 状态：如果没有数据且正在加载，显示骨架屏
   if (isLoading && servers.length === 0) {
      return (
-        <div className="server-table-wrapper">
+        <div className="server-table-wrapper h-[calc(100%-0.5rem)] overflow-hidden">
            <Table className="server-table">
               <TableHeader className="server-table__header">
                 <TableRow className="hover:bg-transparent border-b border-border/60">
@@ -162,7 +227,6 @@ export const ServerTableView = ({ servers, actions, onEdit, onTagClick, isLoadin
                 </TableRow>
               </TableHeader>
               <tbody>
-                 {/* 渲染 5 行骨架作为占位 */}
                  {Array.from({ length: 5 }).map((_, i) => <TableSkeletonRow key={i} />)}
               </tbody>
            </Table>
@@ -180,132 +244,122 @@ export const ServerTableView = ({ servers, actions, onEdit, onTagClick, isLoadin
   }
 
   return (
-    <div className="server-table-wrapper">
-      <Table className="server-table">
-        <TableHeader className="server-table__header">
-          <TableRow className="hover:bg-transparent border-b border-border/60">
+    <div className="server-table-wrapper h-[calc(100%-0.5rem)] overflow-hidden">
+      <TableVirtuoso
+        style={{ height: "100%" }}
+        className="custom-scrollbar"
+        data={servers}
+        context={contextValue}
+        components={virtuosoComponents}
+        fixedHeaderContent={() => (
+          <TableRow className="hover:bg-transparent border-b border-border/60 bg-[hsl(var(--card))]">
             <TableHead className="server-table__th w-[20%] min-w-[180px] text-left">{t('server.columns.name', 'Server Name')}</TableHead>
             <TableHead className="server-table__th w-[20%] min-w-[180px] text-center">{t('server.columns.ip', 'IP Address')}</TableHead>
             <TableHead className="server-table__th w-[30%] min-w-[200px] text-center">{t('server.columns.tags', 'Tags')}</TableHead>
             <TableHead className="server-table__th w-[15%] min-w-[140px] text-center">{t('server.columns.expiration', 'Expiration')}</TableHead>
             <TableHead className="server-table__th w-[15%] min-w-[120px] text-right">{t('server.columns.actions', 'Actions')}</TableHead>
           </TableRow>
-        </TableHeader>
-        
-        <motion.tbody
-          key={listKey}
-          initial="hidden"
-          animate="visible"
-          variants={{
-            visible: { transition: { staggerChildren: 0.02 } }
-          }}
-        >
-          {servers.map((server) => {
-            const Icon = ICON_MAP[server.icon] || ServerIcon;
-            const expStatus = getExpirationStatus(server);
+        )}
+        itemContent={(_, server) => {
+          const Icon = ICON_MAP[server.icon] || ServerIcon;
+          const expStatus = getExpirationStatus(server);
 
-            return (
-              <motion.tr 
-                key={server.id} 
-                layout
-                variants={tableRowVariants}
-                className={cn("server-table__row group", server.isPinned && "is-pinned")}
-              >
-                {/* 1. Name */}
-                <TableCell className="server-table__cell">
-                  <div className="flex items-center gap-3">
-                    <div className="server-table__icon">
-                      <Icon className="w-5 h-5" />
+          return (
+            <>
+              {/* 1. Name */}
+              <TableCell className="server-table__cell">
+                <div className="flex items-center gap-3">
+                  <div className="server-table__icon">
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <div className="server-table__name">
+                        {server.name}
+                        {server.isPinned && <Pin className="w-3 h-3 text-blue-500 rotate-45 fill-blue-500/20 shrink-0" />}
                     </div>
-                    <div className="flex flex-col min-w-0">
-                      <div className="server-table__name">
-                          {server.name}
-                          {server.isPinned && <Pin className="w-3 h-3 text-blue-500 rotate-45 fill-blue-500/20 shrink-0" />}
+                    {server.provider ? (
+                      <div className="server-table__provider">
+                          {server.provider}
                       </div>
-                      {server.provider ? (
-                        <div className="server-table__provider">
-                            {server.provider}
-                        </div>
-                      ) : null}
-                    </div>
+                    ) : null}
                   </div>
-                </TableCell>
+                </div>
+              </TableCell>
 
-                {/* 2. IP */}
-                <TableCell className="server-table__cell">
-                  <IpCell ip={server.ip} onCopy={actions.handleCopyIP} />
-                </TableCell>
+              {/* 2. IP */}
+              <TableCell className="server-table__cell">
+                <IpCell ip={server.ip} onCopy={actions.handleCopyIP} />
+              </TableCell>
 
-                {/* 3. Tags */}
-                <TableCell className="server-table__cell">
-                  <div className="server-table__tags">
-                    {server.tags.length > 0 ? (
-                      server.tags.map(tag => (
-                        <span 
-                            key={tag} 
-                            onClick={(e) => { e.stopPropagation(); onTagClick?.(tag); }}
-                            className="server-table__tag"
-                        >
-                          {tag}
-                        </span>
-                      ))
-                    ) : (
+              {/* 3. Tags */}
+              <TableCell className="server-table__cell">
+                <div className="server-table__tags">
+                  {server.tags.length > 0 ? (
+                    server.tags.map(tag => (
+                      <span 
+                          key={tag} 
+                          onClick={(e) => { e.stopPropagation(); onTagClick?.(tag); }}
+                          className="server-table__tag"
+                      >
+                        {tag}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-muted-foreground/30 text-xs px-1">-</span>
+                  )}
+                </div>
+              </TableCell>
+
+              {/* 4. Expiration */}
+              <TableCell className="server-table__cell">
+                <div className="flex justify-center">
+                  {expStatus ? (
+                      <div className={cn("server-table__expiration", `server-table__expiration--${expStatus.type}`)}>
+                          <CalendarClock className="w-3.5 h-3.5 shrink-0" />
+                          {expStatus.text}
+                      </div>
+                  ) : (
                       <span className="text-muted-foreground/30 text-xs px-1">-</span>
-                    )}
+                  )}
+                </div>
+              </TableCell>
+
+              {/* 5. Actions */}
+              <TableCell className="server-table__cell text-right">
+                  <div className="server-table__actions">
+                      <Button 
+                        size="sm"
+                        onClick={(e) => { e.stopPropagation(); actions.handleConnect(server); }}
+                        className="server-table__btn-connect"
+                      >
+                        <Terminal className="w-3.5 h-3.5" />
+                        {t('common.connect', 'Connect')}
+                      </Button>
+
+                      <DropdownMenu>
+                       <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                            <MoreHorizontal className="w-4 h-4" />
+                          </Button>
+                       </DropdownMenuTrigger>
+                       <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => onEdit(server)}>
+                              {t('common.edit', 'Edit')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => actions.handlePin(server)}>
+                           {server.isPinned ? t('common.unpin', 'Unpin') : t('common.pin', 'Pin')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="text-red-500" onClick={() => actions.handleDelete(server.id)}>
+                              {t('common.delete', 'Delete')}
+                          </DropdownMenuItem>
+                       </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-                </TableCell>
-
-                {/* 4. Expiration */}
-                <TableCell className="server-table__cell">
-                  <div className="flex justify-center">
-                    {expStatus ? (
-                        <div className={cn("server-table__expiration", `server-table__expiration--${expStatus.type}`)}>
-                            <CalendarClock className="w-3.5 h-3.5 shrink-0" />
-                            {expStatus.text}
-                        </div>
-                    ) : (
-                        <span className="text-muted-foreground/30 text-xs px-1">-</span>
-                    )}
-                  </div>
-                </TableCell>
-
-                {/* 5. Actions */}
-                <TableCell className="server-table__cell text-right">
-                    <div className="server-table__actions">
-                        <Button 
-                          size="sm"
-                          onClick={(e) => { e.stopPropagation(); actions.handleConnect(server); }}
-                          className="server-table__btn-connect"
-                        >
-                          <Terminal className="w-3.5 h-3.5" />
-                          {t('common.connect', 'Connect')}
-                        </Button>
-
-                        <DropdownMenu>
-                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                              <MoreHorizontal className="w-4 h-4" />
-                            </Button>
-                         </DropdownMenuTrigger>
-                         <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => onEdit(server)}>
-                                {t('common.edit', 'Edit')}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => actions.handlePin(server)}>
-                             {server.isPinned ? t('common.unpin', 'Unpin') : t('common.pin', 'Pin')}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-500" onClick={() => actions.handleDelete(server.id)}>
-                                {t('common.delete', 'Delete')}
-                            </DropdownMenuItem>
-                         </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                </TableCell>
-              </motion.tr>
-            );
-          })}
-        </motion.tbody>
-      </Table>
+              </TableCell>
+            </>
+          );
+        }}
+      />
     </div>
   );
 };

@@ -113,11 +113,12 @@ export const ServerCard = ({ data, size, onConnect, onCopyIP, onPin, onDelete, o
         "group",
         "hover:!transform-none", 
         "focus-within:!transform-none", 
-        "[&:has([data-state=open])]:!transform-none"
+        "[&:has([data-state=open])]:!transform-none",
+        "w-full h-full"
       )}
       isPinned={data.isPinned}
       style={{ 
-        height: currentSize.height
+        height: "100%"
       }}
     >
       {/* 1. Header */}

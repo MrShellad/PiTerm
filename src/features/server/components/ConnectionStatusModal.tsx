@@ -66,6 +66,8 @@ export const ConnectionStatusModal = ({ open, logs, serverName, onClose, isError
         <div className="p-5 space-y-4">
           <div className="flex flex-col">
             <div className="text-[13px] font-bold text-foreground truncate leading-none">
+              {serverName || 'Remote Server'}
+            </div>
             {/* 🟢 [修改] 添加本地化: 建立安全隧道 */}
             <div className="text-[10px] text-muted-foreground uppercase tracking-tighter leading-none mt-1">
               {t('server.sshlog.tunnel', 'Establishing Secure Tunnel')}
@@ -93,12 +95,19 @@ export const ConnectionStatusModal = ({ open, logs, serverName, onClose, isError
             )}
           </div>
           
-          {isError && (
+          {isError ? (
              <button 
                onClick={onClose}
                className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-md text-xs transition-colors"
              >
                {t('common.close', 'Close')}
+             </button>
+          ) : (
+             <button 
+               onClick={onClose}
+               className="w-full py-2 bg-red-600/10 hover:bg-red-600/20 text-red-500 rounded-md text-xs transition-colors font-semibold border border-red-500/20"
+             >
+               {t('common.cancel', 'Cancel')}
              </button>
           )}
         </div>

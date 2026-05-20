@@ -59,7 +59,10 @@ export const ServerListPage = () => {
   const handleAdd = () => {
     if (!isUnlocked) {
       toast.info(t('server.vault.locked_add', "Please unlock the Vault to add a server."));
-      openGlobalUnlockModal();
+      openGlobalUnlockModal(() => {
+        setEditingServer(null);
+        setIsModalOpen(true);
+      });
       return;
     }
     setEditingServer(null);
@@ -69,7 +72,10 @@ export const ServerListPage = () => {
   const handleEdit = (server: Server) => {
     if (!isUnlocked) {
       toast.info(t('server.vault.locked_edit', "Please unlock the Vault to edit details."));
-      openGlobalUnlockModal();
+      openGlobalUnlockModal(() => {
+        setEditingServer(server);
+        setIsModalOpen(true);
+      });
       return;
     }
     setEditingServer(server);
@@ -104,7 +110,7 @@ export const ServerListPage = () => {
         onAddClick={handleAdd}
       />
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
+      <div className="flex-1 overflow-hidden relative px-2 pb-2">
          {viewMode === 'grid' ? (
            <ServerGrid 
              servers={servers} 

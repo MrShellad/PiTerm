@@ -8,9 +8,9 @@ interface Props {
 export const ServerCardSkeleton = ({ size }: Props) => {
   // 复用 ServerCard 的尺寸配置，确保占位大小一致
   const sizeConfig = {
-    sm: { height: '195px', padding: '0.875rem' },
-    md: { height: '235px', padding: '1.25rem' },
-    lg: { height: '285px', padding: '1.5rem' }
+    sm: { height: '170px', padding: '0.75rem' },
+    md: { height: '200px', padding: '1rem' },
+    lg: { height: '210px', padding: '1.25rem' }
   };
   const currentSize = sizeConfig[size] || sizeConfig.md;
 

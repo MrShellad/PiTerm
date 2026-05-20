@@ -1,7 +1,6 @@
-use super::{get_monitor_session_arc, run_monitor_operation};
+use super::{get_monitor_session, run_monitor_operation_async};
 use crate::commands::ssh::SshState;
 use crate::utils::ssh_log;
-use std::io::Read;
 use tauri::State;
 
 pub(crate) const MEM_INFO_CMD: &str = "cat /proc/meminfo";
@@ -71,33 +70,17 @@ pub async fn get_ssh_mem_info(
     ssh_state: State<'_, SshState>,
     id: String,
 ) -> Result<RemoteMemInfo, String> {
-    let session_arc = get_monitor_session_arc(&ssh_state, &id, "memory_snapshot")?;
+    let session = get_monitor_session(&ssh_state, &id, "memory_snapshot")?;
 
-    let output = tauri::async_runtime::spawn_blocking(move || {
-        run_monitor_operation(
-            session_arc,
-            &id,
-            "memory_snapshot",
-            vec![ssh_log::log_field("command_name", "MEM_INFO_CMD")],
-            |sess| {
-                let mut channel = sess
-                    .channel_session()
-                    .map_err(|e: ssh2::Error| e.to_string())?;
-                channel
-                    .exec(MEM_INFO_CMD)
-                    .map_err(|e: ssh2::Error| e.to_string())?;
-
-                let mut s = String::new();
-                channel
-                    .read_to_string(&mut s)
-                    .map_err(|e: std::io::Error| e.to_string())?;
-                channel.wait_close().ok();
-                Ok::<String, String>(s)
-            },
-        )
-    })
-    .await
-    .map_err(|e| e.to_string())??;
+    let output = run_monitor_operation_async(
+        &id,
+        "memory_snapshot",
+        vec![ssh_log::log_field("command_name", "MEM_INFO_CMD")],
+        || async {
+            super::exec_ssh_command(&session, MEM_INFO_CMD).await
+        },
+    )
+    .await?;
 
     parse_mem_output(&output)
 }

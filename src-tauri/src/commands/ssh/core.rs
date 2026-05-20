@@ -3,18 +3,18 @@ use std::time::Duration;
 use crate::utils::ssh_log::SshLogRecord;
 
 mod auth;
+mod client;
 mod proxy;
 mod shell_io;
 mod transport;
 
+pub use client::PiTermClientHandler;
 pub use shell_io::{spawn_shell_reader_thread, spawn_shell_writer_thread};
 pub use transport::{create_shell_channel, establish_base_session};
+pub use proxy::establish_tcp_stream;
 
 const DEFAULT_CONNECT_TIMEOUT_SECS: u64 = 10;
 const DEFAULT_IO_TIMEOUT_SECS: u64 = 60;
-const SHELL_BLOCKING_IO_TIMEOUT_MS: u32 = 50;
-const SHELL_IDLE_SLEEP_MS: u64 = 2;
-const SHELL_KEEPALIVE_INTERVAL_SECS: u64 = 15;
 const HTTP_PROXY_RESPONSE_LIMIT: usize = 16 * 1024;
 const SHELL_WRITE_BATCH_LIMIT: usize = 64 * 1024;
 

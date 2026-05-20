@@ -1,7 +1,7 @@
 use crate::commands::ssh::SshState;
+use crate::commands::ssh::state::SshSession;
 use crate::utils::ssh_log::{self, SshLogRecord};
-use ssh2::Session;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use tauri::State;
 
 // Get dedicated SFTP Session Arc
@@ -9,7 +9,7 @@ use tauri::State;
 pub fn get_sftp_session_arc(
     ssh_state: &State<'_, SshState>,
     id: &str,
-) -> Result<Arc<Mutex<Session>>, String> {
+) -> Result<Arc<SshSession>, String> {
     let map = ssh_state.sessions.lock().map_err(|e| e.to_string())?;
     let conn = map.get(id).ok_or_else(|| {
         ssh_log::warn(

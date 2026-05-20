@@ -1,4 +1,4 @@
-use crate::commands::vault::{internal_add_secret, internal_record_usage, VaultState}; // 🟢 引入 internal_record_usage
+use crate::commands::vault::{internal_add_secret, internal_update_secret, internal_record_usage, VaultState}; // 🟢 引入 internal_record_usage
 use crate::models::{AuthType, ConnectionType, OsType, ServerConfig};
 use crate::state::AppState;
 use chrono::Utc;
@@ -81,7 +81,22 @@ pub async fn save_server(
 ) -> Result<(), String> {
     let pool = &state.db;
 
-    // 1. 密码处理 (移入 Vault)
+    // 0. 查询现有服务器记录以判断是否存在关联密码/私钥 ID，以及名称是否改变
+    let existing_row = sqlx::query("SELECT name, username, password_id, key_id FROM servers WHERE id = ?")
+        .bind(&server.id)
+        .fetch_optional(pool)
+        .await
+        .map_err(|e| format!("Querying existing server failed: {}", e))?;
+
+    let mut existing_password_id = None;
+    let mut existing_key_id = None;
+
+    if let Some(ref r) = existing_row {
+        existing_password_id = r.try_get::<Option<String>, _>("password_id").unwrap_or(None);
+        existing_key_id = r.try_get::<Option<String>, _>("key_id").unwrap_or(None);
+    }
+
+    // 1. 密码处理 (移入 Vault 或是更新 Vault 现有记录)
     if let Some(plain_password) = &server.password {
         if !plain_password.is_empty() {
             let master_key = {
@@ -91,24 +106,39 @@ pub async fn save_server(
 
             let secret_name = format!("Server Pass: {}", server.name);
 
-            let new_pass_id = internal_add_secret(
-                pool,
-                &master_key,
-                &secret_name,
-                "password",
-                plain_password,
-                Some(server.username.clone()),
-                None,
-            )
-            .await?;
+            if let Some(pass_id) = existing_password_id.clone() {
+                // 如果已有关联密码ID，执行原地更新
+                internal_update_secret(
+                    pool,
+                    &master_key,
+                    &pass_id,
+                    &secret_name,
+                    plain_password,
+                    Some(server.username.clone()),
+                )
+                .await?;
+                server.password_id = Some(pass_id);
+            } else {
+                // 否则创建新的 Vault 密钥记录
+                let new_pass_id = internal_add_secret(
+                    pool,
+                    &master_key,
+                    &secret_name,
+                    "password",
+                    plain_password,
+                    Some(server.username.clone()),
+                    None,
+                )
+                .await?;
+                server.password_id = Some(new_pass_id);
+            }
 
-            server.password_id = Some(new_pass_id);
             server.password_source = Some("store".to_string());
             server.password = None;
         }
     }
 
-    // 2. 私钥处理 (移入 Vault)
+    // 2. 私钥处理 (移入 Vault 或是更新 Vault 现有记录)
     if let Some(plain_key) = &server.private_key {
         if !plain_key.is_empty() {
             let master_key = {
@@ -118,20 +148,62 @@ pub async fn save_server(
 
             let secret_name = format!("Server Key: {}", server.name);
 
-            let new_key_id = internal_add_secret(
-                pool,
-                &master_key,
-                &secret_name,
-                "private_key",
-                plain_key,
-                Some(server.username.clone()),
-                None,
-            )
-            .await?;
+            if let Some(key_id) = existing_key_id.clone() {
+                // 如果已有关联私钥ID，执行原地更新
+                internal_update_secret(
+                    pool,
+                    &master_key,
+                    &key_id,
+                    &secret_name,
+                    plain_key,
+                    Some(server.username.clone()),
+                )
+                .await?;
+                server.key_id = Some(key_id);
+            } else {
+                // 否则创建新的 Vault 密钥记录
+                let new_key_id = internal_add_secret(
+                    pool,
+                    &master_key,
+                    &secret_name,
+                    "private_key",
+                    plain_key,
+                    Some(server.username.clone()),
+                    None,
+                )
+                .await?;
+                server.key_id = Some(new_key_id);
+            }
 
-            server.key_id = Some(new_key_id);
             server.key_source = Some("store".to_string());
             server.private_key = None;
+        }
+    }
+
+    // 3. 如果服务器名称改变了，但密码/私钥没有被更新（所以上面没走 update_secret），
+    // 依然需要同步更新 Vault 中对应密钥的 plaintext name 字段
+    if let Some(ref r) = existing_row {
+        let old_name: String = r.try_get("name").unwrap_or_default();
+        if old_name != server.name {
+            let now_ts = Utc::now().timestamp_millis();
+            if let Some(ref pass_id) = existing_password_id {
+                let new_secret_name = format!("Server Pass: {}", server.name);
+                let _ = sqlx::query("UPDATE vault_keys SET name = ?, updated_at = ? WHERE id = ?")
+                    .bind(&new_secret_name)
+                    .bind(now_ts)
+                    .bind(pass_id)
+                    .execute(pool)
+                    .await;
+            }
+            if let Some(ref key_id) = existing_key_id {
+                let new_secret_name = format!("Server Key: {}", server.name);
+                let _ = sqlx::query("UPDATE vault_keys SET name = ?, updated_at = ? WHERE id = ?")
+                    .bind(&new_secret_name)
+                    .bind(now_ts)
+                    .bind(key_id)
+                    .execute(pool)
+                    .await;
+            }
         }
     }
 

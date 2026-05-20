@@ -1,16 +1,15 @@
 use super::{
     cpu::{parse_cpu_output, RemoteCpuInfo, CPU_INFO_CMD},
     disk::{parse_disk_output, RemoteDiskInfo, DISK_INFO_CMD},
-    get_monitor_session_arc,
+    get_monitor_session,
     info::{parse_os_output, RemoteOsInfo, OS_INFO_CMD},
     memory::{parse_mem_output, RemoteMemInfo, MEM_INFO_CMD},
     network::{parse_network_output, RemoteNetworkInfo, NETWORK_INFO_CMD},
-    run_monitor_operation, MonitorCache,
+    run_monitor_operation_async, MonitorCache,
 };
 use crate::commands::ssh::SshState;
 use crate::utils::ssh_log;
 use std::collections::HashMap;
-use std::io::Read;
 use tauri::State;
 
 const CPU_SECTION_MARKER: &str = "__PITERM_MONITOR_CPU__";
@@ -111,34 +110,21 @@ pub async fn get_ssh_combined_info(
     monitor_cache: State<'_, MonitorCache>,
     id: String,
 ) -> Result<RemoteCombinedInfo, String> {
-    let session_arc = get_monitor_session_arc(&ssh_state, &id, "combined_snapshot")?;
+    let session = get_monitor_session(&ssh_state, &id, "combined_snapshot")?;
 
     let command = build_combined_monitor_cmd();
-    let monitor_id = id.clone();
-    let output = tauri::async_runtime::spawn_blocking(move || {
-        run_monitor_operation(
-            session_arc,
-            &monitor_id,
-            "combined_snapshot",
-            vec![
-                ssh_log::log_field("command_name", "combined_monitor_snapshot"),
-                ssh_log::log_field("command_section_count", 5),
-            ],
-            |sess| {
-                let mut channel = sess.channel_session().map_err(|e| e.to_string())?;
-                channel.exec(&command).map_err(|e| e.to_string())?;
-
-                let mut data = String::new();
-                channel
-                    .read_to_string(&mut data)
-                    .map_err(|e| e.to_string())?;
-                channel.wait_close().ok();
-                Ok::<String, String>(data)
-            },
-        )
-    })
-    .await
-    .map_err(|e| e.to_string())??;
+    let output = run_monitor_operation_async(
+        &id,
+        "combined_snapshot",
+        vec![
+            ssh_log::log_field("command_name", "combined_monitor_snapshot"),
+            ssh_log::log_field("command_section_count", 5),
+        ],
+        || async {
+            super::exec_ssh_command(&session, &command).await
+        },
+    )
+    .await?;
 
     let sections = parse_sections(&output);
     let combined = RemoteCombinedInfo {

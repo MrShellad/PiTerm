@@ -1,8 +1,10 @@
 use crate::utils::ssh_log::{self, SshLogRecord};
-use ssh2::{Channel, Session};
+use crate::commands::ssh::core::PiTermClientHandler;
+use crate::models::SshConfig;
+use russh::client;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::{Arc, Mutex, TryLockError};
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter};
@@ -11,7 +13,6 @@ use tokio::sync::{mpsc, oneshot};
 pub const HOST_KEY_CACHE_TTL: Duration = Duration::from_secs(300);
 pub const SSH_SESSION_CLEANUP_INTERVAL: Duration = Duration::from_secs(15);
 pub const SSH_SESSION_HEARTBEAT_TIMEOUT: Duration = Duration::from_secs(60);
-pub const SSH_KEEPALIVE_FAILURE_THRESHOLD: u8 = 3;
 
 static NEXT_SSH_CONNECTION_INSTANCE_ID: AtomicU64 = AtomicU64::new(1);
 
@@ -20,44 +21,51 @@ pub struct SshWriteRequest {
     pub result_tx: oneshot::Sender<Result<(), String>>,
 }
 
+pub struct SshResizeRequest {
+    pub rows: u32,
+    pub cols: u32,
+    pub result_tx: oneshot::Sender<Result<(), String>>,
+}
+
+pub type SshSession = client::Handle<PiTermClientHandler>;
+
 #[derive(Clone)]
 pub struct SshConnection {
     pub instance_id: u64,
-    pub shell_session: Arc<Mutex<Session>>,
-    pub bg_session: Arc<Mutex<Option<Arc<Mutex<Session>>>>>,
-    pub shell_channel: Arc<Mutex<Channel>>,
+    pub config: SshConfig,
+    pub shell_session: Arc<SshSession>,
+    pub bg_session: Arc<Mutex<Option<Arc<SshSession>>>>,
+    pub sftp_session: Arc<Mutex<Option<Arc<russh_sftp::client::SftpSession>>>>,
+    pub shell_channel_id: russh::ChannelId,
     pub shell_write_tx: mpsc::Sender<SshWriteRequest>,
+    pub shell_resize_tx: mpsc::Sender<SshResizeRequest>,
     pub shell_active: Arc<AtomicBool>,
     pub bg_connecting: Arc<AtomicBool>,
     pub shutdown_complete: Arc<AtomicBool>,
     pub last_client_heartbeat: Arc<Mutex<Instant>>,
-    pub consecutive_keepalive_failures: Arc<Mutex<u8>>,
 }
 
 impl SshConnection {
     pub fn new(
-        shell_session: Arc<Mutex<Session>>,
-        shell_channel: Arc<Mutex<Channel>>,
+        config: SshConfig,
+        shell_session: Arc<SshSession>,
+        shell_channel_id: russh::ChannelId,
         shell_write_tx: mpsc::Sender<SshWriteRequest>,
+        shell_resize_tx: mpsc::Sender<SshResizeRequest>,
     ) -> Self {
         Self {
             instance_id: NEXT_SSH_CONNECTION_INSTANCE_ID.fetch_add(1, Ordering::Relaxed),
+            config,
             shell_session,
             bg_session: Arc::new(Mutex::new(None)),
-            shell_channel,
+            sftp_session: Arc::new(Mutex::new(None)),
+            shell_channel_id,
             shell_write_tx,
+            shell_resize_tx,
             shell_active: Arc::new(AtomicBool::new(true)),
             bg_connecting: Arc::new(AtomicBool::new(true)),
             shutdown_complete: Arc::new(AtomicBool::new(false)),
             last_client_heartbeat: Arc::new(Mutex::new(Instant::now())),
-            consecutive_keepalive_failures: Arc::new(Mutex::new(0)),
-        }
-    }
-
-    fn reset_keepalive_failures(&self) {
-        match self.consecutive_keepalive_failures.lock() {
-            Ok(mut failures) => *failures = 0,
-            Err(poisoned) => *poisoned.into_inner() = 0,
         }
     }
 
@@ -82,49 +90,7 @@ impl SshConnection {
         }
     }
 
-    pub fn send_keepalive_probe(&self) -> bool {
-        let Some(bg_session) = self.bg_session_arc() else {
-            self.reset_keepalive_failures();
-            return true;
-        };
-
-        let keepalive_ok = match bg_session.try_lock() {
-            Ok(session) => session.keepalive_send().is_ok(),
-            Err(TryLockError::WouldBlock) => return true,
-            Err(TryLockError::Poisoned(poisoned)) => poisoned.into_inner().keepalive_send().is_ok(),
-        };
-
-        match self.consecutive_keepalive_failures.lock() {
-            Ok(mut failures) => {
-                if keepalive_ok {
-                    *failures = 0;
-                    true
-                } else {
-                    *failures = failures.saturating_add(1);
-                    *failures < SSH_KEEPALIVE_FAILURE_THRESHOLD
-                }
-            }
-            Err(poisoned) => {
-                let mut failures = poisoned.into_inner();
-                if keepalive_ok {
-                    *failures = 0;
-                    true
-                } else {
-                    *failures = failures.saturating_add(1);
-                    *failures < SSH_KEEPALIVE_FAILURE_THRESHOLD
-                }
-            }
-        }
-    }
-
-    pub fn keepalive_failure_count(&self) -> u8 {
-        match self.consecutive_keepalive_failures.lock() {
-            Ok(failures) => *failures,
-            Err(poisoned) => *poisoned.into_inner(),
-        }
-    }
-
-    pub fn bg_session_arc(&self) -> Option<Arc<Mutex<Session>>> {
+    pub fn bg_session_arc(&self) -> Option<Arc<SshSession>> {
         match self.bg_session.lock() {
             Ok(slot) => slot.clone(),
             Err(poisoned) => poisoned.into_inner().clone(),
@@ -148,26 +114,45 @@ impl SshConnection {
 
     pub fn mark_bg_unavailable(&self) {
         self.bg_connecting.store(false, Ordering::SeqCst);
-        self.reset_keepalive_failures();
     }
 
-    pub fn install_bg_session(&self, session: Session) {
+    pub fn install_bg_session(&self, session: Arc<SshSession>) {
         let previous = match self.bg_session.lock() {
-            Ok(mut slot) => slot.replace(Arc::new(Mutex::new(session))),
-            Err(poisoned) => poisoned.into_inner().replace(Arc::new(Mutex::new(session))),
+            Ok(mut slot) => slot.replace(session),
+            Err(poisoned) => poisoned.into_inner().replace(session),
         };
 
         self.bg_connecting.store(false, Ordering::SeqCst);
-        self.reset_keepalive_failures();
 
         if let Some(previous_session) = previous {
-            if let Ok(session) = previous_session.lock() {
-                let _ = session.disconnect(None, "PiTerm background session replaced", None);
-            }
+            tokio::spawn(async move {
+                let _ = previous_session.disconnect(russh::Disconnect::ByApplication, "PiTerm background session replaced", "en").await;
+            });
         }
     }
 
-    fn take_bg_session(&self) -> Option<Arc<Mutex<Session>>> {
+    pub fn get_sftp_session(&self) -> Option<Arc<russh_sftp::client::SftpSession>> {
+        match self.sftp_session.lock() {
+            Ok(slot) => slot.clone(),
+            Err(poisoned) => poisoned.into_inner().clone(),
+        }
+    }
+
+    pub fn set_sftp_session(&self, sftp: Arc<russh_sftp::client::SftpSession>) {
+        match self.sftp_session.lock() {
+            Ok(mut slot) => *slot = Some(sftp),
+            Err(poisoned) => *poisoned.into_inner() = Some(sftp),
+        }
+    }
+
+    pub fn clear_sftp_session(&self) {
+        match self.sftp_session.lock() {
+            Ok(mut slot) => *slot = None,
+            Err(poisoned) => *poisoned.into_inner() = None,
+        }
+    }
+
+    fn take_bg_session(&self) -> Option<Arc<SshSession>> {
         match self.bg_session.lock() {
             Ok(mut slot) => slot.take(),
             Err(poisoned) => poisoned.into_inner().take(),
@@ -184,14 +169,11 @@ impl SshConnection {
             return false;
         }
 
-        if let Ok(mut channel) = self.shell_channel.lock() {
-            let _ = channel.close();
-            let _ = channel.wait_close();
-        }
+        let shell_session = self.shell_session.clone();
 
-        if let Ok(session) = self.shell_session.lock() {
-            let _ = session.disconnect(None, "PiTerm shell closed", None);
-        }
+        tokio::spawn(async move {
+            let _ = shell_session.disconnect(russh::Disconnect::ByApplication, "PiTerm shell closed", "en").await;
+        });
 
         true
     }
@@ -205,20 +187,17 @@ impl SshConnection {
             return false;
         }
 
-        if let Ok(mut channel) = self.shell_channel.lock() {
-            let _ = channel.close();
-            let _ = channel.wait_close();
-        }
+        self.clear_sftp_session();
+        let shell_session = self.shell_session.clone();
+        let bg_session = self.take_bg_session();
+        let reason_str = disconnect_reason.to_string();
 
-        if let Ok(session) = self.shell_session.lock() {
-            let _ = session.disconnect(None, disconnect_reason, None);
-        }
-
-        if let Some(bg_session) = self.take_bg_session() {
-            if let Ok(session) = bg_session.lock() {
-                let _ = session.disconnect(None, disconnect_reason, None);
+        tokio::spawn(async move {
+            let _ = shell_session.disconnect(russh::Disconnect::ByApplication, &reason_str, "en").await;
+            if let Some(bg_sess) = bg_session {
+                let _ = bg_sess.disconnect(russh::Disconnect::ByApplication, &reason_str, "en").await;
             }
-        }
+        });
 
         true
     }
@@ -313,31 +292,15 @@ pub fn spawn_ssh_session_cleanup_task(
         thread::sleep(SSH_SESSION_CLEANUP_INTERVAL);
 
         let snapshot = snapshot_ssh_sessions(&sessions);
-        let expired_entries: Vec<(String, u64, &'static str, u64, u8)> = snapshot
+        let expired_entries: Vec<(String, u64, &'static str, u64)> = snapshot
             .into_iter()
             .filter_map(|(id, conn)| {
-                let heartbeat_expired = conn.client_heartbeat_expired();
-                let keepalive_ok = if heartbeat_expired {
-                    true
-                } else {
-                    conn.send_keepalive_probe()
-                };
-
-                if heartbeat_expired {
+                if conn.client_heartbeat_expired() {
                     Some((
                         id,
                         conn.instance_id,
                         "heartbeat_timeout",
                         conn.client_heartbeat_age_secs(),
-                        conn.keepalive_failure_count(),
-                    ))
-                } else if !keepalive_ok {
-                    Some((
-                        id,
-                        conn.instance_id,
-                        "keepalive_failure_threshold_reached",
-                        conn.client_heartbeat_age_secs(),
-                        conn.keepalive_failure_count(),
                     ))
                 } else {
                     None
@@ -349,14 +312,14 @@ pub fn spawn_ssh_session_cleanup_task(
             continue;
         }
 
-        let removed_connections: Vec<(String, &'static str, u64, u8, SshConnection)> =
+        let removed_connections: Vec<(String, &'static str, u64, SshConnection)> =
             match sessions.lock() {
                 Ok(mut map) => expired_entries
                     .into_iter()
                     .filter_map(
-                        |(id, _instance_id, reason, heartbeat_age_secs, keepalive_failures)| {
+                        |(id, _instance_id, reason, heartbeat_age_secs)| {
                             map.remove(&id).map(|conn| {
-                                (id, reason, heartbeat_age_secs, keepalive_failures, conn)
+                                (id, reason, heartbeat_age_secs, conn)
                             })
                         },
                     )
@@ -366,9 +329,9 @@ pub fn spawn_ssh_session_cleanup_task(
                     expired_entries
                         .into_iter()
                         .filter_map(
-                            |(id, _instance_id, reason, heartbeat_age_secs, keepalive_failures)| {
+                            |(id, _instance_id, reason, heartbeat_age_secs)| {
                                 map.remove(&id).map(|conn| {
-                                    (id, reason, heartbeat_age_secs, keepalive_failures, conn)
+                                    (id, reason, heartbeat_age_secs, conn)
                                 })
                             },
                         )
@@ -376,7 +339,7 @@ pub fn spawn_ssh_session_cleanup_task(
                 }
             };
 
-        for (id, reason, heartbeat_age_secs, keepalive_failures, conn) in removed_connections {
+        for (id, reason, heartbeat_age_secs, conn) in removed_connections {
             let instance_id = conn.instance_id;
             let _ = conn.shutdown("PiTerm cleanup");
             ssh_log::warn(
@@ -388,8 +351,7 @@ pub fn spawn_ssh_session_cleanup_task(
                 .session_id(id.clone())
                 .instance_id(instance_id)
                 .field("reason", reason)
-                .field("heartbeat_age_secs", heartbeat_age_secs)
-                .field("keepalive_failures", keepalive_failures),
+                .field("heartbeat_age_secs", heartbeat_age_secs),
             );
             let _ = app.emit(
                 &format!("term-exit-{}", id),
