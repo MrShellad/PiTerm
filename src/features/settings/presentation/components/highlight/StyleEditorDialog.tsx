@@ -241,7 +241,7 @@ export const StyleEditorDialog = ({ open, onOpenChange, styleToEdit }: Props) =>
                 </span>
             </div>
 
-            <div className="absolute bottom-1 right-2 text-[9px] text-slate-400 opacity-50">
+            <div className="absolute bottom-1 right-2 text-[0.5625rem] text-slate-400 opacity-50">
                 {t('settings.highlights.livePreview', 'Live Preview')}
             </div>
         </div>

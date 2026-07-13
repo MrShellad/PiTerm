@@ -1,13 +1,14 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { emit } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { Toaster } from 'sonner';
+import { Toaster, toast } from 'sonner';
+import { useEventBus } from '@/hooks/useEventBus';
 
 import { MainLayout } from '@/components/layout/MainLayout';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
-import { KeyManagerPanel } from '@/features/keys/KeyManagerPanel';
-import { GlobalVaultModal } from '@/features/keys/components/GlobalVaultModal';
+import { KeyManagerPanel } from '@/features/keys/presentation/KeyManagerPanel';
+import { GlobalVaultModal } from '@/features/keys/presentation/components/GlobalVaultModal';
 import { ServerListPage } from '@/features/server/list';
 import { useServerStore } from '@/features/server/application/useServerStore';
 import { SettingsPage } from '@/features/settings/presentation/SettingsPage';
@@ -18,10 +19,16 @@ import { useSettingsEffects } from '@/features/settings/hooks/useSettingsEffects
 import { SnippetPage } from '@/features/snippet/SnippetPage';
 import { ToolsPlaceholder } from '@/features/tools/ToolsPlaceholder';
 import { useKeyStore } from '@/store/useKeyStore';
+import { useBackgroundReady } from '@/hooks/useBackgroundReady';
 
 export function MainAppShell() {
   useSettingsEffects();
   useSecurityEffects();
+
+  // Subscribe to system:toast notifications via the Event Bus
+  useEventBus('system:toast', (payload) => {
+    toast[payload.type](payload.message);
+  });
 
   const settings = useSettingsStore(s => s.settings);
   const initDeviceIdentity = useSettingsStore(s => s.initDeviceIdentity);
@@ -78,7 +85,19 @@ export function MainAppShell() {
     fetchServers(true);
   }, [fetchServers]);
 
+  // 🟢 [优化] Splash 等待壁纸就绪后再移除，防止启动闪烁
+  const bgReady = useBackgroundReady(s => s.isReady);
+  const splashRemovedRef = useRef(false);
+
   useEffect(() => {
+    // 防止重复执行
+    if (splashRemovedRef.current) return;
+
+    // 等待设置水合 + 壁纸就绪
+    if (!settingsHydrated || !bgReady) return;
+
+    splashRemovedRef.current = true;
+
     const splash = document.getElementById('splash');
     if (splash) {
       splash.style.opacity = '0';
@@ -88,6 +107,26 @@ export function MainAppShell() {
     if (typeof window !== 'undefined' && (window as any).__TAURI__) {
       try { getCurrentWindow().show(); } catch (e) { console.error(e); }
     }
+  }, [settingsHydrated, bgReady]);
+
+  // 🟢 安全超时：防止壁纸加载异常导致永久白屏
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (splashRemovedRef.current) return;
+      splashRemovedRef.current = true;
+
+      const splash = document.getElementById('splash');
+      if (splash) {
+        splash.style.opacity = '0';
+        splash.style.transition = 'opacity 0.3s ease';
+        setTimeout(() => { splash.remove(); }, 300);
+      }
+      if (typeof window !== 'undefined' && (window as any).__TAURI__) {
+        try { getCurrentWindow().show(); } catch (e) { console.error(e); }
+      }
+    }, 3000); // 3秒安全超时
+
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {

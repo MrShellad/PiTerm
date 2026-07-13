@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { save } from '@tauri-apps/plugin-dialog';
 import { writeTextFile } from '@tauri-apps/plugin-fs';
 import { useKeyStore } from '@/store/useKeyStore';
-import { KeyEntry, DecryptedData } from '../types';
+import { KeyEntry, DecryptedData } from '../../domain/types';
 
 export const useKeyCardLogic = (data: KeyEntry) => {
     const { getDecryptedContent } = useKeyStore();

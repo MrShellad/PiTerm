@@ -70,48 +70,40 @@ export const MonitorInfoFace = ({
   return (
     <div className="flex flex-col min-h-[7rem] w-full p-4 justify-between relative">
       {/* Header Area */}
-      {/* 🟢 1. 将外层的 items-start 改为 items-center (如果右侧有操作按钮也能对齐) */}
       <div className="flex justify-between items-center gap-2 mb-2">
-        
-        {/* 🟢 2. 将此处的 items-start 改为 items-center */}
         <div className="flex items-center gap-3 flex-1 min-w-0">
-          
           <div className="p-2.5 rounded-xl shrink-0 bg-slate-100/80 dark:bg-white/10 backdrop-blur-sm">
             {icon}
           </div>
-          
-          {/* 🟢 3. 移除 pt-1.5 (之前是 className="flex-1 min-w-0 flex flex-col pt-1.5") */}
           <div className="flex-1 min-w-0 flex flex-col justify-center">
             <div className="flex items-center gap-2">
-               <p className="text-sm font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wide">
+               <p className="text-sm font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wide">
                   {title}
                </p>
                {tag && (
-                  <span className="text-xs font-semibold bg-slate-200/50 dark:bg-white/10 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-400">
+                  <span className="text-xs font-medium bg-slate-200/50 dark:bg-white/10 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-400">
                     {tag}
                   </span>
                )}
             </div>
-            <div className="text-xs leading-snug mt-1 font-medium text-slate-700/80 dark:text-slate-200/80 truncate">
+            <div className="text-xs leading-snug mt-1 font-normal text-slate-700/80 dark:text-slate-200/80 truncate">
               {detail}
             </div>
           </div>
-
         </div>
       </div>
 
       {/* Footer Area */}
       <div className="flex items-end justify-between min-h-0">
-        <div className="flex flex-col pl-0.5">
+        <div className="flex flex-col">
           <span className={clsx(
               "uppercase tracking-[0.05em] mb-1 font-medium", 
-              // 🟢 [优化] 提升至 text-xs (12px)
               subTitleClassName || "text-xs text-slate-500 dark:text-slate-400"
           )}>
             {subTitle}
           </span>
           <div className={clsx(
-              "text-lg font-semibold tracking-tighter leading-none",
+              "text-lg font-medium tracking-tighter leading-none",
               usageColor
           )}>
             {usageDisplay || `${(usage || 0).toFixed(1)}%`}

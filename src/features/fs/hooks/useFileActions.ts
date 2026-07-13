@@ -12,6 +12,7 @@ import { TerminalService } from '@/features/terminal/application/services/termin
 import { isEditable } from '../editor/config';
 // [新增] 引入 Tauri 窗口 API
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
+import { eventBus } from '@/lib/eventBus';
 
 const pathUtils = {
     join: (parent: string, name: string) => {
@@ -62,7 +63,10 @@ export const useFileActions = (sessionId: string) => {
         setTimeout(() => setToastMessage(null), 3000);
     };
 
-    const refresh = useCallback(() => triggerReload(sessionId), [sessionId, triggerReload]);
+    const refresh = useCallback(() => {
+        triggerReload(sessionId);
+        eventBus.emit('fs:refresh-directory', { sessionId });
+    }, [sessionId, triggerReload]);
 
     const handleSort = useCallback((field: SortField) => {
         setSort(sessionId, field);
@@ -177,6 +181,11 @@ const handleDoubleClick = useCallback((file: FileEntry) => {
 
             updateStatus(transferId, 'completed');
             showToast(t('fs.msg.uploadSuccess', 'Upload successful'));
+            eventBus.emit('fs:file-uploaded', {
+                sessionId,
+                path: remotePath,
+                fileName: localPath.split(/[/\\]/).pop() || ''
+            });
             refresh(); 
         } catch (error: any) {
             console.error("Upload failed:", error);

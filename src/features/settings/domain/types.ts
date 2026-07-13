@@ -21,7 +21,8 @@ export type SettingItemType =
   | 'image'
   | 'slider'
   | 'backup-manager'
-  | 'shortcut';
+  | 'shortcut'
+  | 'pin-manager';
 
 // [新增] 代理类型定义
 export type ProxyType = 'http' | 'https' | 'socks4' | 'socks5';

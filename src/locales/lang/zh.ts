@@ -36,6 +36,12 @@ export const zh = {
     },
     common: {
       password: "密码",
+      time: {
+        days: "天",
+        hours: "时",
+        minutes: "分",
+        lessThan1m: "< 1分"
+      },
       default: "默认",
       unlock: "解锁",
       unbind: "解绑",
@@ -616,6 +622,12 @@ keys: {
               light: "浅色模式",
               dark: "深色模式"
           },
+          lightThemeScheme: "亮色主题方案",
+          lightThemeSchemeDesc: "配置亮色模式下的配色方案",
+          lightThemeOptions: {
+              default: "默认 (冷灰)",
+              claude: "Claude 浅色 (Parchment)"
+          },
           noWallpaper: "无背景",
           changeWallpaper: "更换背景",
           syncBackground: "背景同步",
@@ -711,7 +723,20 @@ keys: {
       idleTimeout: "空闲自动锁定",
       idleTimeoutDesc: "当没有鼠标或键盘操作超过指定时间后，自动锁定应用。",
       lockShortcut: "快速锁定快捷键",
-      lockShortcutDesc: "按下此组合键立即锁定 (例如: Ctrl+Shift+L)。"
+      lockShortcutDesc: "按下此组合键立即锁定 (例如: Ctrl+Shift+L)。",
+      pinManager: "主密码 (PIN)",
+      pinManagerDesc: "修改或管理用于保险库及敏感信息加密的主密码 (PIN)。",
+      changePin: "修改 PIN 码",
+      oldPin: "当前 PIN 码",
+      newPin: "新 PIN 码",
+      confirmPin: "确认新 PIN 码",
+      pinLengthError: "PIN 码长度必须至少为 6 位",
+      pinMismatchError: "两次输入的新 PIN 码不一致",
+      oldPinIncorrect: "当前 PIN 码不正确",
+      changeSuccess: "主密码修改成功",
+      changeFailed: "修改主密码失败",
+      uninitializedWarning: "主密码未设置。请先前往【密钥管理】初始化保险库。",
+      goToKeys: "前往密钥管理"
     },
     proxy: {
       edit: "编辑代理",
@@ -728,7 +753,11 @@ keys: {
       empty: "没有代理配置",
     },
     connection: {
-      proxies: "代理"
+      proxies: "代理",
+      agentWsEnabled: "启用 AI 智能体 WS 服务",
+      agentWsEnabledDesc: "开启本地 WebSocket 服务，允许受信任的 AI 助手程序通过此接口连接控制当前的 SSH 会话。",
+      agentWsPort: "AI 智能体服务端口",
+      agentWsPortDesc: "设置本地 WebSocket 服务所监听的 TCP 端口。"
     },
     backup: {
       webdav: "WebDAV配置",
@@ -768,7 +797,10 @@ keys: {
 
     },
     about: {
-      version: "当前版本"
+      version: "当前版本",
+      microsoftStore: "微软商店",
+      microsoftStoreDesc: "在微软商店中为 PiTerm 评分或检查更新",
+      openInStore: "在商店中打开"
     }
   }
   }

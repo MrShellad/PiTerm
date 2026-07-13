@@ -1,9 +1,9 @@
-import { KeyEntry } from '../types';
+import { KeyEntry } from '../../domain/types';
 import { Key, FileKey, Server, Loader2, MoreHorizontal, PenLine, Trash2, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { clsx } from 'clsx';
 import { useKeyStore } from '@/store/useKeyStore';
-import { useKeyCardLogic } from '../hooks/useKeyCardLogic';
+import { useKeyCardLogic } from '../../application/hooks/useKeyCardLogic';
 import { KeyDetailModal } from './KeyDetailModal';
 import { 
   DropdownMenu, 
@@ -60,13 +60,12 @@ export const KeyCard = ({ data, onDelete }: Props) => {
 
                 {/* 2. Header */}
                 <InteractiveCardHeader>
-                    {/* 🟢 [修复 1] 图标风格统一：使用纯色背景 + 白色图标 */}
                     <InteractiveCardIcon 
                         className={clsx(
                             "border shadow-sm transition-colors duration-300", 
                             isPassword 
-                                ? "!bg-orange-500 !border-orange-600 text-white" // Password: 纯橙
-                                : "!bg-blue-500 !border-blue-600 text-white"     // Key: 纯蓝 (主题色)
+                                ? "!bg-orange-500 !border-orange-600 text-white"
+                                : "!bg-blue-500 !border-blue-600 text-white"
                         )}
                     >
                         {isPassword ? <Key className="w-5 h-5" /> : <FileKey className="w-5 h-5" />}
@@ -81,7 +80,6 @@ export const KeyCard = ({ data, onDelete }: Props) => {
                         </span>
                     </div>
 
-                    {/* 🟢 [修复 3] 菜单层级问题：直接使用 DropdownMenu */}
                     <div onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu open={showMenu} onOpenChange={setShowMenu}>
                             <DropdownMenuTrigger asChild>
@@ -96,7 +94,6 @@ export const KeyCard = ({ data, onDelete }: Props) => {
                                     <MoreHorizontal className="w-4 h-4" />
                                 </button>
                             </DropdownMenuTrigger>
-                            {/* z-[50] 确保菜单浮在任何卡片之上 */}
                             <DropdownMenuContent align="end" className="w-40 z-[50]">
                                 <DropdownMenuItem onClick={() => openModal('edit', data.id)}>
                                     <PenLine className="w-3.5 h-3.5 mr-2 opacity-70" />
@@ -121,7 +118,6 @@ export const KeyCard = ({ data, onDelete }: Props) => {
 
                 {/* 3. Body: Usage Info */}
                 <InteractiveCardBody className="mt-2">
-                    {/* 🟢 [修复 2] 提升文字明度：text-slate-600 dark:text-slate-400 */}
                     <div className="bg-slate-50/80 dark:bg-slate-900/40 rounded-md p-2.5 text-[11px] border border-slate-100 dark:border-white/5 transition-colors group-hover:bg-slate-100 dark:group-hover:bg-slate-800/50">
                         <div className="flex items-center gap-2 mb-1.5">
                             <Server className="w-3 h-3 text-slate-400 dark:text-slate-500 shrink-0" />

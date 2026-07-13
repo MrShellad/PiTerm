@@ -128,7 +128,7 @@ fn derive_key(password: &str, salt: &[u8]) -> Key<Aes256Gcm> {
     *Key::<Aes256Gcm>::from_slice(&key)
 }
 
-fn encrypt_data(key: &Key<Aes256Gcm>, plaintext: &[u8]) -> Result<String, String> {
+pub(crate) fn encrypt_data(key: &Key<Aes256Gcm>, plaintext: &[u8]) -> Result<String, String> {
     let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
     let cipher = Aes256Gcm::new(key);
     let ciphertext = cipher
@@ -408,8 +408,11 @@ pub async fn unlock_vault(
         return Err("Vault not initialized".to_string());
     }
 
-    let salt_str: String = salt_row.unwrap().get(0);
-    let auth_check_str: String = auth_row.unwrap().get(0);
+    let salt_row = salt_row.ok_or_else(|| "Vault not initialized".to_string())?;
+    let auth_row = auth_row.ok_or_else(|| "Vault not initialized".to_string())?;
+
+    let salt_str: String = salt_row.get(0);
+    let auth_check_str: String = auth_row.get(0);
 
     let salt_bytes = BASE64
         .decode(salt_str)
@@ -570,4 +573,112 @@ pub async fn get_decrypted_content(
         guard.as_ref().cloned().ok_or("VAULT_LOCKED")?
     };
     internal_get_secret(pool, &master_key, &id).await
+}
+
+#[command]
+pub async fn change_vault_password(
+    state: State<'_, AppState>,
+    vault_state: State<'_, VaultState>,
+    old_password: String,
+    new_password: String,
+) -> Result<(), String> {
+    let pool = &state.db;
+
+    // 1. Verify old password and retrieve the old salt
+    let salt_row = sqlx::query("SELECT value FROM vault_config WHERE key = 'vault_salt'")
+        .fetch_optional(pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    let auth_row = sqlx::query("SELECT value FROM vault_config WHERE key = 'auth_check'")
+        .fetch_optional(pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if salt_row.is_none() || auth_row.is_none() {
+        return Err("Vault not initialized".to_string());
+    }
+
+    let salt_row = salt_row.ok_or_else(|| "Vault not initialized".to_string())?;
+    let auth_row = auth_row.ok_or_else(|| "Vault not initialized".to_string())?;
+
+    let salt_str: String = salt_row.get(0);
+    let auth_check_str: String = auth_row.get(0);
+
+    let salt_bytes = BASE64
+        .decode(salt_str)
+        .map_err(|_| "Invalid Salt".to_string())?;
+    let old_key = derive_key(&old_password, &salt_bytes);
+
+    // Verify old password
+    match decrypt_data(&old_key, &auth_check_str) {
+        Ok(decrypted) if decrypted == AUTH_CHECK_TEXT => {}
+        _ => return Err("INVALID_OLD_PASSWORD".to_string()),
+    }
+
+    // 2. Retrieve all keys from vault_keys so we can re-encrypt them
+    let keys_to_reencrypt = sqlx::query("SELECT id, encrypted_content FROM vault_keys")
+        .fetch_all(pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    // 3. Generate new salt and derive new key
+    let mut new_salt_bytes = [0u8; 16];
+    OsRng.fill_bytes(&mut new_salt_bytes);
+    let new_salt_str = BASE64.encode(new_salt_bytes);
+    let new_key = derive_key(&new_password, &new_salt_bytes);
+
+    // 4. Re-encrypt all keys
+    let mut reencrypted_keys = Vec::new();
+    for row in keys_to_reencrypt {
+        let id: String = row.get(0);
+        let enc_json: String = row.get(1);
+
+        // Decrypt with old key
+        let plaintext_bytes = decrypt_data(&old_key, &enc_json)
+            .map_err(|e| format!("Failed to decrypt key {}: {}", id, e))?;
+        
+        // Re-encrypt with new key
+        let new_enc_json = encrypt_data(&new_key, &plaintext_bytes)
+            .map_err(|e| format!("Failed to encrypt key {}: {}", id, e))?;
+        
+        reencrypted_keys.push((id, new_enc_json));
+    }
+
+    // 5. Update vault_config and vault_keys inside a transaction
+    let new_auth_check_json = encrypt_data(&new_key, AUTH_CHECK_TEXT)?;
+
+    let mut tx = pool.begin().await.map_err(|e| e.to_string())?;
+
+    // Update salt
+    sqlx::query("UPDATE vault_config SET value = ? WHERE key = 'vault_salt'")
+        .bind(&new_salt_str)
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    // Update auth check
+    sqlx::query("UPDATE vault_config SET value = ? WHERE key = 'auth_check'")
+        .bind(&new_auth_check_json)
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    // Update each key
+    let now = Utc::now().timestamp_millis();
+    for (id, new_enc_json) in reencrypted_keys {
+        sqlx::query("UPDATE vault_keys SET encrypted_content = ?, updated_at = ? WHERE id = ?")
+            .bind(&new_enc_json)
+            .bind(now)
+            .bind(&id)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| e.to_string())?;
+    }
+
+    tx.commit().await.map_err(|e| e.to_string())?;
+
+    // 6. Update the in-memory VaultState
+    *vault_state.0.lock().unwrap() = Some(new_key);
+
+    Ok(())
 }

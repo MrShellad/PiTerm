@@ -1,11 +1,11 @@
-import React, { useMemo } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { Server } from "@/features/server/domain/types";
-import { CardSize } from "../domain/types"; // 移除了 CARD_DIMENSIONS 的引用
+import { CardSize } from "../domain/types";
 import { ServerCard } from "./ServerCard";
 import { ServerCardSkeleton } from "./ServerCardSkeleton"; 
 import { motion, Variants } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { VirtuosoGrid } from "react-virtuoso";
+import { useVirtualizer } from '@tanstack/react-virtual';
 
 interface Props {
   servers: Server[];
@@ -16,10 +16,6 @@ interface Props {
   shouldAnimate?: boolean;
 }
 
-// 🟢 [优化] 定义更紧凑的卡片最小宽度
-// sm: 220px (原可能为 280px+)
-// md: 260px (原可能为 320px+)
-// lg: 320px (原可能为 380px+)
 const COMPACT_WIDTHS: Record<CardSize, string> = {
   sm: "220px", 
   md: "260px",
@@ -32,26 +28,6 @@ const CARD_DIMENSIONS: Record<CardSize, { width: string; height: string }> = {
   lg: { width: "320px", height: "210px" }
 };
 
-// 🟢 [优化] 将 Virtuoso 组件定义移至组件外部，避免每次重渲染时创建新组件引用，导致整个列表 DOM 树卸载并重新挂载
-const GridList = React.forwardRef<HTMLDivElement, any>(({ children, style, context, ...props }, ref) => (
-  <div
-    ref={ref}
-    {...props}
-    style={{ ...style, gridTemplateColumns: context?.gridTemplateColumns }}
-    className="grid gap-4 pt-2 pb-2 justify-center content-start"
-  >
-    {children}
-  </div>
-));
-GridList.displayName = "GridList";
-
-const GridItem = ({ children, ...props }: any) => (
-  <div {...props} className="w-full">
-    {children}
-  </div>
-);
-GridItem.displayName = "GridItem";
-
 export const ServerGrid = ({ 
   servers, 
   cardSize, 
@@ -62,10 +38,29 @@ export const ServerGrid = ({
 }: Props) => {
   const { t } = useTranslation();
   
-  // 🟢 [优化] 使用 useMemo 缓存 gridStyle 相关的属性，将卡片宽度严格固定，防止其随视口宽度拉伸变大
-  const contextValue = useMemo(() => ({
-    gridTemplateColumns: `repeat(auto-fill, ${COMPACT_WIDTHS[cardSize]})`
-  }), [cardSize]);
+  const [columns, setColumns] = useState(1);
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const updateColumns = () => {
+      if (!parentRef.current) return;
+      const containerWidth = parentRef.current.getBoundingClientRect().width;
+      const cardWidth = cardSize === 'sm' ? 220 : cardSize === 'md' ? 260 : 320;
+      const computed = Math.floor((containerWidth + 16) / (cardWidth + 16));
+      setColumns(Math.max(1, computed));
+    };
+
+    updateColumns();
+    const observer = new ResizeObserver(updateColumns);
+    if (parentRef.current) {
+      observer.observe(parentRef.current);
+    }
+    window.addEventListener('resize', updateColumns);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateColumns);
+    };
+  }, [cardSize]);
 
   // 1. Loading 骨架屏
   if (isLoading && servers.length === 0) {
@@ -90,17 +85,28 @@ export const ServerGrid = ({
       transition: { 
         duration: 0.3, 
         ease: "easeOut",
-        // 限制最大延迟时间，防止后面滚入的卡片等待过久
         delay: shouldAnimate ? Math.min(index * 0.04, 0.24) : 0
       }
     })
   };
 
-  // 🟢 [优化] 缓存 components 对象的引用，使其恒定不变
-  const virtuosoComponents = useMemo(() => ({
-    List: GridList,
-    Item: GridItem
-  }), []);
+  const rows = useMemo(() => {
+    const chunked = [];
+    for (let i = 0; i < servers.length; i += columns) {
+      chunked.push(servers.slice(i, i + columns));
+    }
+    return chunked;
+  }, [servers, columns]);
+
+  const rowVirtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => {
+      const cardHeight = cardSize === 'sm' ? 170 : cardSize === 'md' ? 200 : 210;
+      return cardHeight + 16; 
+    },
+    overscan: 5,
+  });
 
   if (!isLoading && servers.length === 0) {
     return (
@@ -117,56 +123,73 @@ export const ServerGrid = ({
   }
 
   return (
-    <VirtuosoGrid
-      style={{ height: "100%", width: "100%" }}
-      className="custom-scrollbar"
-      totalCount={servers.length}
-      context={contextValue}
-      components={virtuosoComponents}
-      itemContent={(index) => {
-        const server = servers[index];
-        const dimensions = CARD_DIMENSIONS[cardSize];
-        return (
-          <motion.div
-            key={server.id}
-            layout="position"
-            custom={index}
-            variants={itemVariants}
-            initial={shouldAnimate ? "hidden" : "visible"}
-            animate="visible"
-            transition={{
-              layout: {
-                type: "spring",
-                stiffness: 200,
-                damping: 26
-              }
-            }}
-          >
-            <motion.div
-              animate={{
-                width: dimensions.width,
-                height: dimensions.height
+    <div 
+      ref={parentRef}
+      className="w-full h-full overflow-y-auto custom-scrollbar"
+    >
+      <div
+        style={{
+          height: `${rowVirtualizer.getTotalSize()}px`,
+          width: '100%',
+          position: 'relative',
+        }}
+      >
+        {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+          const rowItems = rows[virtualRow.index];
+          if (!rowItems) return null;
+          return (
+            <div
+              key={virtualRow.key}
+              className="grid gap-4 justify-center"
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: `${virtualRow.size - 16}px`,
+                transform: `translateY(${virtualRow.start}px)`,
+                gridTemplateColumns: `repeat(${columns}, ${COMPACT_WIDTHS[cardSize]})`,
               }}
-              transition={{
-                type: "spring",
-                stiffness: 250,
-                damping: 26
-              }}
-              className="mx-auto"
             >
-              <ServerCard 
-                data={server}
-                size={cardSize}
-                onConnect={() => actions.handleConnect(server)}
-                onCopyIP={() => actions.handleCopyIP(server.ip)}
-                onPin={() => actions.handlePin(server)}
-                onDelete={() => actions.handleDelete(server.id)}
-                onEdit={() => onEdit(server)}
-              />
-            </motion.div>
-          </motion.div>
-        );
-      }}
-    />
+              {rowItems.map((server, colIndex) => {
+                const globalIndex = virtualRow.index * columns + colIndex;
+                const dimensions = CARD_DIMENSIONS[cardSize];
+                return (
+                  <motion.div
+                    key={server.id}
+                    layout="position"
+                    custom={globalIndex}
+                    variants={itemVariants}
+                    initial={shouldAnimate ? "hidden" : "visible"}
+                    animate="visible"
+                    transition={{
+                      layout: {
+                        type: "spring",
+                        stiffness: 200,
+                        damping: 26
+                      }
+                    }}
+                    style={{
+                      width: dimensions.width,
+                      height: dimensions.height
+                    }}
+                  >
+                    <ServerCard 
+                      data={server}
+                      size={cardSize}
+                      onConnect={() => actions.handleConnect(server)}
+                      onCopyIP={() => actions.handleCopyIP(server.ip)}
+                      onPin={() => actions.handlePin(server)}
+                      onDelete={() => actions.handleDelete(server.id)}
+                      onEdit={() => onEdit(server)}
+                    />
+                  </motion.div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 };

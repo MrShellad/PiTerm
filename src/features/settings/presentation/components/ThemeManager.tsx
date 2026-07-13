@@ -73,19 +73,19 @@ export const ThemeManager = () => {
         {allThemes.map(theme => (
           <div 
             key={theme.id} 
-            className="group relative border border-slate-200 dark:border-slate-800 rounded-lg p-3 hover:border-blue-500 transition-colors"
+            className="group relative border border-slate-200 dark:border-slate-800 rounded-lg p-3.5 hover:border-blue-500 transition-colors"
           >
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-medium text-sm truncate pr-2">{theme.name}</span>
+            <div className="flex items-center justify-between mb-2.5">
+              <span className="font-medium text-base truncate pr-2">{theme.name}</span>
               {theme.isBuiltin ? (
-                  <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-500 shrink-0">Built-in</span>
+                  <span className="text-base bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-500 shrink-0">Built-in</span>
               ) : (
-                  <span className="text-[10px] bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded shrink-0">User</span>
+                  <span className="text-base bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded shrink-0">User</span>
               )}
             </div>
             
             {/* 颜色预览条 */}
-            <div className="flex h-3 rounded-full overflow-hidden mb-3 bg-slate-100 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+            <div className="flex h-3.5 rounded-full overflow-hidden mb-3 bg-slate-100 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
                <div style={{width: '20%', background: theme.background}} />
                <div style={{width: '20%', background: theme.foreground}} />
                <div style={{width: '20%', background: theme.blue}} />
@@ -95,18 +95,18 @@ export const ThemeManager = () => {
 
             {/* 操作按钮 */}
             <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
-              <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleEdit(theme)} title={theme.isBuiltin ? "Copy & Edit" : "Edit"}>
-                {theme.isBuiltin ? <Copy className="w-3.5 h-3.5" /> : <Edit2 className="w-3.5 h-3.5" />}
+              <Button size="icon" variant="ghost" className="h-9 w-9" onClick={() => handleEdit(theme)} title={theme.isBuiltin ? "Copy & Edit" : "Edit"}>
+                {theme.isBuiltin ? <Copy className="w-4 h-4" /> : <Edit2 className="w-4 h-4" />}
               </Button>
               {!theme.isBuiltin && (
                 <Button 
                     size="icon" 
                     variant="ghost" 
-                    className="h-6 w-6 text-red-500 hover:text-red-600" 
+                    className="h-9 w-9 text-red-500 hover:text-red-600" 
                     // [修改] 调用新的点击处理函数
                     onClick={() => handleDeleteClick(theme.id)}
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="w-4 h-4" />
                 </Button>
               )}
             </div>
@@ -116,10 +116,10 @@ export const ThemeManager = () => {
         {/* 新增按钮 */}
         <button 
           onClick={() => setEditorState({ isOpen: true, base: allThemes[0] })}
-          className="flex flex-col items-center justify-center border border-dashed border-slate-300 dark:border-slate-700 rounded-lg p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-slate-400 hover:text-blue-500 min-h-[88px]"
+          className="flex flex-col items-center justify-center border border-dashed border-slate-300 dark:border-slate-700 rounded-lg p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-slate-400 hover:text-blue-500 min-h-[108px]"
         >
-          <Plus className="w-6 h-6 mb-1" />
-          <span className="text-xs">{t('settings.theme.add', 'Add New')}</span>
+          <Plus className="w-6 h-6 mb-1.5" />
+          <span className="text-base">{t('settings.theme.add', 'Add New')}</span>
         </button>
       </div>
 

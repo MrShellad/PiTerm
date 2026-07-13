@@ -39,9 +39,6 @@ export const KeyManagerToolbar = () => {
     };
 
     return (
-        // 🟢 [修复] 将 mx-2 mb-2 改为 m-2
-        // m-2 = margin: 0.5rem (8px) // 四周都会有边距，这就包含了 mt-2 (顶部边距)
-        // 这样工具栏就不会紧贴着窗口顶部（被标题栏遮挡）了
         <div className={clsx(
             "sticky top-2 z-10 p-4 m-2 rounded-xl shadow-sm",
             "bg-white/60 dark:bg-slate-900/60 backdrop-blur-md",
@@ -49,21 +46,15 @@ export const KeyManagerToolbar = () => {
             "transition-all duration-300"
         )}>
             <ActionToolbar
-
-                // 2. 搜索功能
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
                 searchPlaceholder={t('keys.searchPlaceholder', 'Search keys...')}
-
-                // 3. 视图切换
                 viewMode={viewMode}
                 onViewModeChange={(mode) => {
                     if (mode !== viewMode) {
                         toggleViewMode();
                     }
                 }}
-
-                // 4. 额外操作区 (导出按钮)
                 extraActions={
                     <button 
                         onClick={handleExportAll}
@@ -75,8 +66,6 @@ export const KeyManagerToolbar = () => {
                         <span className="hidden xl:inline">{t('common.exportAll', 'Export All')}</span>
                     </button>
                 }
-
-                // 5. 主要操作 (添加按钮)
                 onAdd={() => openModal('add')}
                 addLabel={t('keys.add', 'Add Key')}
             />

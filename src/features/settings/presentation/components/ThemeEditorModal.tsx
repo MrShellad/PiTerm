@@ -111,7 +111,7 @@ const ColorRow = memo(({ field, value, onChange }: {
   };
 
   return (
-    <div className="group flex items-center gap-3 p-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 hover:border-blue-300 dark:hover:border-blue-700 transition-all shadow-sm hover:shadow-md h-[60px]">
+    <div className="group flex items-center gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 hover:border-blue-300 dark:hover:border-blue-700 transition-all shadow-sm hover:shadow-md h-[68px]">
       <div className="relative shrink-0">
         <GlassTooltip content={isAlphaSupported ? `Alpha: ${Math.round(alpha * 100)}%` : "Click to pick color"}>
           <div className="w-10 h-10 rounded-full border border-slate-200 dark:border-slate-700 shadow-inner cursor-pointer transition-transform group-hover:scale-105 overflow-hidden relative bg-[url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAIklEQVQIW2NkQAKrVq36zwjjgzhhYWGMYAEYB8RmROaABADeOQ8CXl/xfgAAAABJRU5ErkJggg==')]">
@@ -132,13 +132,13 @@ const ColorRow = memo(({ field, value, onChange }: {
         </GlassTooltip>
       </div>
 
-      <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
+      <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5">
         <div className="flex justify-between items-center">
-            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider truncate">
+            <span className="text-base font-semibold text-slate-400 uppercase tracking-wider truncate">
                {displayLabel}
             </span>
             {isAlphaSupported && (
-                <span className="text-[10px] font-mono text-slate-400">
+                <span className="text-base font-mono text-slate-400">
                     {Math.round(alpha * 100)}%
                 </span>
             )}
@@ -147,21 +147,21 @@ const ColorRow = memo(({ field, value, onChange }: {
         <div className="flex items-center gap-2">
            <div className="relative flex-1 min-w-0 flex items-center">
                {!isAlphaSupported && value.startsWith('#') && (
-                   <span className="absolute left-0 text-slate-400 text-xs select-none">#</span>
+                   <span className="absolute left-0 text-slate-400 text-base select-none">#</span>
                )}
                <input 
                  type="text"
                  value={!isAlphaSupported && value.startsWith('#') ? value.replace('#', '') : value}
                  onChange={handleTextChange}
                  className={cn(
-                     "w-full bg-transparent border-none p-0 h-5 text-xs font-mono text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-0 truncate",
-                     !isAlphaSupported && value.startsWith('#') ? "pl-2.5 uppercase" : "pl-0"
+                     "w-full bg-transparent border-none p-0 h-6 text-base font-mono text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-0 truncate",
+                     !isAlphaSupported && value.startsWith('#') ? "pl-3.5 uppercase" : "pl-0"
                  )}
                />
            </div>
 
            {isAlphaSupported && (
-               <div className="w-16 shrink-0">
+               <div className="w-20 shrink-0">
                    <Slider 
                       value={[alpha]} 
                       min={0} 
@@ -276,7 +276,7 @@ export const ThemeEditorModal = ({ isOpen, onClose, onSave, initialTheme, baseTh
             
             {/* 名字输入区域 */}
             <div className="bg-slate-100 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
-              <Label htmlFor="theme-name" className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">
+              <Label htmlFor="theme-name" className="text-base font-bold text-slate-500 uppercase tracking-wider mb-2 block">
                 {t('settings.theme.name', 'Theme Name')}
               </Label>
               
@@ -286,7 +286,7 @@ export const ThemeEditorModal = ({ isOpen, onClose, onSave, initialTheme, baseTh
                   value={name} 
                   onChange={e => setName(e.target.value)} 
                   placeholder="e.g. Ocean Breeze"
-                  className="bg-white dark:bg-slate-950 font-medium text-lg h-10 flex-1"
+                  className="bg-white dark:bg-slate-950 font-medium text-lg h-10 flex-1 text-base"
                 />
                 
                 <GlassTooltip content="Import Termite/INI Config">
@@ -294,7 +294,7 @@ export const ThemeEditorModal = ({ isOpen, onClose, onSave, initialTheme, baseTh
                     variant="outline" 
                     onClick={handleImportClick}
                     disabled={isImporting}
-                    className="shrink-0 gap-2 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400"
+                    className="h-10 text-base shrink-0 gap-2 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 px-4"
                   >
                     <Upload className="w-4 h-4" />
                     <span className="hidden sm:inline">Import</span>
@@ -313,7 +313,7 @@ export const ThemeEditorModal = ({ isOpen, onClose, onSave, initialTheme, baseTh
 
             {/* 颜色列表 */}
             <div>
-              <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 block px-1">
+              <Label className="text-base font-bold text-slate-500 uppercase tracking-wider mb-3 block px-1">
                 Color Palette
               </Label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -338,13 +338,13 @@ export const ThemeEditorModal = ({ isOpen, onClose, onSave, initialTheme, baseTh
           <Button 
             variant="ghost" 
             onClick={onClose}
-            className="hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500"
+            className="h-10 text-base hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 px-4"
           >
             {t('common.cancel', 'Cancel')}
           </Button>
           <Button 
             onClick={handleSave}
-            className="bg-blue-600 hover:bg-blue-700 text-white min-w-[100px] shadow-lg shadow-blue-500/20"
+            className="h-10 text-base bg-blue-600 hover:bg-blue-700 text-white min-w-[120px] shadow-lg shadow-blue-500/20 px-4"
           >
             {t('common.save', 'Save Theme')}
           </Button>

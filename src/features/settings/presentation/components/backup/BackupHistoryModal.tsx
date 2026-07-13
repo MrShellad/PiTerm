@@ -134,19 +134,19 @@ export const BackupHistoryModal = ({
                             {/* 第二行：设备来源 (如果有) */}
                             <div className="min-h-[20px] flex items-center">
                                 {deviceName ? (
-                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800/50 max-w-full truncate" title={deviceName}>
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[0.625rem] font-medium bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800/50 max-w-full truncate" title={deviceName}>
                                         <Laptop className="w-2.5 h-2.5 shrink-0" />
                                         <span className="truncate">{deviceName}</span>
                                     </span>
                                 ) : (
-                                    <span className="text-[10px] text-slate-400 italic">
+                                    <span className="text-[0.625rem] text-slate-400 italic">
                                         {t('settings.backup.unknownDevice', 'Unknown Device')}
                                     </span>
                                 )}
                             </div>
                             
                             {/* 第三行：文件名 + 大小 */}
-                            <p className="text-[10px] text-slate-400 truncate font-mono opacity-80 pt-0.5" title={file.name}>
+                            <p className="text-[0.625rem] text-slate-400 truncate font-mono opacity-80 pt-0.5" title={file.name}>
                                 {file.name} • {file.size}
                             </p>
                         </div>

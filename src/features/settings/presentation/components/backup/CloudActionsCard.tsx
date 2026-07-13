@@ -32,8 +32,8 @@ export const CloudActionsCard = ({
         {/* --- 1. Cloud Section (Left) --- */}
         <div className="flex flex-col border border-slate-200 dark:border-slate-800 rounded-xl bg-white/50 dark:bg-slate-900/50 overflow-hidden shadow-sm h-full">
             <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 shrink-0">
-                <h3 className="text-sm font-medium flex items-center gap-2 text-slate-700 dark:text-slate-200">
-                <CloudUpload className="w-4 h-4 text-blue-500" />
+                <h3 className="text-base font-medium flex items-center gap-2 text-slate-700 dark:text-slate-200">
+                <CloudUpload className="w-5 h-5 text-blue-500" />
                 {t('settings.backup.cloudTitle', 'Cloud Sync')}
                 </h3>
             </div>
@@ -46,26 +46,26 @@ export const CloudActionsCard = ({
                     isLoading={isBackingUp}
                     icon={CloudUpload}
                 >
-                    <span className="font-semibold text-sm">{t('settings.backup.backupNow', 'Backup to Cloud Now')}</span>
+                    <span className="font-semibold text-base">{t('settings.backup.backupNow', 'Backup to Cloud Now')}</span>
                 </CustomButton>
 
                 <div className="grid grid-cols-2 gap-3">
                     <CustomButton 
                         variant="outline" 
-                        className="h-auto py-3 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                        className="h-auto py-3 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors gap-2"
                         onClick={onOpenHistory}
                     >
-                        <History className="w-4 h-4 text-amber-500" />
-                        <span className="text-xs font-medium">{t('settings.backup.history', 'History')}</span>
+                        <History className="w-5 h-5 text-amber-500" />
+                        <span className="text-base font-medium">{t('settings.backup.history', 'History')}</span>
                     </CustomButton>
                     
                     <CustomButton 
                         variant="outline" 
-                        className="h-auto py-3 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                        className="h-auto py-3 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors gap-2"
                         onClick={onRestoreLatest}
                     >
-                        <RotateCcw className="w-4 h-4 text-emerald-500" />
-                        <span className="text-xs font-medium">{t('settings.backup.restoreLatest', 'Latest')}</span>
+                        <RotateCcw className="w-5 h-5 text-emerald-500" />
+                        <span className="text-base font-medium">{t('settings.backup.restoreLatest', 'Latest')}</span>
                     </CustomButton>
                 </div>
             </div>
@@ -74,8 +74,8 @@ export const CloudActionsCard = ({
         {/* --- 2. Local Section (Right) --- */}
         <div className="flex flex-col border border-slate-200 dark:border-slate-800 rounded-xl bg-white/50 dark:bg-slate-900/50 overflow-hidden shadow-sm h-full">
             <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 shrink-0">
-                <h3 className="text-sm font-medium flex items-center gap-2 text-slate-700 dark:text-slate-200">
-                    <HardDrive className="w-4 h-4 text-slate-500" />
+                <h3 className="text-base font-medium flex items-center gap-2 text-slate-700 dark:text-slate-200">
+                    <HardDrive className="w-5 h-5 text-slate-500" />
                     {t('settings.backup.localTitle', 'Local Backup')}
                 </h3>
             </div>
@@ -88,10 +88,10 @@ export const CloudActionsCard = ({
                     onClick={onExportLocal}
                     isLoading={isExporting}
                 >
-                    <Download className="w-4 h-4 text-slate-600 dark:text-slate-400 mr-2" />
-                    <div className="flex flex-col items-start">
-                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">{t('common.export', 'Export Backup')}</span>
-                        <span className="text-[10px] text-slate-400 font-normal">{t('settings.backup.savefile', 'Save as .zip file')}</span>
+                    <Download className="w-5 h-5 text-slate-600 dark:text-slate-400 mr-3 shrink-0" />
+                    <div className="flex flex-col items-start leading-normal">
+                        <span className="text-base font-semibold text-slate-700 dark:text-slate-200">{t('common.export', 'Export Backup')}</span>
+                        <span className="text-base text-slate-400/80 dark:text-slate-500 font-normal">{t('settings.backup.savefile', 'Save as .zip file')}</span>
                     </div>
                 </CustomButton>
 
@@ -101,10 +101,10 @@ export const CloudActionsCard = ({
                     onClick={onImportLocal}
                     isLoading={isImporting}
                 >
-                    <Upload className="w-4 h-4 text-slate-600 dark:text-slate-400 mr-2" />
-                    <div className="flex flex-col items-start">
-                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">{t('common.import', 'Import Backup')}</span>
-                        <span className="text-[10px] text-slate-400 font-normal">{t('settings.backup.restorefile', 'Restore from .zip file')}</span>
+                    <Upload className="w-5 h-5 text-slate-600 dark:text-slate-400 mr-3 shrink-0" />
+                    <div className="flex flex-col items-start leading-normal">
+                        <span className="text-base font-semibold text-slate-700 dark:text-slate-200">{t('common.import', 'Import Backup')}</span>
+                        <span className="text-base text-slate-400/80 dark:text-slate-500 font-normal">{t('settings.backup.restorefile', 'Restore from .zip file')}</span>
                     </div>
                 </CustomButton>
             </div>

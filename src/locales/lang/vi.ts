@@ -588,6 +588,12 @@ export const vi = {
           light: "Chế độ sáng",
           dark: "Chế độ tối"
         },
+        lightThemeScheme: "Chủ đề sáng",
+        lightThemeSchemeDesc: "Cấu hình màu sắc đặc biệt cho chế độ sáng",
+        lightThemeOptions: {
+          default: "Mặc định (Xám lạnh)",
+          claude: "Claude Sáng (Parchment)"
+        },
         noWallpaper: "Không có hình nền",
         changeWallpaper: "Thay đổi hình nền",
         syncBackground: "Đồng bộ nền",
@@ -635,7 +641,20 @@ export const vi = {
         idleTimeout: "Tự động khóa khi nhàn rỗi",
         idleTimeoutDesc: "Tự động khóa ứng dụng sau thời gian không có thao tác.",
         lockShortcut: "Phím tắt khóa nhanh",
-        lockShortcutDesc: "Nhấn tổ hợp phím này để khóa ngay (ví dụ: Ctrl+Shift+L)."
+        lockShortcutDesc: "Nhấn tổ hợp phím này để khóa ngay (ví dụ: Ctrl+Shift+L).",
+        pinManager: "Mã PIN chính",
+        pinManagerDesc: "Quản lý và thay đổi mã PIN chính để mã hóa kho khóa của bạn",
+        changePin: "Thay đổi mã PIN",
+        oldPin: "Mã PIN hiện tại",
+        newPin: "Mã PIN mới",
+        confirmPin: "Xác nhận mã PIN mới",
+        pinLengthError: "Mã PIN phải có ít nhất 6 ký tự",
+        pinMismatchError: "Mã PIN mới không khớp",
+        oldPinIncorrect: "Mã PIN hiện tại không chính xác",
+        changeSuccess: "Đổi mã PIN chính thành công",
+        changeFailed: "Thay đổi mã PIN thất bại",
+        uninitializedWarning: "Mã PIN chính chưa được thiết lập. Vui lòng khởi tạo kho khóa trong phần Quản lý khóa trước.",
+        goToKeys: "Đi tới Quản lý khóa"
       },
 
       proxy: {
@@ -695,7 +714,10 @@ export const vi = {
       },
 
       about: {
-        version: "Phiên bản hiện tại"
+        version: "Phiên bản hiện tại",
+        microsoftStore: "Microsoft Store",
+        microsoftStoreDesc: "Đánh giá PiTerm hoặc kiểm tra cập nhật trong Microsoft Store",
+        openInStore: "Mở trong Cửa hàng"
       }
     }
   }

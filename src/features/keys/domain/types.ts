@@ -1,6 +1,5 @@
-// src/features/keys/types.ts
+// src/features/keys/domain/types.ts
 
-// [新增] 导出缺失的类型
 export type VaultStatus = 'uninitialized' | 'locked' | 'unlocked';
 export type ViewMode = 'grid' | 'list';
 
@@ -13,8 +12,7 @@ export interface KeyEntry {
     content: string; 
     username?: string;
     salt: string;
-    // 🟢 [新增] 字段
-    algorithm?: string; // 可选，因为旧数据可能没有，或者密码类型没有算法
+    algorithm?: string;
     createdAt: number;
     updatedAt: number;
     lastUsed?: {
@@ -24,13 +22,11 @@ export interface KeyEntry {
     };
 }
 
-// [必须存在]
 export interface DecryptedData {
     val: string;   // 对应 Key Content
     pass?: string; // 对应 Passphrase
 }
 
-// 🟢 [新增] 关联检查返回的类型
 export interface KeyAssociation {
     serverId: string;
     serverName: string;

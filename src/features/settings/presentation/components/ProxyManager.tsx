@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Plus, Trash2, Edit2, Globe, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { KeyVaultGuard } from "@/features/keys/components/KeyVaultGuard";
+import { KeyVaultGuard } from "@/features/keys/presentation/components/KeyVaultGuard";
 import { useSettingsStore } from "../../application/useSettingsStore";
 import { ProxyEditDialog } from "./ProxyEditDialog";
 import { ProxyItem } from "../../domain/types";
@@ -23,28 +23,28 @@ const ProxyGroup = ({
     if (list.length === 0) return null;
     return (
         <div className="mb-6">
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 px-1">{title}</div>
+            <div className="text-base font-bold text-slate-400 uppercase tracking-wider mb-2.5 px-1">{title}</div>
             <div className="space-y-2">
                 {list.map(proxy => (
-                    <div key={proxy.id} className="group flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 hover:border-blue-500 transition-all">
+                    <div key={proxy.id} className="group flex items-center justify-between p-3.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 hover:border-blue-500 transition-all">
                         <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                            <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
                                 {proxy.type.startsWith('socks') ? <Shield className="w-4 h-4 text-purple-500" /> : <Globe className="w-4 h-4 text-blue-500" />}
                             </div>
                             <div>
-                                <div className="font-medium text-sm text-slate-900 dark:text-slate-100">{proxy.name}</div>
-                                <div className="text-xs text-slate-500 font-mono">
+                                <div className="font-medium text-base text-slate-900 dark:text-slate-100">{proxy.name}</div>
+                                <div className="text-base text-slate-500 font-mono mt-0.5">
                                     {proxy.host}:{proxy.port} 
-                                    {proxy.encryptedAuth && <span className="ml-2 text-[10px] bg-slate-100 dark:bg-slate-800 px-1 rounded text-slate-400">Auth</span>}
+                                    {proxy.encryptedAuth && <span className="ml-2 text-base bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-400">Auth</span>}
                                 </div>
                             </div>
                         </div>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onEdit(proxy)}>
-                                <Edit2 className="w-3.5 h-3.5 text-slate-500" />
+                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button size="icon" variant="ghost" className="h-9 w-9" onClick={() => onEdit(proxy)}>
+                                <Edit2 className="w-4 h-4 text-slate-500" />
                             </Button>
-                            <Button size="icon" variant="ghost" className="h-7 w-7 hover:text-red-500" onClick={() => onDelete(proxy.id)}>
-                                <Trash2 className="w-3.5 h-3.5" />
+                            <Button size="icon" variant="ghost" className="h-9 w-9 hover:text-red-500" onClick={() => onDelete(proxy.id)}>
+                                <Trash2 className="w-4 h-4" />
                             </Button>
                         </div>
                     </div>
@@ -109,18 +109,18 @@ export const ProxyManager = () => {
     return (
         <KeyVaultGuard>
             <div className="pt-2">
-                <div className="flex justify-between items-center mb-4">
-                    <p className="text-sm text-slate-500">
+                <div className="flex justify-between items-center mb-4 gap-4">
+                    <p className="text-base text-slate-500 leading-relaxed">
                         {t('settings.proxy.description', 'Manage your proxies securely. Passwords are encrypted with your Master Key.')}
                     </p>
-                    <Button size="sm" onClick={handleAdd} className="gap-1">
+                    <Button onClick={handleAdd} className="h-9 text-base gap-1 px-4 shrink-0">
                         <Plus className="w-4 h-4" />
                         {t('settings.proxy.add', 'Add Proxy')}
                     </Button>
                 </div>
 
                 {proxies.length === 0 ? (
-                    <div className="text-center py-8 text-slate-400 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg">
+                    <div className="text-center py-10 text-base text-slate-400 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg">
                         {t('settings.proxy.empty', 'No proxies configured')}
                     </div>
                 ) : (

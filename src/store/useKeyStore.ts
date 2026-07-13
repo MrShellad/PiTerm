@@ -7,7 +7,7 @@ import {
     KeyType, 
     DecryptedData, 
     KeyUsageStats // 🟢 [新增] 引入关联统计类型
-} from '@/features/keys/types';
+} from '@/features/keys/domain/types';
 
 interface ModalState {
     isOpen: boolean;

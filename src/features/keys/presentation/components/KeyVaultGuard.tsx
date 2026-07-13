@@ -7,14 +7,12 @@ export const KeyVaultGuard = ({ children }: { children: React.ReactNode }) => {
 
     useEffect(() => {
         checkVaultStatus();
-    }, []);
+    }, [checkVaultStatus]);
 
-    // 如果已解锁，显示子内容（Keys 列表）
     if (status === 'unlocked') {
         return <>{children}</>;
     }
 
-    // 否则显示全屏的锁定/设置页面
     return (
         <div className="h-full w-full flex items-center justify-center">
             <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800">

@@ -51,8 +51,8 @@ export const SliderItemRenderer = ({
       {/* 🟢 [优化] 移除了无意义的 mr-8，改为 w-full pr-4 保证和其它设置项右侧对齐 */}
       <div className="flex-1 w-full pr-1">
         <div className="flex justify-between items-center mb-3">
-            <div className="text-sm font-medium text-slate-900 dark:text-slate-100">{displayLabel}</div>
-            <div className="text-xs font-mono font-medium text-slate-500 bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded min-w-[3rem] text-center">
+            <div className="text-base font-medium text-slate-900 dark:text-slate-100">{displayLabel}</div>
+            <div className="text-base font-mono font-medium text-slate-500 bg-black/5 dark:bg-white/10 px-2.5 py-1 rounded min-w-[3.5rem] text-center">
                 {displayValue}
             </div>
         </div>
@@ -67,7 +67,7 @@ export const SliderItemRenderer = ({
             className="py-1 cursor-pointer"
         />
         
-         {item.descKey && <div className="text-[10px] text-slate-400 mt-2.5">{t(item.descKey, { defaultValue: item.desc ?? item.descKey })}</div>}
+         {item.descKey && <div className="text-base text-slate-400 mt-2">{t(item.descKey, { defaultValue: item.desc ?? item.descKey })}</div>}
       </div>
     </div>
   );

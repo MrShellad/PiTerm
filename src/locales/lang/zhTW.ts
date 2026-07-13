@@ -583,6 +583,12 @@ export const zhTW = {
           light: "淺色模式",
           dark: "深色模式"
         },
+        lightThemeScheme: "亮色主題方案",
+        lightThemeSchemeDesc: "配置亮色模式下的配色方案",
+        lightThemeOptions: {
+          default: "預設 (冷灰)",
+          claude: "Claude 淺色 (Parchment)"
+        },
         noWallpaper: "無背景",
         changeWallpaper: "更換背景",
         syncBackground: "背景同步",
@@ -630,7 +636,20 @@ export const zhTW = {
         idleTimeout: "閒置自動鎖定",
         idleTimeoutDesc: "超過指定時間未操作時，自動鎖定應用程式。",
         lockShortcut: "快速鎖定快捷鍵",
-        lockShortcutDesc: "按下此組合鍵立即鎖定（例如：Ctrl+Shift+L）。"
+        lockShortcutDesc: "按下此組合鍵立即鎖定（例如：Ctrl+Shift+L）。",
+        pinManager: "主密碼 (PIN)",
+        pinManagerDesc: "修改或管理用於保險庫及敏感資訊加密的主密碼 (PIN)。",
+        changePin: "修改 PIN 碼",
+        oldPin: "目前 PIN 碼",
+        newPin: "新 PIN 碼",
+        confirmPin: "確認新 PIN 碼",
+        pinLengthError: "PIN 碼長度必須至少為 6 位",
+        pinMismatchError: "兩次輸入的新 PIN 碼不一致",
+        oldPinIncorrect: "目前 PIN 碼不正確",
+        changeSuccess: "主密碼修改成功",
+        changeFailed: "修改主密碼失敗",
+        uninitializedWarning: "主密碼未設定。請先前往【金鑰管理】初始化保險庫。",
+        goToKeys: "前往金鑰管理"
       },
 
       proxy: {
@@ -689,7 +708,10 @@ export const zhTW = {
       },
 
       about: {
-        version: "目前版本"
+        version: "目前版本",
+        microsoftStore: "微軟商店",
+        microsoftStoreDesc: "在微軟商店中為 PiTerm 評分或檢查更新",
+        openInStore: "在商店中開啟"
       }
     }
   }

@@ -63,7 +63,7 @@ export const ShortcutInput = ({ value, onChange }: Props) => {
   return (
     <div className="relative w-full">
       <div 
-        className={`relative flex items-center w-full rounded-md border text-sm transition-colors ${
+        className={`relative flex items-center w-full rounded-md border text-base transition-colors ${
           isRecording 
             ? "border-blue-500 ring-1 ring-blue-500 bg-blue-50/10" 
             : "border-slate-200 dark:border-slate-800 bg-transparent"
@@ -76,7 +76,7 @@ export const ShortcutInput = ({ value, onChange }: Props) => {
           onFocus={() => setIsRecording(true)}
           onBlur={() => setIsRecording(false)}
           onKeyDown={handleKeyDown}
-          className="pr-8 bg-transparent border-none focus-visible:ring-0 cursor-pointer h-8"
+          className="pr-8 bg-transparent border-none focus-visible:ring-0 cursor-pointer h-9 text-base"
         />
         
         <div className="absolute right-2 flex items-center">
@@ -85,10 +85,10 @@ export const ShortcutInput = ({ value, onChange }: Props) => {
               onClick={(e) => { e.stopPropagation(); onChange(""); }}
               className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-4 h-4" />
             </button>
           ) : (
-            <Keyboard className={`w-3.5 h-3.5 ${isRecording ? 'text-blue-500' : 'text-slate-400'}`} />
+            <Keyboard className={`w-4 h-4 ${isRecording ? 'text-blue-500' : 'text-slate-400'}`} />
           )}
         </div>
       </div>

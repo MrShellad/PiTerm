@@ -595,6 +595,12 @@ export const ja = {
           light: "ライト",
           dark: "ダーク"
         },
+        lightThemeScheme: "ライトテーマ設定",
+        lightThemeSchemeDesc: "ライトモードで使用する配色を設定します",
+        lightThemeOptions: {
+          default: "デフォルト (クールグレー)",
+          claude: "Claude ライト (Parchment)"
+        },
         noWallpaper: "背景なし",
         changeWallpaper: "背景を変更",
         syncBackground: "背景を同期",
@@ -643,7 +649,20 @@ export const ja = {
         idleTimeoutDesc: "操作がない場合に自動ロック",
         lockShortcut: "クイックロック",
         lockShortcutDesc:
-          "即時ロックのショートカット（例: Ctrl+Shift+L）"
+          "即時ロックのショートカット（例: Ctrl+Shift+L）",
+        pinManager: "マスター PIN",
+        pinManagerDesc: "保管庫のマスター PIN コードを管理および変更します",
+        changePin: "PIN を変更",
+        oldPin: "現在の PIN",
+        newPin: "新しい PIN",
+        confirmPin: "新しい PIN の確認",
+        pinLengthError: "PIN は 6 文字以上である必要があります",
+        pinMismatchError: "新しい PIN が一致しません",
+        oldPinIncorrect: "現在の PIN が正しくありません",
+        changeSuccess: "マスター PIN が正常に変更されました",
+        changeFailed: "PIN の変更に失敗しました",
+        uninitializedWarning: "マスター PIN が設定されていません。先にキー管理で保管庫を初期化してください。",
+        goToKeys: "キー管理へ進む"
       },
 
       proxy: {
@@ -704,7 +723,10 @@ export const ja = {
       },
 
       about: {
-        version: "現在のバージョン"
+        version: "現在のバージョン",
+        microsoftStore: "Microsoft Store",
+        microsoftStoreDesc: "Microsoft Store で PiTerm を評価するか、更新プログラムを確認します",
+        openInStore: "ストアで開く"
       }
     }
   }

@@ -31,7 +31,8 @@ type MenuItem = {
 const buttonBaseClass = clsx(
   "group flex items-center rounded-lg transition-all duration-300",
   "h-10 w-full px-0 relative overflow-hidden shrink-0",
-  "outline-none focus:outline-none ring-0 justify-start"
+  "outline-none justify-start",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:bg-[hsl(var(--sidebar-item-hover-bg))] focus-visible:text-[hsl(var(--sidebar-item-hover-text))]"
 );
 
 const iconWrapperClass = clsx(

@@ -174,10 +174,10 @@
 /* 卡片悬停 或 按钮悬停 */
 .i-card:hover .i-btn-connect,
 .i-btn-connect:hover {
-  background-color: #10b981; 
-  color: white;
+  background-color: hsl(var(--primary)); 
+  color: hsl(var(--primary-foreground));
   border-color: transparent;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4); 
+  box-shadow: 0 4px 12px hsl(var(--primary) / 0.35); 
 }
 
 /* 仅按钮悬停 */
@@ -220,4 +220,14 @@
   border-top: 1px dashed hsl(var(--border) / 0.3);
   flex-shrink: 0; 
   gap: 0.5rem;
+}
+
+/* Dark Mode Enhancements for Readability & Contrast */
+.dark .i-card {
+  --ic-bg: hsl(var(--card) / 0.88); /* Reduce transparency to prevent background/wallpaper bleed-through */
+}
+
+.dark .i-card:hover,
+.dark .i-card:has([data-state="open"]) {
+  background-color: hsl(var(--card) / 0.95);
 }

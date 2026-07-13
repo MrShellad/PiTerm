@@ -1,0 +1,15 @@
+/* src/styles/components/settings.css */
+
+.settings-container {
+  /* 文本抗锯齿与渲染优化：在 Windows/Tauri 环境下提升清晰度 */
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: subpixel-antialiased;
+  -moz-osx-font-smoothing: auto;
+  font-smooth: always;
+}
+
+/* 像素对齐微调：防止亚像素渲染导致的翻译/动画模糊 */
+.settings-container * {
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+}

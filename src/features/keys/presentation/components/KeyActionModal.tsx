@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { X, Upload, Eye, EyeOff, Save, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
-import { useKeyForm } from '../hooks/useKeyForm';
+import { useKeyForm } from '@/features/keys/application/hooks/useKeyForm';
 
 export const KeyActionModal = () => {
     const { t } = useTranslation();

@@ -76,7 +76,7 @@ export const BackgroundCard = memo(({
          ) : (
             <div className="w-full h-full flex items-center justify-center flex-col gap-2 text-slate-400">
                 <ImageIcon className={clsx(isInline ? "w-6 h-6" : "w-8 h-8 opacity-50")} />
-                <span className="text-[10px] uppercase tracking-wider font-medium text-center px-2">
+                <span className="text-[0.625rem] uppercase tracking-wider font-medium text-center px-2">
                     {isInline ? "No Image" : t('settings.appearance.noWallpaper', 'No Wallpaper Set')}
                 </span>
             </div>

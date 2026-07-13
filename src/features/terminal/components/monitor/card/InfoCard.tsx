@@ -24,7 +24,7 @@ export const InfoCard = ({ id, data, isExpanded, onToggle, icon, color = "green"
       onToggle={onToggle}
       detail={<span className="text-xs font-medium text-slate-500 dark:text-slate-400">{osData?.distro || t('monitor.loading', 'Loading...')}</span>}
       usage={0}
-      usageDisplay={osData ? formatUptime(osData.uptime) : "-"}
+      usageDisplay={osData ? formatUptime(osData.uptime, t) : "-"}
       subTitle={t('monitor.info.uptime', 'Uptime')} 
     >
       <div className="flex flex-col gap-2 animate-in fade-in duration-300">

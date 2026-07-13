@@ -169,7 +169,7 @@ export const RuleEditorDialog = ({ open, onOpenChange, setId, ruleToEdit, onSave
                     />
 
                     {savedStyles.length === 0 && (
-                        <p className="text-[10px] text-red-500">
+                        <p className="text-[0.625rem] text-red-500">
                             {t('settings.highlights.createStylesFirst', 'Please create styles in the database first.')}
                         </p>
                     )}

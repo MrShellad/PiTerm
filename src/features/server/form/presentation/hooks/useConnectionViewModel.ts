@@ -101,18 +101,6 @@ export const useConnectionViewModel = () => {
   };
 
   // =========================================================
-  // 8. 🔍 调试日志（可随时删除）
-  // =========================================================
-  console.groupCollapsed("🐛 useConnectionViewModel Debug");
-  console.log("① All Form Values:", watch());
-  console.log("② mode (currentMode):", currentMode);
-  console.log("③ proxyId (currentProxyId):", currentProxyId);
-  console.log(
-    "④ filteredProxies IDs:",
-    filteredProxies.map((p) => p.id)
-  );
-  console.log("⑤ Raw Proxies from Store:", proxies);
-  console.groupEnd();
 
   // =========================================================
   // 9. 暴露给 UI 的接口

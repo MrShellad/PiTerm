@@ -61,12 +61,12 @@ export const ActionToolbar = ({
         
         {/* 1. 搜索框 (自适应宽度) */}
         <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
             placeholder={searchPlaceholder || t('common.search', 'Search...')}
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-9 h-9 w-full bg-transparent border-slate-200 dark:border-slate-700 focus-visible:ring-indigo-500"
+            className="pl-9 h-9 w-full bg-transparent border-border focus-visible:ring-primary"
           />
         </div>
 
@@ -79,7 +79,7 @@ export const ActionToolbar = ({
 
         {/* 3. 卡片尺寸切换 (使用 GlassTooltip) */}
         {viewMode === 'grid' && onCardSizeChange && cardSize && (
-          <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-1 border border-slate-200 dark:border-slate-700 h-9 shrink-0">
+          <div className="flex items-center bg-muted rounded-lg p-1 border border-border h-9 shrink-0">
             {/* Small */}
             <GlassTooltip content={t('common.size.small', 'Small')} side="bottom">
               <button
@@ -87,8 +87,8 @@ export const ActionToolbar = ({
                 className={cn(
                   "w-8 rounded-md transition-all h-full flex items-center justify-center text-xs font-bold",
                   cardSize === 'sm' 
-                    ? "bg-white dark:bg-slate-700 text-indigo-600 shadow-sm" 
-                    : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                    ? "bg-background text-primary shadow-sm" 
+                    : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 S
@@ -102,8 +102,8 @@ export const ActionToolbar = ({
                 className={cn(
                   "w-8 rounded-md transition-all h-full flex items-center justify-center text-xs font-bold",
                   cardSize === 'md' 
-                    ? "bg-white dark:bg-slate-700 text-indigo-600 shadow-sm" 
-                    : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                    ? "bg-background text-primary shadow-sm" 
+                    : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 M
@@ -117,8 +117,8 @@ export const ActionToolbar = ({
                 className={cn(
                   "w-8 rounded-md transition-all h-full flex items-center justify-center text-xs font-bold",
                   cardSize === 'lg' 
-                    ? "bg-white dark:bg-slate-700 text-indigo-600 shadow-sm" 
-                    : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                    ? "bg-background text-primary shadow-sm" 
+                    : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 L
@@ -129,15 +129,15 @@ export const ActionToolbar = ({
 
         {/* 4. 视图切换 (为了风格统一，也加上了 Tooltip) */}
         {viewMode && onViewModeChange && (
-          <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-1 border border-slate-200 dark:border-slate-700 h-9 shrink-0">
+          <div className="flex items-center bg-muted rounded-lg p-1 border border-border h-9 shrink-0">
             <GlassTooltip content={t('common.grid_view', 'Grid View')} side="bottom">
               <button
                 onClick={() => onViewModeChange('grid')}
                 className={cn(
                   "p-1.5 rounded-md transition-all h-full aspect-square flex items-center justify-center",
                   viewMode === 'grid' 
-                    ? "bg-white dark:bg-slate-700 text-indigo-600 shadow-sm" 
-                    : "text-slate-400 hover:text-slate-600"
+                    ? "bg-background text-primary shadow-sm" 
+                    : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 <LayoutGrid className="w-4 h-4" />
@@ -150,8 +150,8 @@ export const ActionToolbar = ({
                 className={cn(
                   "p-1.5 rounded-md transition-all h-full aspect-square flex items-center justify-center",
                   viewMode === 'list' 
-                    ? "bg-white dark:bg-slate-700 text-indigo-600 shadow-sm" 
-                    : "text-slate-400 hover:text-slate-600"
+                    ? "bg-background text-primary shadow-sm" 
+                    : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 <List className="w-4 h-4" />
@@ -165,7 +165,7 @@ export const ActionToolbar = ({
           <Button 
             onClick={onAdd} 
             size="sm" 
-            className="h-9 gap-2 bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm px-4 shrink-0 rounded-lg"
+            className="h-9 gap-2 shadow-sm px-4 shrink-0 rounded-lg"
           >
             <Plus className="w-4 h-4" />
             {addLabel || t('common.add', 'Add')}
@@ -181,8 +181,8 @@ export const ActionToolbar = ({
             className={cn(
               "px-3 py-1 text-xs font-medium rounded-full border transition-all duration-200",
               !activeTag
-                ? "bg-slate-800 text-white border-slate-800 dark:bg-white dark:text-slate-900"
-                : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-slate-300"
+                ? "bg-foreground text-background border-foreground"
+                : "bg-card text-muted-foreground border-border hover:border-primary/50 hover:text-primary"
             )}
           >
             {t('common.all', 'All')}
@@ -196,8 +196,8 @@ export const ActionToolbar = ({
                  className={cn(
                    "px-3 py-1 text-xs font-medium rounded-full border transition-all duration-200",
                    isActive
-                     ? "bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/30"
-                     : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-indigo-200 hover:text-indigo-600"
+                     ? "bg-primary/10 text-primary border-primary/20"
+                     : "bg-card text-muted-foreground border-border hover:border-primary/50 hover:text-primary"
                  )}
                >
                  {tag}

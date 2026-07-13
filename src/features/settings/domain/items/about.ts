@@ -10,4 +10,11 @@ export const aboutItems: SettingItem[] = [
     //改为占位符，等待从 Tauri 动态获取
     defaultValue: 'Loading...', 
   },
+  {
+    id: 'about.microsoftStore',
+    categoryId: 'about',
+    type: 'button',
+    labelKey: 'settings.about.microsoftStore',
+    descKey: 'settings.about.microsoftStoreDesc',
+  },
 ];

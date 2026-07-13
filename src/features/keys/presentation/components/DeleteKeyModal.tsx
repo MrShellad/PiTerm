@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, Loader2, Trash2, Link2 } from 'lucide-react';
 import { useKeyStore } from '@/store/useKeyStore';
-import { KeyUsageStats } from '../types';
-import { ConfirmDialog } from '@/components/common/ConfirmDialog'; // 🟢 引入公共组件
+import { KeyUsageStats } from '../../domain/types';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 
 interface Props {
-    keyId: string | null; // 传入 ID 即表示打开弹窗
+    keyId: string | null;
     onClose: () => void;
 }
 
@@ -14,12 +14,10 @@ export const DeleteKeyModal = ({ keyId, onClose }: Props) => {
     const { t } = useTranslation();
     const { checkAssociations, deleteKey } = useKeyStore();
     
-    // 状态管理
-    const [isChecking, setIsChecking] = useState(false); // 正在检查关联
-    const [isDeleting, setIsDeleting] = useState(false); // 正在执行删除
+    const [isChecking, setIsChecking] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [stats, setStats] = useState<KeyUsageStats | null>(null);
 
-    // 1. 监听 keyId 变化，一旦有值（弹窗打开），立即检查关联
     useEffect(() => {
         if (keyId) {
             setIsChecking(true);
@@ -34,17 +32,15 @@ export const DeleteKeyModal = ({ keyId, onClose }: Props) => {
         }
     }, [keyId, checkAssociations]);
 
-    // 2. 执行删除
     const handleConfirm = async () => {
-        if (!keyId || isChecking) return; // 如果正在检查，阻止删除
+        if (!keyId || isChecking) return;
         
         setIsDeleting(true);
         try {
             await deleteKey(keyId);
-            onClose(); // 删除成功后关闭
+            onClose();
         } catch (error) {
             console.error("Delete failed", error);
-            // 这里可以加一个 toast.error 提示
         } finally {
             setIsDeleting(false);
         }
@@ -52,10 +48,8 @@ export const DeleteKeyModal = ({ keyId, onClose }: Props) => {
 
     const hasAssociations = stats && stats.totalCount > 0;
 
-    // 3. 构建关联警告内容 (作为 children 传入)
     const WarningContent = (
         <div className="w-full text-left mt-2">
-            {/* 加载状态 */}
             {isChecking && (
                 <div className="flex flex-col items-center justify-center text-zinc-500 py-4 gap-2">
                     <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
@@ -63,7 +57,6 @@ export const DeleteKeyModal = ({ keyId, onClose }: Props) => {
                 </div>
             )}
 
-            {/* 关联警告列表 */}
             {!isChecking && hasAssociations && (
                 <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-lg p-3 space-y-2 animate-in fade-in zoom-in-95 duration-200">
                     <div className="flex items-start gap-2 text-amber-700 dark:text-amber-400">
@@ -108,16 +101,13 @@ export const DeleteKeyModal = ({ keyId, onClose }: Props) => {
             confirmText={t('common.delete', 'Delete')}
             cancelText={t('common.cancel', 'Cancel')}
             onConfirm={handleConfirm}
-            isLoading={isDeleting} // 只有在真正删除时才显示按钮 loading
-            
-            // 自定义图标 (Trash2 红色)
+            isLoading={isDeleting}
             icon={
                 <div className="w-14 h-14 flex items-center justify-center bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-inner">
                     <Trash2 className="w-7 h-7 drop-shadow-sm" />
                 </div>
             }
         >
-            {/* 如果正在检查或有关联，显示额外内容，否则传 null (不占位) */}
             {(isChecking || hasAssociations) ? WarningContent : null}
         </ConfirmDialog>
     );

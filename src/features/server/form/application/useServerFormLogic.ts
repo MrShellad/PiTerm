@@ -12,13 +12,11 @@ interface UseServerFormLogicProps {
     passwordId?: string | null;
     keyId?: string | null;
     provider?: string;
-    // 兼容后端字段
     auth_type?: string;
     password_id?: string;
     key_id?: string;
     proxyId?: string | null;
     proxy_id?: string | null;
-    // 🟢 [新增] 兼容后端 is_pinned 字段
     is_pinned?: number | boolean;
   };
   onClose?: () => void;
@@ -30,8 +28,7 @@ export const useServerFormLogic = ({ initialData, onClose }: UseServerFormLogicP
   const defaultValues = useMemo((): ServerFormValues => {
     const d = initialData as any || {};
 
-    // 🔍 [Debug] 看看传入的原始数据到底有没有 proxyId
-    console.log("📝 [FormInit] Raw InitialData:", d);
+
 
     // 提取字段 (兼容驼峰和下划线)
     const rawAuthType = d.authType || d.auth_type || 'password';
@@ -79,7 +76,6 @@ export const useServerFormLogic = ({ initialData, onClose }: UseServerFormLogicP
   // 🟢 [关键修复] 当 defaultValues 变化时，强制重置表单
   useEffect(() => {
     if (initialData) {
-      console.log("🔄 [FormReset] Resetting form with:", defaultValues);
       methods.reset(defaultValues);
     }
   }, [defaultValues, methods]);
@@ -93,26 +89,14 @@ export const useServerFormLogic = ({ initialData, onClose }: UseServerFormLogicP
   
   const { submit } = useFormSubmit(onClose);
 
-  // 🟢 [Debug 1] 成功回调：增加日志 + async/await (防止双重提交)
   const handleFormSubmit = async (data: ServerFormValues) => {
-    console.log("✅ [FormSubmit] Validation Passed! Submitting data:", data);
     await submit(data);
-  };
-
-  // 🟢 [Debug 2] 失败回调：打印验证错误
-  // 如果点击保存没反应，请按 F12 看控制台，这里会告诉你哪个字段没填对
-  const handleFormError = (errors: any) => {
-    console.group("❌ [FormError] Validation Failed");
-    console.error("Field Errors:", errors);
-    console.log("Current Form Values:", methods.getValues());
-    console.groupEnd();
   };
 
   return {
     methods,
     testStatus,
     handleTest: testConnection,
-    // 🟢 [修改] 传入第二个参数 handleFormError
-    handleSubmit: handleSubmit(handleFormSubmit, handleFormError)
+    handleSubmit: handleSubmit(handleFormSubmit)
   };
 };

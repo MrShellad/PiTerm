@@ -1,4 +1,4 @@
-use crate::commands::vault::{internal_add_secret, internal_update_secret, internal_record_usage, VaultState}; // 🟢 引入 internal_record_usage
+use crate::commands::vault::{internal_record_usage, VaultState}; // 🟢 引入 internal_record_usage
 use crate::models::{AuthType, ConnectionType, OsType, ServerConfig};
 use crate::state::AppState;
 use chrono::Utc;
@@ -74,17 +74,80 @@ pub async fn list_servers(state: State<'_, AppState>) -> Result<Vec<ServerConfig
 // 保存/更新服务器
 // =========================================================
 #[command]
+async fn tx_add_secret(
+    tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+    master_key: &aes_gcm::Key<aes_gcm::Aes256Gcm>,
+    name: &str,
+    key_type: &str,
+    content: &str,
+    username: Option<String>,
+    algorithm: Option<String>,
+) -> Result<String, String> {
+    let encrypted_json = crate::commands::vault::encrypt_data(master_key, content.as_bytes())?;
+    let new_id = uuid::Uuid::new_v4().to_string();
+    let now = chrono::Utc::now().timestamp_millis();
+
+    sqlx::query(
+        "INSERT INTO vault_keys (id, name, key_type, username, encrypted_content, salt, algorithm, created_at, updated_at) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    )
+    .bind(&new_id)
+    .bind(name)
+    .bind(key_type)
+    .bind(username)
+    .bind(&encrypted_json)
+    .bind("") 
+    .bind(algorithm)
+    .bind(now)
+    .bind(now)
+    .execute(&mut **tx)
+    .await
+    .map_err(|e| format!("Database error: {}", e))?;
+
+    Ok(new_id)
+}
+
+async fn tx_update_secret(
+    tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+    master_key: &aes_gcm::Key<aes_gcm::Aes256Gcm>,
+    id: &str,
+    name: &str,
+    content: &str,
+    username: Option<String>,
+) -> Result<(), String> {
+    let encrypted_json = crate::commands::vault::encrypt_data(master_key, content.as_bytes())?;
+    let now = chrono::Utc::now().timestamp_millis();
+
+    sqlx::query(
+        "UPDATE vault_keys 
+         SET name = ?, username = ?, encrypted_content = ?, updated_at = ? 
+         WHERE id = ?"
+    )
+    .bind(name)
+    .bind(username)
+    .bind(&encrypted_json)
+    .bind(now)
+    .bind(id)
+    .execute(&mut **tx)
+    .await
+    .map_err(|e| format!("Database error: {}", e))?;
+
+    Ok(())
+}
+
+#[command]
 pub async fn save_server(
     state: State<'_, AppState>,
     vault_state: State<'_, VaultState>,
     mut server: ServerConfig,
 ) -> Result<(), String> {
     let pool = &state.db;
+    let mut tx = pool.begin().await.map_err(|e| format!("Failed to begin transaction: {}", e))?;
 
     // 0. 查询现有服务器记录以判断是否存在关联密码/私钥 ID，以及名称是否改变
     let existing_row = sqlx::query("SELECT name, username, password_id, key_id FROM servers WHERE id = ?")
         .bind(&server.id)
-        .fetch_optional(pool)
+        .fetch_optional(&mut *tx)
         .await
         .map_err(|e| format!("Querying existing server failed: {}", e))?;
 
@@ -106,10 +169,21 @@ pub async fn save_server(
 
             let secret_name = format!("Server Pass: {}", server.name);
 
-            if let Some(pass_id) = existing_password_id.clone() {
-                // 如果已有关联密码ID，执行原地更新
-                internal_update_secret(
-                    pool,
+            let mut key_exists = false;
+            if let Some(ref pass_id) = existing_password_id {
+                let check_row = sqlx::query("SELECT 1 FROM vault_keys WHERE id = ?")
+                    .bind(pass_id)
+                    .fetch_optional(&mut *tx)
+                    .await
+                    .unwrap_or(None);
+                key_exists = check_row.is_some();
+            }
+
+            if key_exists {
+                // 如果已有关联密码ID且存在于数据库，执行原地更新
+                let pass_id = existing_password_id.clone().unwrap();
+                tx_update_secret(
+                    &mut tx,
                     &master_key,
                     &pass_id,
                     &secret_name,
@@ -120,8 +194,8 @@ pub async fn save_server(
                 server.password_id = Some(pass_id);
             } else {
                 // 否则创建新的 Vault 密钥记录
-                let new_pass_id = internal_add_secret(
-                    pool,
+                let new_pass_id = tx_add_secret(
+                    &mut tx,
                     &master_key,
                     &secret_name,
                     "password",
@@ -148,10 +222,21 @@ pub async fn save_server(
 
             let secret_name = format!("Server Key: {}", server.name);
 
-            if let Some(key_id) = existing_key_id.clone() {
-                // 如果已有关联私钥ID，执行原地更新
-                internal_update_secret(
-                    pool,
+            let mut key_exists = false;
+            if let Some(ref key_id) = existing_key_id {
+                let check_row = sqlx::query("SELECT 1 FROM vault_keys WHERE id = ?")
+                    .bind(key_id)
+                    .fetch_optional(&mut *tx)
+                    .await
+                    .unwrap_or(None);
+                key_exists = check_row.is_some();
+            }
+
+            if key_exists {
+                // 如果已有关联私钥ID且存在于数据库，执行原地更新
+                let key_id = existing_key_id.clone().unwrap();
+                tx_update_secret(
+                    &mut tx,
                     &master_key,
                     &key_id,
                     &secret_name,
@@ -162,8 +247,8 @@ pub async fn save_server(
                 server.key_id = Some(key_id);
             } else {
                 // 否则创建新的 Vault 密钥记录
-                let new_key_id = internal_add_secret(
-                    pool,
+                let new_key_id = tx_add_secret(
+                    &mut tx,
                     &master_key,
                     &secret_name,
                     "private_key",
@@ -181,28 +266,30 @@ pub async fn save_server(
     }
 
     // 3. 如果服务器名称改变了，但密码/私钥没有被更新（所以上面没走 update_secret），
-    // 依然需要同步更新 Vault 中对应密钥的 plaintext name 字段
+    // 依然需要同步更新 Vault 中对应密钥的 name 字段
     if let Some(ref r) = existing_row {
         let old_name: String = r.try_get("name").unwrap_or_default();
         if old_name != server.name {
             let now_ts = Utc::now().timestamp_millis();
             if let Some(ref pass_id) = existing_password_id {
                 let new_secret_name = format!("Server Pass: {}", server.name);
-                let _ = sqlx::query("UPDATE vault_keys SET name = ?, updated_at = ? WHERE id = ?")
+                sqlx::query("UPDATE vault_keys SET name = ?, updated_at = ? WHERE id = ?")
                     .bind(&new_secret_name)
                     .bind(now_ts)
                     .bind(pass_id)
-                    .execute(pool)
-                    .await;
+                    .execute(&mut *tx)
+                    .await
+                    .map_err(|e| format!("Failed to update password name: {}", e))?;
             }
             if let Some(ref key_id) = existing_key_id {
                 let new_secret_name = format!("Server Key: {}", server.name);
-                let _ = sqlx::query("UPDATE vault_keys SET name = ?, updated_at = ? WHERE id = ?")
+                sqlx::query("UPDATE vault_keys SET name = ?, updated_at = ? WHERE id = ?")
                     .bind(&new_secret_name)
                     .bind(now_ts)
                     .bind(key_id)
-                    .execute(pool)
-                    .await;
+                    .execute(&mut *tx)
+                    .await
+                    .map_err(|e| format!("Failed to update key name: {}", e))?;
             }
         }
     }
@@ -214,7 +301,7 @@ pub async fn save_server(
     }
     server.updated_at = now;
 
-    // 3. 存入数据库
+    // 4. 存入数据库
     let tags_json = serde_json::to_string(&server.tags).unwrap_or("[]".to_string());
 
     sqlx::query(
@@ -269,9 +356,11 @@ pub async fn save_server(
     .bind(server.keep_alive_interval)
     .bind(server.auto_reconnect)
     .bind(server.max_reconnects)
-    .execute(pool)
+    .execute(&mut *tx)
     .await
     .map_err(|e| format!("保存服务器失败: {}", e))?;
+
+    tx.commit().await.map_err(|e| format!("Failed to commit transaction: {}", e))?;
 
     Ok(())
 }

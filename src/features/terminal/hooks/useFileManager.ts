@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useFileStore } from "@/store/useFileStore";
 import { FileEntry } from "@/features/fs/types";
 import { useTerminalStore } from "@/store/useTerminalStore";
+import { useEventBus } from "@/hooks/useEventBus";
 
 export const useFileManager = (sessionId?: string) => {
   const { 
@@ -115,12 +116,16 @@ export const useFileManager = (sessionId?: string) => {
     }
   }, [sessionId, connectionId, isValidSession, currentPath, setStoreLoading, setFiles]);
 
-  // 🟢 [优化] 合并冗余代码。移除了多余的 prevPathRef 监听
-  // 因为 currentPath 和 reloadTrigger 本就在这里被监听，不需要两个 useEffect
   useEffect(() => {
     if (!sessionId || !isConnectionReady) return;
     fetchFiles();
-  }, [sessionId, isConnectionReady, currentPath, reloadTrigger, fetchFiles]); 
+  }, [sessionId, isConnectionReady, currentPath, reloadTrigger, fetchFiles]);
+
+  useEventBus('fs:refresh-directory', (payload) => {
+    if (payload.sessionId === sessionId && isConnectionReady) {
+      fetchFiles();
+    }
+  });
 
   return {
     isConnectionReady,

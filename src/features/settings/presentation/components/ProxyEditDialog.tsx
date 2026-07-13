@@ -145,9 +145,9 @@ export const ProxyEditDialog = ({ isOpen, onClose, onSave, initialData }: Props)
       <div className="space-y-5">
         <div className="space-y-4">
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label className="text-right text-slate-500">{t('settings.proxy.name', 'Name')}</Label>
+            <Label className="text-right text-base text-slate-500">{t('settings.proxy.name', 'Name')}</Label>
             <Input 
-              className="col-span-3" 
+              className="col-span-3 h-9 text-base" 
               value={formData.name} 
               onChange={e => setFormData({...formData, name: e.target.value})} 
               // 🟢 [Loc] Placeholder
@@ -156,18 +156,18 @@ export const ProxyEditDialog = ({ isOpen, onClose, onSave, initialData }: Props)
           </div>
           
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label className="text-right text-slate-500">{t('settings.proxy.type', 'Type')}</Label>
+            <Label className="text-right text-base text-slate-500">{t('settings.proxy.type', 'Type')}</Label>
             <div className="col-span-3">
               <Select value={formData.type} onValueChange={(v: ProxyType) => setFormData({...formData, type: v})}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full h-9 text-base">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="z-[250]">
                   {/* 🟢 Protocols usually remain in English, but you can translate if needed */}
-                  <SelectItem value="http">HTTP</SelectItem>
-                  <SelectItem value="https">HTTPS</SelectItem>
-                  <SelectItem value="socks4">SOCKS4</SelectItem>
-                  <SelectItem value="socks5">SOCKS5</SelectItem>
+                  <SelectItem value="http" className="text-base">HTTP</SelectItem>
+                  <SelectItem value="https" className="text-base">HTTPS</SelectItem>
+                  <SelectItem value="socks4" className="text-base">SOCKS4</SelectItem>
+                  <SelectItem value="socks5" className="text-base">SOCKS5</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -175,9 +175,9 @@ export const ProxyEditDialog = ({ isOpen, onClose, onSave, initialData }: Props)
 
           <div className="grid grid-cols-4 items-center gap-4">
             {/* 🟢 [Loc] Host */}
-            <Label className="text-right text-slate-500">{t('settings.proxy.host', 'Host')}</Label>
+            <Label className="text-right text-base text-slate-500">{t('settings.proxy.host', 'Host')}</Label>
             <Input 
-              className="col-span-3 font-mono" 
+              className="col-span-3 font-mono h-9 text-base" 
               value={formData.host} 
               onChange={e => setFormData({...formData, host: e.target.value})} 
               placeholder="127.0.0.1" // Technical placeholders often stay as is
@@ -186,9 +186,9 @@ export const ProxyEditDialog = ({ isOpen, onClose, onSave, initialData }: Props)
 
           <div className="grid grid-cols-4 items-center gap-4">
             {/* 🟢 [Loc] Port */}
-            <Label className="text-right text-slate-500">{t('settings.proxy.port', 'Port')}</Label>
+            <Label className="text-right text-base text-slate-500">{t('settings.proxy.port', 'Port')}</Label>
             <Input 
-              className="col-span-3 font-mono" 
+              className="col-span-3 font-mono h-9 text-base" 
               type="number" 
               value={formData.port} 
               onChange={e => setFormData({...formData, port: e.target.value})} 
@@ -198,24 +198,26 @@ export const ProxyEditDialog = ({ isOpen, onClose, onSave, initialData }: Props)
 
           <div className="border-t border-slate-100 dark:border-slate-800 pt-4 mt-2">
             {/* 🟢 [Loc] Auth Header */}
-            <p className="text-xs text-slate-500 mb-3 font-medium px-1">
+            <p className="text-base text-slate-500 mb-3 font-medium px-1">
               {t('settings.proxy.auth_hint', 'Authentication (Encrypted with Master Key)')}
             </p>
             <div className="grid grid-cols-2 gap-3">
-               <div className="space-y-1">
+               <div className="space-y-1.5">
                  {/* 🟢 [Loc] Username */}
-                 <Label className="text-xs text-slate-400">{t('settings.proxy.username', 'Username')}</Label>
+                 <Label className="text-base text-slate-400 block">{t('settings.proxy.username', 'Username')}</Label>
                  <Input 
+                   className="h-9 text-base"
                    value={formData.username} 
                    onChange={e => setFormData({...formData, username: e.target.value})} 
                    // 🟢 [Loc] Optional
                    placeholder={t('common.optional', 'Optional')}
                  />
                </div>
-               <div className="space-y-1">
+               <div className="space-y-1.5">
                  {/* 🟢 [Loc] Password */}
-                 <Label className="text-xs text-slate-400">{t('settings.proxy.password', 'Password')}</Label>
+                 <Label className="text-base text-slate-400 block">{t('settings.proxy.password', 'Password')}</Label>
                  <Input 
+                   className="h-9 text-base"
                    type="password" 
                    value={formData.password} 
                    onChange={e => setFormData({...formData, password: e.target.value})} 
@@ -228,10 +230,10 @@ export const ProxyEditDialog = ({ isOpen, onClose, onSave, initialData }: Props)
         </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} className="h-9 text-base px-4">
             {t('common.cancel', 'Cancel')}
           </Button>
-          <Button onClick={handleSave}>
+          <Button onClick={handleSave} className="h-9 text-base px-4">
             {t('common.save', 'Save')}
           </Button>
         </div>

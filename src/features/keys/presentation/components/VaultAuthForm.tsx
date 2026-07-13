@@ -1,10 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { ShieldCheck, Lock, Loader2, RefreshCcw } from 'lucide-react';
-import { useVaultAuthForm } from '@/features/keys/hooks/VaultAuthFormHook';
+import { useVaultAuthForm } from '@/features/keys/application/hooks/VaultAuthFormHook';
 
-// ==========================================
-// 提取出的独立 PIN 码输入组件 (保持不变)
-// ==========================================
 const PinInput = ({ 
     value, 
     onChange, 
@@ -103,9 +100,6 @@ const PinInput = ({
     );
 };
 
-// ==========================================
-// 验证表单主组件 (已接入 Hook)
-// ==========================================
 interface Props {
     onSuccess?: () => void;
 }

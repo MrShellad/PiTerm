@@ -1,5 +1,5 @@
 import { useLocation, useOutlet } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import clsx from "clsx";
 import { AnimatePresence, motion } from "framer-motion";
 import { TitleBar } from "./TitleBar";
@@ -7,8 +7,9 @@ import { Sidebar } from "./Sidebar";
 import { TerminalLayout } from "@/features/terminal/TerminalLayout";
 import { useSettingsStore } from "@/features/settings/application/useSettingsStore";
 
-// 🟢 [新增] 引入我们刚才创建的 Hook
+// 🟢 引入 Hook
 import { useLocalImage } from "@/hooks/useLocalImage"; 
+import { useBackgroundReady } from "@/hooks/useBackgroundReady";
 
 export const MainLayout = () => {
   const location = useLocation();
@@ -33,7 +34,7 @@ export const MainLayout = () => {
   const sync = settings['appearance.syncBackgroundTheme'];
   
   let targetPath, blur, brightness;
-  // 🟢 [新增] 定义遮罩变量
+  // 🟢 定义遮罩变量
   let overlayColor, overlayOpacity;
 
   if (sync === false) {
@@ -42,7 +43,7 @@ export const MainLayout = () => {
       blur = settings['appearance.darkBackgroundBlur'];
       brightness = settings['appearance.darkBackgroundBrightness'];
       
-      // 🟢 读取全局遮罩设置 (默认黑色半透)
+      // 读取全局遮罩设置 (默认黑色半透)
       overlayColor = settings['appearance.darkOverlayColor'] ?? '#000000';
       overlayOpacity = settings['appearance.darkOverlayOpacity'] ?? 0.4;
   } else {
@@ -52,7 +53,6 @@ export const MainLayout = () => {
           blur = settings['appearance.lightBackgroundBlur'];
           brightness = settings['appearance.lightBackgroundBrightness'];
           
-          // 🟢 读取 Light 遮罩设置 (默认白色透明)
           overlayColor = settings['appearance.lightOverlayColor'] ?? '#ffffff';
           overlayOpacity = settings['appearance.lightOverlayOpacity'] ?? 0;
       } else {
@@ -60,19 +60,39 @@ export const MainLayout = () => {
           blur = settings['appearance.darkBackgroundBlur'];
           brightness = settings['appearance.darkBackgroundBrightness'];
           
-          // 🟢 读取 Dark 遮罩设置
           overlayColor = settings['appearance.darkOverlayColor'] ?? '#000000';
           overlayOpacity = settings['appearance.darkOverlayOpacity'] ?? 0.4;
       }
   }
 
-  // 3. 将路径转换为 Blob URL
-  const bgUrl = useLocalImage(targetPath);
+  // 3. 将路径转换为 Blob URL（带缓存和预解码）
+  const { src: bgUrl, isReady: bgReady } = useLocalImage(targetPath);
 
   // 判断是否显示自定义图片
   const hasCustomImage = !!bgUrl;
   
   const isTerminalPage = location.pathname.startsWith("/terminal");
+
+  // 4. 🟢 首次加载跳过过渡动画
+  //    isInitialMount 在壁纸首次就绪前为 true，此时背景层不使用 transition
+  //    壁纸就绪后设为 false，后续切换壁纸时恢复动画过渡
+  const isInitialMountRef = useRef(true);
+  const [skipTransition, setSkipTransition] = useState(true);
+
+  // 5. 🟢 壁纸就绪时通知全局状态
+  const setBackgroundReady = useBackgroundReady(s => s.setReady);
+
+  useEffect(() => {
+    if (bgReady && isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      // 壁纸就绪：通知 MainAppShell 可以移除 Splash 并显示窗口
+      setBackgroundReady();
+      // 延迟一帧后恢复过渡动画，确保首帧无动画直接渲染
+      requestAnimationFrame(() => {
+        setSkipTransition(false);
+      });
+    }
+  }, [bgReady, setBackgroundReady]);
 
   return (
     <div
@@ -88,7 +108,9 @@ export const MainLayout = () => {
         {/* 图片层 */}
         <div 
           className={clsx(
-            "absolute inset-0 transition-all duration-700 ease-in-out",
+            "absolute inset-0",
+            // 🟢 首次加载不加过渡动画，后续切换壁纸时恢复
+            !skipTransition && "transition-all duration-700 ease-in-out",
             hasCustomImage 
               ? "bg-cover bg-center" 
               : "bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-950"
@@ -104,10 +126,12 @@ export const MainLayout = () => {
         {/* 噪点层 (可选) */}
         <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay"></div>
         
-        {/* 🟢 [修改] 动态遮罩层 */}
-        {/* 移除之前的 bg-[hsl(var(--layout-overlay))]，改用内联样式控制 */}
+        {/* 动态遮罩层 */}
         <div 
-            className="absolute inset-0 transition-all duration-500 ease-in-out" 
+            className={clsx(
+              "absolute inset-0",
+              !skipTransition && "transition-all duration-500 ease-in-out"
+            )}
             style={{
                 backgroundColor: overlayColor,
                 opacity: overlayOpacity

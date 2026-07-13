@@ -4,6 +4,8 @@ import { useSettingsStore } from '../application/useSettingsStore';
 import { useSettingsHydration } from '../application/useSettingsHydration';
 import { invoke } from '@tauri-apps/api/core';
 import { enable, disable } from '@tauri-apps/plugin-autostart'; 
+import { listen } from '@tauri-apps/api/event';
+import { toast } from 'sonner';
 
 export const useSettingsEffects = () => {
   const { i18n } = useTranslation();
@@ -58,6 +60,7 @@ export const useSettingsEffects = () => {
     if (!settingsHydrated) return;
 
     const appTheme = settings['appearance.appTheme']; 
+    const lightThemeScheme = settings['appearance.lightThemeScheme'] || 'default';
     const syncTerminal = settings['appearance.syncTerminalTheme'];
     const lightTermTheme = settings['appearance.lightTerminalTheme'];
     const darkTermTheme = settings['appearance.darkTerminalTheme'];
@@ -65,14 +68,18 @@ export const useSettingsEffects = () => {
     // 🟢 [修改] 移除了壁纸获取和同步逻辑
 
     const root = window.document.documentElement;
-    root.classList.remove('light', 'dark');
+    root.classList.remove('light', 'dark', 'theme-claude');
 
-    const applyTheme = (theme: 'light' | 'dark') => {
-        root.classList.add(theme);
+    const applyTheme = (mode: string) => {
+        root.classList.add(mode);
+        
+        if (mode === 'light' && lightThemeScheme === 'claude') {
+            root.classList.add('theme-claude');
+        }
 
         // 同步终端主题
         if (syncTerminal) {
-            const targetTermTheme = theme === 'light' ? lightTermTheme : darkTermTheme;
+            const targetTermTheme = mode === 'light' ? lightTermTheme : darkTermTheme;
             if (targetTermTheme && settings['terminal.theme'] !== targetTermTheme) {
                 updateSetting('terminal.theme', targetTermTheme);
             }
@@ -88,11 +95,12 @@ export const useSettingsEffects = () => {
         mediaQuery.addEventListener('change', handleSystemChange);
         return () => mediaQuery.removeEventListener('change', handleSystemChange);
     } else {
-        applyTheme(appTheme as 'light' | 'dark');
+        applyTheme(appTheme as string);
     }
 
   }, [
       settings['appearance.appTheme'], 
+      settings['appearance.lightThemeScheme'],
       settings['appearance.syncTerminalTheme'],
       settings['appearance.lightTerminalTheme'],
       settings['appearance.darkTerminalTheme'],
@@ -100,4 +108,18 @@ export const useSettingsEffects = () => {
       settingsHydrated,
       updateSetting 
   ]);
+
+  // 5. 监听来自后端的 Agent WS 绑定失败事件并修正 UI 状态（形成状态闭环）
+  useEffect(() => {
+    if (!settingsHydrated) return;
+
+    const unlistenPromise = listen<string>('agent-ws-error', (event) => {
+      toast.error(`Agent WS failed: ${event.payload}`);
+      updateSetting('connection.agentWsEnabled', false);
+    });
+
+    return () => {
+      unlistenPromise.then(unlisten => unlisten());
+    };
+  }, [settingsHydrated, updateSetting]);
 };

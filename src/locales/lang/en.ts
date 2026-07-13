@@ -26,6 +26,12 @@ export const en = {
 
     common: {
       password: "Password",
+      time: {
+        days: "d",
+        hours: "h",
+        minutes: "m",
+        lessThan1m: "< 1m"
+      },
       default: "Default",
       unlock: "Unlock",
       menu: "Menu",
@@ -630,6 +636,12 @@ export const en = {
           light: "Light",
           dark: "Dark"
         },
+        lightThemeScheme: "Light Theme Scheme",
+        lightThemeSchemeDesc: "Configure the color scheme specifically for light mode",
+        lightThemeOptions: {
+          default: "Default (Cool Grey)",
+          claude: "Claude Light (Parchment)"
+        },
         noWallpaper: "No background",
         changeWallpaper: "Change background",
         syncBackground: "Sync background",
@@ -698,7 +710,20 @@ export const en = {
         lockShortcut:
           "Quick lock shortcut",
         lockShortcutDesc:
-          "Shortcut to lock immediately (e.g. Ctrl+Shift+L)"
+          "Shortcut to lock immediately (e.g. Ctrl+Shift+L)",
+        pinManager: "Master PIN",
+        pinManagerDesc: "Manage and change your vault's master PIN code",
+        changePin: "Change PIN",
+        oldPin: "Current PIN",
+        newPin: "New PIN",
+        confirmPin: "Confirm New PIN",
+        pinLengthError: "PIN must be at least 6 characters",
+        pinMismatchError: "New PINs do not match",
+        oldPinIncorrect: "Current PIN is incorrect",
+        changeSuccess: "Master PIN changed successfully",
+        changeFailed: "Failed to change PIN",
+        uninitializedWarning: "Master PIN is not set. Please initialize the vault first in Key Management.",
+        goToKeys: "Go to Key Management"
       },
 
       proxy: {
@@ -718,7 +743,11 @@ export const en = {
       },
 
       connection: {
-        proxies: "Proxies"
+        proxies: "Proxies",
+        agentWsEnabled: "Enable AI Agent WS Service",
+        agentWsEnabledDesc: "Starts a local WebSocket server to allow trusted local AI assistant programs to interact with and control active SSH sessions.",
+        agentWsPort: "AI Agent Service Port",
+        agentWsPortDesc: "Specifies the local TCP port that the WebSocket server will listen on."
       },
 
       backup: {
@@ -776,7 +805,10 @@ export const en = {
       },
 
       about: {
-        version: "Current Version"
+        version: "Current Version",
+        microsoftStore: "Microsoft Store",
+        microsoftStoreDesc: "Rate PiTerm or check for updates in the Microsoft Store",
+        openInStore: "Open in Store"
       }
     }
   }

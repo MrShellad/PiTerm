@@ -19,7 +19,7 @@ export const BackgroundManager = () => {
               <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
                   {t('settings.appearance.syncBackground', 'Adapt to System Theme')}
               </span>
-              <span className="text-[10px] text-slate-400">
+              <span className="text-[0.625rem] text-slate-400">
                   {isSyncOn ? "Separate wallpapers for Light & Dark modes" : "Single wallpaper for all themes"}
               </span>
            </div>

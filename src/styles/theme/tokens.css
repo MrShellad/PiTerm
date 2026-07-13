@@ -36,13 +36,13 @@
     --sidebar-bg: 20 40% 98% / 0.8;
     --sidebar-border: 214 50% 91%;
 
-    --sidebar-item-text: 215 16% 46%;
-    --sidebar-item-hover-bg: 210 40% 96%;
-    --sidebar-item-hover-text: 222 47% 11%;
+    --sidebar-item-text: 215 16% 28%;
+    --sidebar-item-hover-bg: 221 83% 53% / 0.05;
+    --sidebar-item-hover-text: 221 83% 45%;
 
-    --sidebar-item-active-bg: 0 0% 100%;
+    --sidebar-item-active-bg: 221 83% 53% / 0.08;
     --sidebar-item-active-border: 221 83% 53% / 0.3;
-    --sidebar-item-active-text: 221 83% 53%;
+    --sidebar-item-active-text: 221 83% 45%;
 
     --sidebar-badge-bg: 210 40% 96%;
     --sidebar-badge-text: 215 16% 46%;
@@ -77,7 +77,7 @@
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
     --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted-foreground: 215 20.2% 78%;
     --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
@@ -102,33 +102,86 @@
     --sidebar-bg: 222 84% 5% / 0.9;
     --sidebar-border: 217 32% 18%;
 
-    --sidebar-item-text: 215 20% 65%;
-    --sidebar-item-hover-bg: 0 0% 100% / 0.05;
-    --sidebar-item-hover-text: 210 40% 92%;
+    --sidebar-item-text: 215 20% 88%;
+    --sidebar-item-hover-bg: 217 91% 60% / 0.1;
+    --sidebar-item-hover-text: 210 100% 90%;
 
-    --sidebar-item-active-bg: 0 0% 100% / 0.1;
-    --sidebar-item-active-border: 210 40% 98% / 0.1;
-    --sidebar-item-active-text: 217 91% 60%;
+    --sidebar-item-active-bg: 217 91% 60% / 0.15;
+    --sidebar-item-active-border: 217 91% 60% / 0.3;
+    --sidebar-item-active-text: 210 100% 90%;
 
     --sidebar-badge-bg: 217 32% 18%;
-    --sidebar-badge-text: 215 20% 65%;
+    --sidebar-badge-text: 215 20% 80%;
 
-    --sidebar-brand-bg: 217 91% 60%;
+    --sidebar-brand-bg: 217 91% 75%;
     --sidebar-brand-text: 222 84% 5%;
     /* ===== TitleBar ===== */
-    --titlebar-text: 215 20% 65%;
-    --titlebar-text-hover: 210 40% 96%;
+    --titlebar-text: 215 20% 80%;
+    --titlebar-text-hover: 210 40% 98%;
 
     --titlebar-btn-hover-bg: 0 0% 100% / 0.1;
 
-    --titlebar-accent: 217 91% 60%;
-    --titlebar-accent-hover: 217 91% 65%;
+    --titlebar-accent: 217 91% 75%;
+    --titlebar-accent-hover: 217 91% 80%;
 
     --titlebar-close-hover-bg: 0 72% 45%;
     --titlebar-close-hover-text: 0 0% 100%;
 
 
     
+  }
+
+  .theme-claude {
+    --background: 60 11% 97%;
+    --foreground: 30 2% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 30 2% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 30 2% 12%;
+    --primary: 15 65% 59%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 48 14% 93%;
+    --secondary-foreground: 30 2% 12%;
+    --muted: 48 15% 95%;
+    --muted-foreground: 48 5% 46%;
+    --accent: 48 17% 90%;
+    --accent-foreground: 30 2% 12%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 45 15% 87%;
+    --input: 45 15% 87%;
+    --ring: 15 65% 59%;
+    
+    /* Layout & sidebar overrides for Claude Code theme */
+    --layout-text: 30 2% 12%;
+    --layout-overlay: 0 0% 0% / 0.15;
+    
+    --titlebar-bg: 60 11% 97% / 0.8;
+    --titlebar-border: 45 15% 87% / 0.5;
+    
+    --sidebar-bg: 48 15% 95% / 0.9;
+    --sidebar-border: 45 15% 87%;
+    
+    --sidebar-item-text: 48 5% 28%;
+    --sidebar-item-hover-bg: 15 65% 59% / 0.05;
+    --sidebar-item-hover-text: 15 65% 48%;
+    
+    --sidebar-item-active-bg: 15 65% 59% / 0.08;
+    --sidebar-item-active-border: 15 65% 59% / 0.3;
+    --sidebar-item-active-text: 15 65% 48%;
+    
+    --sidebar-badge-bg: 48 17% 90%;
+    --sidebar-badge-text: 48 5% 46%;
+    
+    --sidebar-brand-bg: 15 65% 59%;
+    --sidebar-brand-text: 0 0% 100%;
+    
+    --titlebar-text: 48 5% 46%;
+    --titlebar-text-hover: 30 2% 12%;
+    --titlebar-btn-hover-bg: 48 17% 90%;
+    
+    --titlebar-accent: 15 65% 59%;
+    --titlebar-accent-hover: 15 65% 50%;
   }
 
   * {

@@ -38,7 +38,7 @@ use commands::ssh::*;
 // ================================
 use commands::vault::{
     add_key, check_key_associations, delete_key, get_all_keys, get_decrypted_content,
-    get_vault_status, init_vault, lock_vault, unlock_vault,
+    get_vault_status, init_vault, lock_vault, unlock_vault, change_vault_password,
 };
 
 // [新增] 引入 snippet 命令模块
@@ -90,6 +90,7 @@ pub fn run() {
         ))
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_opener::init())
         // 状态管理
         .manage(SshState::default())
         .manage(HostKeyVerificationCache::default())
@@ -112,6 +113,9 @@ pub fn run() {
             let cleanup_app = app.handle().clone();
             let ssh_sessions = app.state::<SshState>().sessions.clone();
             spawn_ssh_session_cleanup_task(cleanup_app, ssh_sessions);
+
+            let server_app = app.handle().clone();
+            services::agent_server::start_agent_server(server_app);
 
             // ============================================================
             // 🟢 [新增] 系统托盘配置 (带类型注解)
@@ -228,6 +232,7 @@ pub fn run() {
             get_all_keys,
             get_vault_status,
             check_key_associations,
+            change_vault_password,
             // Snippet 命令
             get_all_snippets,
             add_snippet,

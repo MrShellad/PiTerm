@@ -46,7 +46,7 @@ export const SettingsContent = () => {
             <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
                 {currentTitle}
             </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+            <p className="text-[0.95rem] text-slate-500 dark:text-slate-400 mt-1">
                  {searchQuery 
                     ? t('settings.searchResults', { count: searchResults.length, defaultValue: `${searchResults.length} results` })
                     : t('settings.itemsCount', { 
@@ -73,8 +73,8 @@ export const SettingsContent = () => {
                 {isPreviewExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
              </div>
 
-             <div className="text-xs font-bold text-slate-500/80 dark:text-slate-400/80 uppercase tracking-wider group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors flex items-center gap-2">
-                <TerminalSquare className="w-3.5 h-3.5" />
+             <div className="text-[1.05rem] font-bold text-slate-500/80 dark:text-slate-400/80 uppercase tracking-wider group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors flex items-center gap-2">
+                <TerminalSquare className="w-4 h-4" />
                 {t('settings.terminal.preview', 'Live Preview')}
              </div>
              

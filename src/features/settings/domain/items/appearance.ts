@@ -15,6 +15,20 @@ export const appearanceItems: SettingItem[] = [
       { labelKey: 'settings.appearance.themeOptions.dark', value: 'dark' },
     ]
   },
+  {
+    id: 'appearance.lightThemeScheme',
+    categoryId: 'appearance',
+    type: 'select',
+    labelKey: 'settings.appearance.lightThemeScheme',
+    descKey: 'settings.appearance.lightThemeSchemeDesc',
+    defaultValue: 'default',
+    options: [
+      { labelKey: 'settings.appearance.lightThemeOptions.default', value: 'default' },
+      { labelKey: 'settings.appearance.lightThemeOptions.claude', value: 'claude' },
+    ],
+    dependencyId: 'appearance.appTheme',
+    dependencyValue: ['light', 'system']
+  },
 
   // 🟢 [新增] UI 字体设置
   {

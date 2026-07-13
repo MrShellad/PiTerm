@@ -89,7 +89,7 @@ const SortableRuleItem = ({ rule, onEdit, onDelete }: SortableRuleItemProps) => 
           {/* Pattern 预览标签 - 限制最大宽度防止溢出 */}
           <div
             className={clsx(
-              "px-2.5 py-0.5 rounded text-[11px] font-mono truncate transition-colors",
+              "px-2.5 py-0.5 rounded text-[0.6875rem] font-mono truncate transition-colors",
               "max-w-[250px]", 
               "bg-slate-50 border border-slate-200 text-slate-700",
               "dark:bg-slate-950 dark:border-slate-700 dark:text-slate-300",
@@ -105,7 +105,7 @@ const SortableRuleItem = ({ rule, onEdit, onDelete }: SortableRuleItemProps) => 
           </div>
 
           {/* 元数据标记 */}
-          <div className="hidden xl:flex gap-2 text-[11px] text-slate-400 items-center overflow-hidden opacity-70 group-hover:opacity-100 transition-opacity">
+          <div className="hidden xl:flex gap-2 text-[0.6875rem] text-slate-400 items-center overflow-hidden opacity-70 group-hover:opacity-100 transition-opacity">
             {rule.isRegex && <span className="flex-shrink-0 text-purple-600 dark:text-purple-400 font-bold font-mono">{t('settings.highlights.regexShort', 'RE')}</span>}
             {rule.isCaseSensitive && <span className="flex-shrink-0 text-amber-600 dark:text-amber-400 font-bold font-mono">{t('settings.highlights.caseShort', 'Aa')}</span>}
             
@@ -298,7 +298,7 @@ export const HighlightManager = () => {
               {highlightSets.find((s) => s.id === activeSetId)?.name || t('settings.highlights.selectProfile', 'Select a Profile')}
             </span>
             {activeSetId && (
-              <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-mono">
+              <Badge variant="secondary" className="text-[0.625rem] h-5 px-1.5 font-mono">
                 {currentSetRules.length} {t('settings.highlights.rulesCount', 'rules')}
               </Badge>
             )}

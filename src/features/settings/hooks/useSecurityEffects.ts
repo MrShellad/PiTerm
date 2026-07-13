@@ -31,7 +31,6 @@ export const useSecurityEffects = () => {
 
   // --- A. 自动待机锁定逻辑 ---
   useEffect(() => {
-    // 0 = 禁用功能
     if (!settingsHydrated) return;
 
     if (idleTimeoutMinutes <= 0) {
@@ -43,10 +42,24 @@ export const useSecurityEffects = () => {
       if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
       
       if (status === 'unlocked') {
+        const remainingTime = Math.max(0, (idleTimeoutMinutes * 60 * 1000) - (Date.now() - lastActivityRef.current));
         idleTimerRef.current = setTimeout(() => {
           console.log(`🔒 Idle timeout (${idleTimeoutMinutes}m) reached.`);
           doLock();
-        }, idleTimeoutMinutes * 60 * 1000);
+        }, remainingTime);
+      }
+    };
+
+    // 检查并锁定（用于唤醒 focus/visibility 变化时的即时判断）
+    const checkIdleStatus = () => {
+      if (status === 'unlocked' && idleTimeoutMinutes > 0) {
+        const idleTime = Date.now() - lastActivityRef.current;
+        if (idleTime >= idleTimeoutMinutes * 60 * 1000) {
+          console.log(`🔒 Focus/Visibility check: Idle timeout (${idleTimeoutMinutes}m) reached.`);
+          doLock();
+        } else {
+          startTimer();
+        }
       }
     };
 
@@ -68,9 +81,20 @@ export const useSecurityEffects = () => {
     // 使用 capture: true 确保在事件传递初期就捕获到，防止被其他组件阻止
     events.forEach(event => window.addEventListener(event, handleActivity, true));
 
+    // 监听焦点和可见性变化，防止 WebView2 后台休眠/挂起计时器导致的安全漏洞
+    const handleFocusOrVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        checkIdleStatus();
+      }
+    };
+    window.addEventListener('focus', handleFocusOrVisibility);
+    document.addEventListener('visibilitychange', handleFocusOrVisibility);
+
     return () => {
       if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
       events.forEach(event => window.removeEventListener(event, handleActivity, true));
+      window.removeEventListener('focus', handleFocusOrVisibility);
+      document.removeEventListener('visibilitychange', handleFocusOrVisibility);
     };
   }, [settingsHydrated, idleTimeoutMinutes, status, doLock]);
 

@@ -54,16 +54,16 @@ export const NetworkCard = ({ id, data, isExpanded, onToggle, icon, color = "ora
       }
       usage={0}
       usageDisplay={
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1 text-emerald-500 dark:text-emerald-400">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-0.5 sm:gap-1 text-emerald-500 dark:text-emerald-400">
             <ArrowDown className="w-4 h-4 shrink-0 stroke-[2.5]" />
-            <span className="text-base font-semibold tracking-tighter tabular-nums">
+            <span className="text-sm sm:text-base font-semibold tracking-tighter tabular-nums whitespace-nowrap">
               {netData ? formatBytes(netData.rxSpeed) : "0 B"}/s
             </span>
           </div>
-          <div className="flex items-center gap-1 text-blue-500 dark:text-blue-400">
+          <div className="flex items-center gap-0.5 sm:gap-1 text-blue-500 dark:text-blue-400">
             <ArrowUp className="w-4 h-4 shrink-0 stroke-[2.5]" />
-            <span className="text-base font-semibold tracking-tighter tabular-nums">
+            <span className="text-sm sm:text-base font-semibold tracking-tighter tabular-nums whitespace-nowrap">
               {netData ? formatBytes(netData.txSpeed) : "0 B"}/s
             </span>
           </div>

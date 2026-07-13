@@ -198,12 +198,12 @@ export const TerminalPreview = ({ showAutocompletePreview = false }: TerminalPre
           }}
         >
           <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/10 bg-white/5">
-            <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide opacity-80">
+            <span className="flex items-center gap-1.5 text-[0.625rem] font-semibold uppercase tracking-wide opacity-80">
               <Sparkles className="w-3 h-3 text-blue-400" />
               Autocomplete
             </span>
             {!autocompleteEnabled && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-500/15 text-red-300">
+              <span className="text-[0.5625rem] px-1.5 py-0.5 rounded bg-red-500/15 text-red-300">
                 Off
               </span>
             )}
@@ -231,13 +231,13 @@ export const TerminalPreview = ({ showAutocompletePreview = false }: TerminalPre
                     <Icon className={cn("w-3 h-3", item.meta === 'snippet' && "text-amber-400")} />
                   </span>
                   <span className="min-w-0 flex-1 truncate font-mono text-xs">{item.value}</span>
-                  <span className="shrink-0 text-[9px] opacity-45">{item.meta}</span>
+                  <span className="shrink-0 text-[0.5625rem] opacity-45">{item.meta}</span>
                 </div>
               );
             })}
           </div>
 
-          <div className="px-3 py-1 border-t border-white/10 bg-white/5 flex items-center justify-between text-[9px] opacity-65">
+          <div className="px-3 py-1 border-t border-white/10 bg-white/5 flex items-center justify-between text-[0.5625rem] opacity-65">
             <span>Tab apply</span>
             <span>Esc close</span>
           </div>

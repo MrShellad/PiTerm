@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { open } from '@tauri-apps/plugin-dialog';
 import { readTextFile } from '@tauri-apps/plugin-fs';
 import { useKeyStore } from '@/store/useKeyStore';
-import { KeyType } from '../types';
+import { KeyType } from '../../domain/types';
 
 export const useKeyForm = () => {
     const { 

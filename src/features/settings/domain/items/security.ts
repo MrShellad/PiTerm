@@ -24,5 +24,12 @@ export const securityItems: SettingItem[] = [
     labelKey: 'settings.security.lockShortcut',
     descKey: 'settings.security.lockShortcutDesc',
     defaultValue: 'Ctrl+Shift+L',
+  },
+  {
+    id: 'security.pinManager',
+    categoryId: 'security',
+    type: 'pin-manager',
+    labelKey: 'settings.security.pinManager',
+    descKey: 'settings.security.pinManagerDesc',
   }
 ];

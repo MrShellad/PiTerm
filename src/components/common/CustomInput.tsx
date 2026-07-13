@@ -19,7 +19,7 @@ export const CustomInput = React.forwardRef<HTMLInputElement, CustomInputProps>(
 
     const baseInputStyles = cn(
       // 基础动画和布局
-      "flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-sm transition-all duration-200 file:border-0 file:bg-transparent file:text-sm file:font-medium",
+      "flex h-9 w-full rounded-md border px-3 py-1 text-base shadow-sm transition-all duration-200 file:border-0 file:bg-transparent file:text-base file:font-medium",
       
       // === 🟢 核心修改区域：毛玻璃效果 ===
       
@@ -61,7 +61,7 @@ export const CustomInput = React.forwardRef<HTMLInputElement, CustomInputProps>(
           <Label 
             htmlFor={props.id} 
             className={cn(
-              "text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center transition-colors",
+              "text-base font-semibold text-slate-500 uppercase tracking-wider flex items-center transition-colors",
               error && "text-red-500"
             )}
           >
@@ -95,11 +95,11 @@ export const CustomInput = React.forwardRef<HTMLInputElement, CustomInputProps>(
         </div>
 
         {!hideErrorMsg && error ? (
-          <p className="text-[10px] text-red-500 font-medium animate-in slide-in-from-top-1 fade-in duration-200">
+          <p className="text-base text-red-500 font-medium animate-in slide-in-from-top-1 fade-in duration-200">
             {error}
           </p>
         ) : description ? (
-          <p className="text-[10px] text-slate-500 dark:text-slate-400">
+          <p className="text-base text-slate-500 dark:text-slate-400">
             {description}
           </p>
         ) : null}
