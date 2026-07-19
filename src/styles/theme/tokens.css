@@ -1,200 +1,345 @@
 @layer base {
+  /* ==========================================================================
+     1. Primitive Tokens (基础值变量) - 全局共享的基础参数
+     ========================================================================== */
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
+    /* 基础通用色彩值 */
+    --pr-color-blue-500: #3b82f6;
+    --pr-color-blue-600: #2563eb;
+    --pr-color-blue-700: #1d4ed8;
+    --pr-color-slate-50: #f8fafc;
+    --pr-color-slate-900: #0f172a;
+    --pr-color-slate-950: #020617;
+    
+    /* Termius 暗色主题配色基础值 */
+    --pr-color-termius-navy: #13141f;            /* 全局背景色 */
+    --pr-color-termius-surface: #1a1c26;         /* 卡片与表板背景色 */
+    --pr-color-termius-darker: #0e1017;          /* 侧边栏/顶栏深邃背景 */
+    --pr-color-termius-blue: #3b82f6;            /* Accent 主色 */
+    --pr-color-termius-border: #212535;          /* 核心边框线颜色 */
+    --pr-color-termius-muted: #171821;           /* 偏低亮度色块 */
+    --pr-color-termius-text-primary: #f3f4f6;    /* 首要高亮字 */
+    --pr-color-termius-text-secondary: #8f95a5;  /* 次要辅助字 */
+
+    /* Spacing 间距网格 (4px/8px) */
+    --pr-space-0: 0px;
+    --pr-space-1: 4px;
+    --pr-space-1-5: 6px;
+    --pr-space-2: 8px;
+    --pr-space-3: 12px;
+    --pr-space-3-5: 14px;
+    --pr-space-4: 16px;
+    --pr-space-5: 20px;
+    --pr-space-6: 24px;
+    --pr-space-8: 32px;
+    --pr-space-10: 40px;
+    --pr-space-12: 48px;
+
+    /* Radius 圆角 */
+    --pr-radius-none: 0px;
+    --pr-radius-sm: 4px;
+    --pr-radius-md: 8px;
+    --pr-radius-lg: 12px;
+    --pr-radius-xl: 16px;
+    --pr-radius-full: 9999px;
+
+    /* Shadow 阴影 */
+    --pr-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --pr-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --pr-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --pr-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    --pr-shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+
+    /* Border Width 边框宽度 */
+    --pr-border-width-sm: 1px;
+    --pr-border-width-md: 2px;
+
+    /* Motion 动画参数 */
+    --pr-duration-fast: 100ms;
+    --pr-duration-normal: 200ms;
+    --pr-duration-slow: 300ms;
+    --pr-easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+    --pr-easing-emphasized: cubic-bezier(0.2, 0, 0, 1.0);
+
+    /* Opacity 透明度 */
+    --pr-opacity-hover: 0.08;
+    --pr-opacity-active: 0.12;
+    --pr-opacity-disabled: 0.55;
+    --pr-opacity-overlay: 0.6;
+
+    /* Z-index 层级 */
+    --pr-z-dropdown: 1000;
+    --pr-z-tooltip: 2000;
+    --pr-z-modal: 3000;
+    --pr-z-toast: 4000;
+  }
+
+  /* ==========================================================================
+     2. Semantic Tokens (语义变量) - 分别在 :root 与 .dark 下定义各自映射
+     ========================================================================== */
+  :root {
+    /* 颜色语义 - 亮色模式 */
+    --st-color-primary: 221.2 83% 53%;
+    --st-color-background: 0 0% 100%;
+    --st-color-surface: 0 0% 100%;
+    --st-color-text-primary: 222.2 84% 4.9%;
+    --st-color-text-secondary: 215.4 16.3% 46.9%;
+    --st-color-border: 214.3 31.8% 91.4%;
+    --st-color-muted: 210 40% 96.1%;
+    --st-color-muted-foreground: 215.4 16.3% 46.9%;
+    --st-color-success: 142.1 70.6% 45.3%;
+    --st-color-warning: 37.9 90.2% 50.2%;
+    --st-color-error: 346.8 84.1% 50.2%;
+
+    /* 物理圆角 */
+    --st-radius-card: var(--pr-radius-md);
+    --st-radius-button: var(--pr-radius-sm);
+    --st-radius-input: var(--pr-radius-sm);
+    --st-radius-dialog: var(--pr-radius-md);
+
+    /* 物理边框 */
+    --st-border-width: var(--pr-border-width-sm);
+    --st-border-style: solid;
+
+    /* 阴影 */
+    --st-shadow-card: var(--pr-shadow-sm);
+    --st-shadow-dialog: var(--pr-shadow-lg);
+
+    /* 层级映射 */
+    --st-z-dropdown: var(--pr-z-dropdown);
+    --st-z-modal: var(--pr-z-modal);
+    --st-z-toast: var(--pr-z-toast);
+    --st-z-tooltip: var(--pr-z-tooltip);
+
+    /* 映射给 Tailwind CSS 消费的原生变量 */
+    --background: var(--st-color-background);
+    --foreground: var(--st-color-text-primary);
+    --card: var(--st-color-surface);
+    --card-foreground: var(--st-color-text-primary);
+    --popover: var(--st-color-surface);
+    --popover-foreground: var(--st-color-text-primary);
+    --primary: var(--st-color-primary);
     --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
+    --secondary: var(--st-color-muted);
+    --secondary-foreground: var(--st-color-text-primary);
+    --muted: var(--st-color-muted);
+    --muted-foreground: var(--st-color-muted-foreground);
+    --accent: var(--st-color-muted);
+    --accent-foreground: var(--st-color-text-primary);
+    --destructive: var(--st-color-error);
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
+    --border: var(--st-color-border);
+    --input: var(--st-color-border);
+    --ring: var(--st-color-primary);
+    --radius: var(--st-radius-card);
 
-     /* ===== Layout ===== */
-    --layout-text: 222.2 47% 20%;
+    --layout-text: var(--st-color-text-primary);
     --layout-overlay: 0 0% 100% / 0.1;
-
     --titlebar-bg: 0 0% 100% / 0.4;
     --titlebar-border: 0 0% 100% / 0.2;
-      /* ===== Sidebar ===== */
     --sidebar-bg: 20 40% 98% / 0.8;
     --sidebar-border: 214 50% 91%;
-
     --sidebar-item-text: 215 16% 28%;
     --sidebar-item-hover-bg: 221 83% 53% / 0.05;
     --sidebar-item-hover-text: 221 83% 45%;
-
     --sidebar-item-active-bg: 221 83% 53% / 0.08;
     --sidebar-item-active-border: 221 83% 53% / 0.3;
     --sidebar-item-active-text: 221 83% 45%;
-
     --sidebar-badge-bg: 210 40% 96%;
     --sidebar-badge-text: 215 16% 46%;
-
-    --sidebar-brand-bg: 221 83% 53%;
-    --sidebar-brand-text: 0 0% 100%;
-        /* ===== TitleBar ===== */
     --titlebar-text: 215 16% 46%;
-    --titlebar-text-hover: 222.2 47.4% 11.2%;
-
+    --titlebar-text-hover: var(--st-color-text-primary);
     --titlebar-btn-hover-bg: 210 40% 92%;
-
-    --titlebar-accent: 221 83% 53%;
-    --titlebar-accent-hover: 221 83% 45%;
-
-    --titlebar-close-hover-bg: 0 84% 60%;
+    --titlebar-accent: var(--st-color-primary);
+    --titlebar-accent-hover: var(--st-color-primary);
+    --titlebar-close-hover-bg: var(--st-color-error);
     --titlebar-close-hover-text: 0 0% 100%;
-
-     
-
   }
-  
+
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 250 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 78%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
+    /* 颜色语义 - 暗色模式 (严格执行 Termius 标准) */
+    --st-color-primary: 217 91% 60%;          /* HSL for #3b82f6 */
+    --st-color-background: 233 24% 10%;       /* HSL for #13141f */
+    --st-color-surface: 230 18% 13%;          /* HSL for #1a1c26 */
+    --st-color-text-primary: 220 14% 96%;     /* HSL for #f3f4f6 */
+    --st-color-text-secondary: 224 10% 61%;   /* HSL for #8f95a5 */
+    --st-color-border: 230 18% 16%;           /* HSL for #212535 */
+    --st-color-muted: 233 18% 11%;            /* HSL for #171821 */
+    --st-color-muted-foreground: 224 10% 61%;
+    --st-color-success: 142.1 70.6% 45.3%;
+    --st-color-warning: 37.9 90.2% 50.2%;
+    --st-color-error: 0 72% 45%;
+
+    /* 物理圆角 - 严格 Termius 12px 标准 */
+    --st-radius-card: var(--pr-radius-lg);     /* 12px */
+    --st-radius-button: var(--pr-radius-md);   /* 8px */
+    --st-radius-input: var(--pr-radius-md);    /* 8px */
+    --st-radius-dialog: var(--pr-radius-lg);   /* 12px */
+
+    /* 物理边框 */
+    --st-border-width: var(--pr-border-width-sm);
+    --st-border-style: solid;
+
+    /* 阴影 */
+    --st-shadow-card: var(--pr-shadow-md);
+    --st-shadow-dialog: var(--pr-shadow-xl);
+
+    /* 映射给 Tailwind CSS 消费的原生变量 */
+    --background: var(--st-color-background);
+    --foreground: var(--st-color-text-primary);
+    --card: var(--st-color-surface);
+    --card-foreground: var(--st-color-text-primary);
+    --popover: var(--st-color-surface);
+    --popover-foreground: var(--st-color-text-primary);
+    --primary: var(--st-color-primary);
+    --primary-foreground: 210 40% 98%;
+    --secondary: var(--st-color-muted);
+    --secondary-foreground: var(--st-color-text-primary);
+    --muted: var(--st-color-muted);
+    --muted-foreground: var(--st-color-muted-foreground);
+    --accent: var(--st-color-muted);
+    --accent-foreground: var(--st-color-text-primary);
+    --destructive: var(--st-color-error);
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --radius: 0.5rem;
-/* ===== Layout ===== */
-    --layout-text: 210 40% 92%;
+    --border: var(--st-color-border);
+    --input: var(--st-color-border);
+    --ring: var(--st-color-primary);
+    --radius: var(--st-radius-card);
+
+    --layout-text: var(--st-color-text-primary);
     --layout-overlay: 0 0% 0% / 0.25;
-
-    --titlebar-bg: 0 0% 0% / 0.25;
-    --titlebar-border: 0 0% 100% / 0.1;
-
-    /* ===== Sidebar ===== */
-    --sidebar-bg: 222 84% 5% / 0.9;
-    --sidebar-border: 217 32% 18%;
-
+    --titlebar-bg: 233 24% 7% / 0.95;
+    --titlebar-border: 230 18% 16% / 0.5;
+    --sidebar-bg: 233 24% 7% / 0.95;
+    --sidebar-border: 230 18% 16% / 0.5;
     --sidebar-item-text: 215 20% 88%;
     --sidebar-item-hover-bg: 217 91% 60% / 0.1;
     --sidebar-item-hover-text: 210 100% 90%;
-
     --sidebar-item-active-bg: 217 91% 60% / 0.15;
     --sidebar-item-active-border: 217 91% 60% / 0.3;
     --sidebar-item-active-text: 210 100% 90%;
-
     --sidebar-badge-bg: 217 32% 18%;
     --sidebar-badge-text: 215 20% 80%;
-
-    --sidebar-brand-bg: 217 91% 75%;
-    --sidebar-brand-text: 222 84% 5%;
-    /* ===== TitleBar ===== */
     --titlebar-text: 215 20% 80%;
-    --titlebar-text-hover: 210 40% 98%;
-
+    --titlebar-text-hover: var(--st-color-text-primary);
     --titlebar-btn-hover-bg: 0 0% 100% / 0.1;
-
-    --titlebar-accent: 217 91% 75%;
-    --titlebar-accent-hover: 217 91% 80%;
-
-    --titlebar-close-hover-bg: 0 72% 45%;
+    --titlebar-accent: var(--st-color-primary);
+    --titlebar-accent-hover: var(--st-color-primary);
+    --titlebar-close-hover-bg: var(--st-color-error);
     --titlebar-close-hover-text: 0 0% 100%;
-
-
-    
   }
 
+  /* Claude 风格备用样式 */
   .theme-claude {
-    --background: 60 11% 97%;
-    --foreground: 30 2% 12%;
-    --card: 0 0% 100%;
-    --card-foreground: 30 2% 12%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 30 2% 12%;
-    --primary: 15 65% 59%;
+    --st-color-primary: 15 65% 59%;
+    --st-color-background: 60 11% 97%;
+    --st-color-surface: 0 0% 100%;
+    --st-color-text-primary: 30 2% 12%;
+    --st-color-text-secondary: 48 5% 46%;
+    --st-color-border: 45 15% 87%;
+    --st-color-muted: 48 15% 95%;
+    --st-color-muted-foreground: 48 5% 46%;
+    --st-color-success: 142.1 70.6% 45.3%;
+    --st-color-warning: 37.9 90.2% 50.2%;
+    --st-color-error: 0 84.2% 60.2%;
+
+    --st-radius-card: var(--pr-radius-md);
+    --st-radius-button: var(--pr-radius-sm);
+    --st-radius-input: var(--pr-radius-sm);
+    --st-radius-dialog: var(--pr-radius-md);
+
+    --st-border-width: var(--pr-border-width-sm);
+    --st-border-style: solid;
+
+    --st-shadow-card: var(--pr-shadow-sm);
+    --st-shadow-dialog: var(--pr-shadow-lg);
+
+    --background: var(--st-color-background);
+    --foreground: var(--st-color-text-primary);
+    --card: var(--st-color-surface);
+    --card-foreground: var(--st-color-text-primary);
+    --popover: var(--st-color-surface);
+    --popover-foreground: var(--st-color-text-primary);
+    --primary: var(--st-color-primary);
     --primary-foreground: 0 0% 100%;
-    --secondary: 48 14% 93%;
-    --secondary-foreground: 30 2% 12%;
-    --muted: 48 15% 95%;
-    --muted-foreground: 48 5% 46%;
-    --accent: 48 17% 90%;
-    --accent-foreground: 30 2% 12%;
-    --destructive: 0 84.2% 60.2%;
+    --secondary: var(--st-color-muted);
+    --secondary-foreground: var(--st-color-text-primary);
+    --muted: var(--st-color-muted);
+    --muted-foreground: var(--st-color-muted-foreground);
+    --accent: var(--st-color-muted);
+    --accent-foreground: var(--st-color-text-primary);
+    --destructive: var(--st-color-error);
     --destructive-foreground: 0 0% 100%;
-    --border: 45 15% 87%;
-    --input: 45 15% 87%;
-    --ring: 15 65% 59%;
-    
-    /* Layout & sidebar overrides for Claude Code theme */
-    --layout-text: 30 2% 12%;
+    --border: var(--st-color-border);
+    --input: var(--st-color-border);
+    --ring: var(--st-color-primary);
+    --radius: var(--st-radius-card);
+
+    --layout-text: var(--st-color-text-primary);
     --layout-overlay: 0 0% 0% / 0.15;
-    
     --titlebar-bg: 60 11% 97% / 0.8;
     --titlebar-border: 45 15% 87% / 0.5;
-    
     --sidebar-bg: 48 15% 95% / 0.9;
     --sidebar-border: 45 15% 87%;
-    
     --sidebar-item-text: 48 5% 28%;
     --sidebar-item-hover-bg: 15 65% 59% / 0.05;
     --sidebar-item-hover-text: 15 65% 48%;
-    
     --sidebar-item-active-bg: 15 65% 59% / 0.08;
     --sidebar-item-active-border: 15 65% 59% / 0.3;
     --sidebar-item-active-text: 15 65% 48%;
-    
     --sidebar-badge-bg: 48 17% 90%;
     --sidebar-badge-text: 48 5% 46%;
-    
-    --sidebar-brand-bg: 15 65% 59%;
-    --sidebar-brand-text: 0 0% 100%;
-    
     --titlebar-text: 48 5% 46%;
-    --titlebar-text-hover: 30 2% 12%;
+    --titlebar-text-hover: var(--st-color-text-primary);
     --titlebar-btn-hover-bg: 48 17% 90%;
-    
-    --titlebar-accent: 15 65% 59%;
-    --titlebar-accent-hover: 15 65% 50%;
+    --titlebar-accent: var(--st-color-primary);
+    --titlebar-accent-hover: var(--st-color-primary);
   }
 
+  /* ==========================================================================
+     3. Component Tokens (组件级变量) - 绑定到具体高频核心 UI 组件
+     ========================================================================== */
+  :root, .dark {
+    /* 核心卡片 (ServerCard等) 组件 Token */
+    --ct-card-bg: var(--st-color-surface);
+    --ct-card-border-width: var(--st-border-width);
+    --ct-card-border-color: var(--st-color-border);
+    --ct-card-radius: var(--st-radius-card);
+    --ct-card-shadow: var(--st-shadow-card);
+
+    /* 表单输入组件 Token */
+    --ct-input-bg: var(--st-color-background);
+    --ct-input-border-color: var(--st-color-border);
+    --ct-input-radius: var(--st-radius-input);
+    --ct-input-height-md: 36px;
+    --ct-input-height-lg: 40px;
+
+    /* 弹窗组件 Token */
+    --ct-dialog-bg: var(--st-color-surface);
+    --ct-dialog-radius: var(--st-radius-dialog);
+    --ct-dialog-shadow: var(--st-shadow-dialog);
+    --ct-dialog-border-color: var(--st-color-border);
+
+    /* 极简按钮组件 Token */
+    --ct-button-radius: var(--st-radius-button);
+    --ct-button-primary-bg: var(--st-color-primary);
+    --ct-button-primary-text: var(--foreground);
+    --ct-button-height-md: 36px;
+  }
+
+  /* ==========================================================================
+     4. Base Styles & Global Custom Guidelines (Webkit滚动条, 弹窗毛玻璃, Autofill)
+     ========================================================================== */
   * {
     @apply border-border;
   }
   
-body {
-  @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-50;
-  @apply font-sans;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
+  body {
+    @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-50;
+    @apply font-sans;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
   .dark body {
     background-image: radial-gradient(rgb(51, 65, 85) 1.5px, transparent 1.5px);
@@ -207,18 +352,121 @@ body {
     padding: 0;
     overflow: hidden; /* 防止出现双重滚动条 */
   }
+
   input, textarea, select {
     @apply bg-transparent transition-colors duration-300 ease-in-out;
   }
   
-  /* 2. 针对 Webkit 自动填充（Autofill）的“屎黄色/白色”背景修复 */
-  /* 这通常是闪白的另一个元凶，浏览器会自动给记录过账号密码的框填白色背景 */
+  /* 针对表单输入的聚焦与状态多样性覆盖 */
+  input[type="text"], input[type="password"], input[type="email"], input[type="number"], select, textarea {
+    border: 1px solid hsl(var(--border));
+    background-color: hsl(var(--background));
+    border-radius: var(--st-radius-input);
+    transition: all var(--pr-duration-normal) var(--pr-easing-standard);
+  }
+  input[type="text"]:hover, input[type="password"]:hover, input[type="email"]:hover, input[type="number"]:hover, select:hover, textarea:hover {
+    border-color: hsl(var(--border) / 1.5);
+  }
+  input[type="text"]:focus, input[type="password"]:focus, input[type="email"]:focus, input[type="number"]:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 0 2px hsl(var(--primary) / 0.15);
+  }
+
+  /* 针对 Webkit 自动填充（Autofill）的背景修复 */
   input:-webkit-autofill,
   input:-webkit-autofill:hover,
   input:-webkit-autofill:focus,
   input:-webkit-autofill:active {
     -webkit-transition: color 9999s ease-out, background-color 9999s ease-out;
     -webkit-transition-delay: 9999s;
-    transition-delay: 9999s; /* 让背景色变色延迟到无限久，从而看起来像透明 */
+    transition-delay: 9999s;
+  }
+
+  /* 自定义全局滚动条规范 */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.2);
+    border-radius: var(--pr-radius-full);
+    transition: background var(--pr-duration-normal) var(--pr-easing-standard);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.4);
+  }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  /* Firefox 滚动条适配 */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.2) transparent;
+  }
+
+  /* 统一弹窗样式设计 */
+  [role="dialog"], .dialog-content, [class*="DialogContent"] {
+    background-color: hsl(var(--card) / 0.95) !important;
+    backdrop-filter: blur(16px) !important;
+    border: 1px solid hsl(var(--border)) !important;
+    border-radius: var(--st-radius-dialog) !important;
+    box-shadow: 
+      0 20px 25px -5px rgba(0, 0, 0, 0.2), 
+      0 10px 10px -5px rgba(0, 0, 0, 0.1),
+      0 0 0 1px hsl(var(--border)) !important;
+  }
+
+  /* 多状态多样性覆盖 (禁用、焦点等) */
+  :disabled, [disabled], .is-disabled {
+    opacity: var(--pr-opacity-disabled) !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+  }
+
+  *:focus-visible {
+    outline: 2px solid hsl(var(--primary)) !important;
+    outline-offset: 2px !important;
+  }
+
+  /* 骨架屏加载动画 */
+  @keyframes skeleton-glow {
+    0%, 100% { background-color: hsl(var(--muted)); opacity: 0.6; }
+    50% { background-color: hsl(var(--muted)); opacity: 1; }
+  }
+  .animate-skeleton {
+    animation: skeleton-glow 1.5s ease-in-out infinite;
+  }
+
+  /* 连接状态指示灯呼吸动画 */
+  @keyframes pulse-green {
+    0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+    70% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+  }
+  .pulse-connected {
+    animation: pulse-green 2s infinite;
+  }
+
+  @keyframes pulse-blue {
+    0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+    70% { box-shadow: 0 0 0 6px rgba(59, 130, 246, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+  }
+  .pulse-connecting {
+    animation: pulse-blue 1.5s infinite;
+  }
+
+  @keyframes pulse-red {
+    0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+    70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  }
+  .pulse-error {
+    animation: pulse-red 1.5s infinite;
   }
 }

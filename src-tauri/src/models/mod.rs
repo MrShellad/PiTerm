@@ -142,6 +142,7 @@ fn default_os() -> OsType {
 #[serde(rename_all = "camelCase")]
 pub struct SshConfig {
     pub id: String,
+    pub name: Option<String>,
     pub host: String,
     pub port: u16,
     pub username: String,

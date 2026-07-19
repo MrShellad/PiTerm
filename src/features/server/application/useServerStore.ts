@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { Server } from '../domain/types';
 import { ServerAPI } from '@/services/api';
 import { v4 as uuidv4 } from 'uuid';
+import { SortOption } from '../list/domain/types';
 
 export type ViewMode = 'grid' | 'list';
 export type CardSize = 'sm' | 'md' | 'lg';
@@ -17,6 +18,8 @@ interface ServerState {
   
   viewMode: ViewMode;
   cardSize: CardSize;
+  sortBy: SortOption;
+  isPrivacyMode: boolean;
   
   fetchServers: (silent?: boolean) => Promise<void>;
   addOrUpdateServer: (serverData: Partial<Server> & { is_pinned?: number | boolean }) => Promise<void>; 
@@ -24,6 +27,9 @@ interface ServerState {
   removeServer: (id: string) => Promise<void>;
   setViewMode: (mode: ViewMode) => void;
   setCardSize: (size: CardSize) => void;
+  setSortBy: (sort: SortOption) => void;
+  togglePrivacyMode: () => void;
+  setPrivacyMode: (val: boolean) => void;
   
   // [新增] 标记列表已访问动作
   markListVisited: () => void;
@@ -41,9 +47,14 @@ export const useServerStore = create<ServerState>()(
       hasVisitedList: false, // 默认为 false
       viewMode: 'grid',
       cardSize: 'md',
+      sortBy: 'sort_asc',
+      isPrivacyMode: false,
       
       setViewMode: (mode) => set({ viewMode: mode }),
       setCardSize: (size) => set({ cardSize: size }),
+      setSortBy: (sort) => set({ sortBy: sort }),
+      togglePrivacyMode: () => set((s) => ({ isPrivacyMode: !s.isPrivacyMode })),
+      setPrivacyMode: (val) => set({ isPrivacyMode: val }),
       markListVisited: () => set({ hasVisitedList: true }),
 
       // 🟢 [实现] 添加临时服务器
@@ -199,6 +210,8 @@ export const useServerStore = create<ServerState>()(
       partialize: (state) => ({ 
         viewMode: state.viewMode, 
         cardSize: state.cardSize,
+        sortBy: state.sortBy,
+        isPrivacyMode: state.isPrivacyMode,
         // [新增] 缓存 servers 数据，实现“缓存优先”
         servers: state.servers.filter(s => s.provider !== 'QuickConnect')
       }),

@@ -2,6 +2,7 @@ import { Minus, Square, X } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { clsx } from "clsx";
 import { TerminalTabs } from "@/features/terminal/components/TerminalTabs";
+import Logo from "@/assets/logo.png";
 
 const appWindow = getCurrentWindow();
 
@@ -23,19 +24,22 @@ export const TitleBar = () => {
     <div
       data-tauri-drag-region
       className={clsx(
-        "h-10 flex w-full select-none app-region-drag",
-        // 🟢 [修改] 移除背景色和边框，改为全透明
+        "h-10 flex w-full select-none app-region-drag items-center pr-0",
         "bg-transparent"
-        // ❌ 移除了 "bg-slate-100/80...", "border-b..."
       )}
     >
+      {/* Logo 区域 - 宽度与侧栏一致 64px，高度撑满以实现右边框通顶，Logo 居中对齐 */}
+      <div className="w-[64px] h-full flex items-center justify-center shrink-0 border-r border-slate-200/40 dark:border-white/5 select-none pointer-events-none app-region-no-drag">
+        <img src={Logo} alt="Logo" className="w-6 h-6 object-contain" />
+      </div>
+
       {/* Tabs 区域 */}
-      <div className="flex-1 min-w-0 h-full relative z-20">
+      <div className="flex-1 min-w-0 h-full relative z-20 flex items-center pl-2">
         <TerminalTabs />
       </div>
 
       {/* 窗口控制按钮 */}
-      <div className="flex items-start h-full app-region-no-drag shrink-0 z-50">
+      <div className="flex items-center h-full app-region-no-drag shrink-0 z-50">
         <button onClick={handleMinimize} className={windowControlClass}>
           <Minus className="w-4 h-4" />
         </button>

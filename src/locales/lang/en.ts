@@ -189,7 +189,8 @@ export const en = {
         nameAsc: "Name (A–Z)",
         nameDesc: "Name (Z–A)",
         idDesc: "ID (Descending)",
-        idAsc: "ID (Ascending)"
+        idAsc: "ID (Ascending)",
+        lastConnected: "Last Connected First"
       },
 
       form: {

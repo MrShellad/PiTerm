@@ -72,10 +72,10 @@ export const KeyCard = ({ data, onDelete }: Props) => {
                     </InteractiveCardIcon>
 
                     <div className="flex flex-col min-w-0 flex-1 ml-3 mr-2 justify-center">
-                        <h3 className="font-semibold text-slate-800 dark:text-slate-100 truncate text-sm leading-tight">
+                        <h3 className="font-semibold text-foreground truncate text-sm leading-tight">
                             {data.name}
                         </h3>
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate font-mono mt-0.5 opacity-90">
+                        <span className="text-[10px] text-muted-foreground truncate font-mono mt-0.5 opacity-90">
                             {isPassword ? 'Password' : 'Private Key'}
                         </span>
                     </div>
@@ -87,8 +87,8 @@ export const KeyCard = ({ data, onDelete }: Props) => {
                                     className={clsx(
                                         "p-1.5 rounded-md transition-all duration-200 outline-none",
                                         "opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100",
-                                        "text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300",
-                                        "data-[state=open]:bg-slate-100 dark:data-[state=open]:bg-slate-800"
+                                        "text-muted-foreground hover:bg-muted hover:text-foreground",
+                                        "data-[state=open]:bg-muted"
                                     )}
                                 >
                                     <MoreHorizontal className="w-4 h-4" />
@@ -105,7 +105,7 @@ export const KeyCard = ({ data, onDelete }: Props) => {
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem 
-                                    className="text-red-500 focus:text-red-500 focus:bg-red-50 dark:focus:bg-red-900/10" 
+                                    className="text-destructive focus:text-destructive focus:bg-destructive/10" 
                                     onClick={() => onDelete(data.id)}
                                 >
                                     <Trash2 className="w-3.5 h-3.5 mr-2 opacity-70" />
@@ -118,14 +118,14 @@ export const KeyCard = ({ data, onDelete }: Props) => {
 
                 {/* 3. Body: Usage Info */}
                 <InteractiveCardBody className="mt-2">
-                    <div className="bg-slate-50/80 dark:bg-slate-900/40 rounded-md p-2.5 text-[11px] border border-slate-100 dark:border-white/5 transition-colors group-hover:bg-slate-100 dark:group-hover:bg-slate-800/50">
+                    <div className="bg-muted/30 rounded-md p-2.5 text-[11px] border border-border/40 transition-colors group-hover:bg-muted/50">
                         <div className="flex items-center gap-2 mb-1.5">
-                            <Server className="w-3 h-3 text-slate-400 dark:text-slate-500 shrink-0" />
-                            <span className="font-medium truncate text-slate-700 dark:text-slate-300">
+                            <Server className="w-3 h-3 text-muted-foreground shrink-0" />
+                            <span className="font-medium truncate text-foreground">
                                 {data.lastUsed ? data.lastUsed.serverName : t('keys.neverUsed', 'Never used')}
                             </span>
                         </div>
-                        <div className="flex justify-between items-center font-mono text-[10px] text-slate-500 dark:text-slate-400">
+                        <div className="flex justify-between items-center font-mono text-[10px] text-muted-foreground">
                             <span className="truncate mr-2 opacity-80">{data.lastUsed?.serverIp || '-'}</span>
                             <span className="whitespace-nowrap opacity-80">
                                 {data.lastUsed ? format(data.lastUsed.timestamp, 'MMM d, HH:mm') : '-'}

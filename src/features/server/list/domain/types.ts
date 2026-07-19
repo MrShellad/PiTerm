@@ -14,7 +14,8 @@ export type SortOption =
   | 'name_asc'
   | 'name_desc'
   | 'id_desc'
-  | 'id_asc';
+  | 'id_asc'
+  | 'last_connected_desc';
 
 // 列表的筛选/视图状态
 export interface ServerListState {

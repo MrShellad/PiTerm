@@ -22,11 +22,11 @@ export const ServerConnectionPanel = () => {
 
       <Tabs defaultValue="basic" className="flex-1 flex flex-col">
         {/* Tab Navigation */}
-        <TabsList className="grid w-full grid-cols-2 h-10 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 p-1 text-slate-500 mb-6">
-          <TabsTrigger value="basic" className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:shadow-sm transition-all">
+        <TabsList className="grid w-full grid-cols-2 h-10 items-center justify-center rounded-xl bg-muted p-1 text-muted-foreground mb-6">
+          <TabsTrigger value="basic" className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all">
              {t('server.form.tabs.basic', 'Basic Settings')}
           </TabsTrigger>
-          <TabsTrigger value="advanced" className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:shadow-sm transition-all">
+          <TabsTrigger value="advanced" className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all">
              {t('server.form.tabs.advanced', 'Advanced')}
           </TabsTrigger>
         </TabsList>

@@ -50,9 +50,6 @@ export const ServerModal = ({ open, onOpenChange, initialData, onClose }: Server
       
       passwordId: initialData.passwordId,
       passwordSource: initialData.passwordId ? 'store' : 'manual',
-      
-      // 🟢 [关键修复] 绝对不能把 passwordId 赋给 password！
-      // 否则编辑时会导致密码被重置为 UUID 字符串
       password: initialData.password || "",
       
       keyId: initialData.keyId,
@@ -82,8 +79,7 @@ export const ServerModal = ({ open, onOpenChange, initialData, onClose }: Server
       onClose={handleClose}
       title={modalTitle}
       icon={<ServerIcon className="w-5 h-5" />}
-      // 🟢 建议使用 max-w-4xl，给左右分栏留出呼吸空间
-      className="max-w-4xl h-[750px] flex flex-col z-[50]"
+      className="max-w-4xl h-[85vh] max-h-[750px] min-h-[500px] flex flex-col z-[50]"
     >
       <ServerForm 
         initialData={formDefaultValues}

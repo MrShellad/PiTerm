@@ -50,3 +50,43 @@
   from { opacity: 0; transform: translate(-50%, -48%) scale(0.96); }
   to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
+
+/* 保险库专属交互动画 */
+@keyframes vaultShake {
+  0%, 100% { transform: translateX(0); }
+  15%, 45%, 75% { transform: translateX(-6px); }
+  30%, 60%, 90% { transform: translateX(6px); }
+}
+
+@keyframes vaultPop {
+  0% { transform: scale(0.8); opacity: 0.4; }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes vaultPulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(59, 130, 246, 0); }
+}
+
+@keyframes vaultSuccess {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.03); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-vault-shake {
+  animation: vaultShake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.animate-vault-pop {
+  animation: vaultPop 0.18s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+
+.animate-vault-glow {
+  animation: vaultPulseGlow 2s infinite ease-in-out;
+}
+
+.animate-vault-success {
+  animation: vaultSuccess 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}

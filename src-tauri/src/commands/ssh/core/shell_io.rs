@@ -131,13 +131,37 @@ pub fn spawn_shell_reader_thread(
                     match channel_msg {
                         Some(russh::ChannelMsg::Data { data }) => {
                             total_bytes_read = total_bytes_read.saturating_add(data.len() as u64);
-                            let data = String::from_utf8_lossy(&data).to_string();
-                            let _ = app.emit(&format!("term-data-{}", id), data);
+                            let data_str = String::from_utf8_lossy(&data).to_string();
+                            
+                            // Save to terminal output history
+                            if let Some(conn) = get_ssh_session_if_instance(&sessions, &id, instance_id) {
+                                if let Ok(mut history) = conn.output_history.lock() {
+                                    history.push_str(&data_str);
+                                    if history.len() > 50000 {
+                                        let overflow = history.len() - 50000;
+                                        *history = history[overflow..].to_string();
+                                    }
+                                }
+                            }
+                            
+                            let _ = app.emit(&format!("term-data-{}", id), data_str);
                         }
                         Some(russh::ChannelMsg::ExtendedData { data, .. }) => {
                             total_bytes_read = total_bytes_read.saturating_add(data.len() as u64);
-                            let data = String::from_utf8_lossy(&data).to_string();
-                            let _ = app.emit(&format!("term-data-{}", id), data);
+                            let data_str = String::from_utf8_lossy(&data).to_string();
+                            
+                            // Save to terminal output history
+                            if let Some(conn) = get_ssh_session_if_instance(&sessions, &id, instance_id) {
+                                if let Ok(mut history) = conn.output_history.lock() {
+                                    history.push_str(&data_str);
+                                    if history.len() > 50000 {
+                                        let overflow = history.len() - 50000;
+                                        *history = history[overflow..].to_string();
+                                    }
+                                }
+                            }
+                            
+                            let _ = app.emit(&format!("term-data-{}", id), data_str);
                         }
                         Some(russh::ChannelMsg::Eof) | Some(russh::ChannelMsg::Close) | None => {
                             break "channel_eof";

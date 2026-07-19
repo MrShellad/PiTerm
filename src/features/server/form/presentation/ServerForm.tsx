@@ -32,27 +32,27 @@ export const ServerForm = ({ initialData, onClose }: ServerFormProps) => {
         <div className="flex-1 flex overflow-hidden min-h-0"> 
           
           {/* 左侧：Basic Info */}
-          <div className="w-[280px] shrink-0 bg-slate-50/80 dark:bg-black/20 p-4 overflow-y-auto custom-scrollbar">
+          <div className="w-[285px] shrink-0 bg-muted/30 p-5 overflow-y-auto custom-scrollbar border-r border-border/40">
             <ServerGeneralInfo />
           </div>
 
           {/* 右侧：Connection (主要内容区) */}
-          <div className="flex-1 p-6 bg-white/40 dark:bg-transparent overflow-y-scroll custom-scrollbar">
+          <div className="flex-1 p-5 bg-background/20 dark:bg-transparent overflow-y-scroll custom-scrollbar">
             <ServerConnectionPanel />
           </div>
         </div>
 
         {/* --- Footer (底部按钮栏) --- */}
-        <div className="shrink-0 flex justify-between items-center p-4 border-t border-slate-100 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm z-10">
+        <div className="shrink-0 flex justify-between items-center px-4 py-3 border-t border-border bg-card/60 backdrop-blur-sm z-10">
           <Button
             type="button"
             variant="outline"
             onClick={handleTest}
             disabled={testStatus === 'loading'}
             className={cn(
-              "transition-all border-slate-200 dark:border-slate-700",
-              testStatus === 'success' && "border-green-500 text-green-600 bg-green-50 dark:bg-green-900/20",
-              testStatus === 'error' && "border-red-500 text-red-600 bg-red-50 dark:bg-red-900/20"
+              "transition-all border-border",
+              testStatus === 'success' && "border-emerald-500/50 text-emerald-500 bg-emerald-500/10",
+              testStatus === 'error' && "border-destructive/50 text-destructive bg-destructive/10"
             )}
           >
             {testStatus === 'loading' ? (
@@ -69,7 +69,7 @@ export const ServerForm = ({ initialData, onClose }: ServerFormProps) => {
             </Button>
             <Button
               type="submit"
-              className="min-w-[100px] gap-2 bg-blue-600 text-white shadow-sm hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500"
+              className="min-w-[100px] gap-2"
             >
               <Save className="w-4 h-4" />
               {t('common.save', 'Save')}

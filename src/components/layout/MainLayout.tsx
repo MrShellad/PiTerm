@@ -139,23 +139,26 @@ export const MainLayout = () => {
         />
       </div>
 
-      {/* --- 前景布局 (保持不变) --- */}
-      <div className="relative z-10 flex w-full h-full">
-        <Sidebar />
-
-        <div className="flex-1 flex flex-col min-w-0 relative">
-          <div
-            className={clsx(
-              "h-10 w-full shrink-0 z-50",
-              "backdrop-blur-md",
-              "bg-[hsl(var(--titlebar-bg))]/80", 
-              "transition-all duration-300"
-            )}
-          >
-            <div className="relative w-full h-full">
-              <TitleBar />
-            </div>
+      {/* --- 前景布局 --- */}
+      <div className="relative z-10 flex flex-col w-full h-full">
+        {/* TitleBar 贯穿顶部 */}
+        <div
+          className={clsx(
+            "h-10 w-full shrink-0 z-50",
+            "backdrop-blur-md",
+            "bg-[#f1f3f5]/90 dark:bg-[#0a0c10]/90",
+            "border-b border-slate-200/40 dark:border-white/5", 
+            "transition-all duration-300"
+          )}
+        >
+          <div className="relative w-full h-full">
+            <TitleBar />
           </div>
+        </div>
+
+        {/* 下方左右布局：左侧 Sidebar，右侧 main 视图 */}
+        <div className="flex-1 flex w-full min-h-0 relative">
+          <Sidebar />
 
           <main className="flex-1 overflow-hidden relative bg-transparent">
             <div className={clsx("w-full h-full bg-transparent", !isTerminalPage && "hidden")}>
@@ -166,9 +169,9 @@ export const MainLayout = () => {
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={location.pathname}
-                    initial={{ opacity: 0, marginTop: "20px" }}
-                    animate={{ opacity: 1, marginTop: "0px" }}
-                    exit={{ opacity: 0, marginTop: "-20px" }}
+                    initial={{ marginTop: "12px" }}
+                    animate={{ marginTop: "0px" }}
+                    exit={{ marginTop: "-12px" }}
                     transition={{ 
                       duration: 0.25, 
                       ease: "linear" 

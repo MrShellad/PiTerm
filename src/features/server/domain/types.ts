@@ -6,6 +6,7 @@ export interface Server {
   id: string;
   name: string;
   provider?: string;
+  status?: ServerStatus;
   
   ip: string;
   port: number;

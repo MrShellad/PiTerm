@@ -36,7 +36,7 @@ pub async fn resolve_config(
     server_id: &str,
 ) -> Result<SshConfig, String> {
     let row = sqlx::query(
-        "SELECT id, ip, port, username, connection_type, proxy_id, auth_type, password_id, key_id, passphrase, private_key, password, 
+        "SELECT id, name, ip, port, username, connection_type, proxy_id, auth_type, password_id, key_id, passphrase, private_key, password, 
                 connect_timeout, keep_alive_interval, auto_reconnect, max_reconnects 
          FROM servers WHERE id = ?"
     )
@@ -46,6 +46,7 @@ pub async fn resolve_config(
     .map_err(|e| format!("DB Query Error: {}", e))?
     .ok_or_else(|| format!("Server not found with ID: {}", server_id))?;
 
+    let name: Option<String> = row.try_get("name").ok();
     let host: String = row.get("ip");
     let port: u16 = row.get::<i64, _>("port") as u16;
     let username: String = row.get("username");
@@ -100,8 +101,9 @@ pub async fn resolve_config(
 
             final_private_key = Some(clean_private_key(&raw_key));
         } else {
-            if let Some(pk) = row.get::<Option<String>, _>("private_key") {
-                final_private_key = Some(clean_private_key(&pk));
+            let raw_key: Option<String> = row.get("private_key");
+            if let Some(k) = raw_key {
+                final_private_key = Some(clean_private_key(&k));
             }
         }
     }
@@ -123,6 +125,7 @@ pub async fn resolve_config(
 
     Ok(SshConfig {
         id: server_id.to_string(),
+        name,
         host,
         port,
         username,
@@ -207,6 +210,7 @@ pub async fn resolve_test_config(
 
     Ok(SshConfig {
         id: "test_session".to_string(),
+        name: None,
         host: payload.ip,
         port: payload.port,
         username: payload.username,

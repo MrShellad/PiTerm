@@ -482,6 +482,7 @@ pub async fn quick_connect(
     use crate::models::ConnectionType;
     let config = SshConfig {
         id: "quick_connect".to_string(),
+        name: None,
         host: ip,
         port,
         username,

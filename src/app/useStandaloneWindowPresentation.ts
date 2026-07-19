@@ -67,7 +67,7 @@ export function useStandaloneWindowPresentation() {
 
       styleTag.innerHTML = `
         :root { --font-ui: ${safeFont}; }
-        body, button, input, textarea, select, .font-sans {
+        body, button, input, textarea, select, .font-sans, [class*="sidebar"], [class*="titlebar"], nav, header {
           font-family: var(--font-ui), "Microsoft YaHei", "微软雅黑", "PingFang SC", "Hiragino Sans GB", "Heiti SC", "WenQuanYi Micro Hei", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
         }
       `;
@@ -83,7 +83,7 @@ export function useStandaloneWindowPresentation() {
       splash.style.transition = 'opacity 0.3s ease';
       setTimeout(() => { splash.remove(); }, 300);
     }
-    if (typeof window !== 'undefined' && (window as any).__TAURI__) {
+    if (typeof window !== 'undefined' && ((window as any).__TAURI__ || (window as any).__TAURI_INTERNALS__)) {
       try { getCurrentWindow().show(); } catch (e) { console.error(e); }
     }
   }, []);

@@ -43,6 +43,7 @@ pub struct SshConnection {
     pub bg_connecting: Arc<AtomicBool>,
     pub shutdown_complete: Arc<AtomicBool>,
     pub last_client_heartbeat: Arc<Mutex<Instant>>,
+    pub output_history: Arc<Mutex<String>>,
 }
 
 impl SshConnection {
@@ -66,6 +67,7 @@ impl SshConnection {
             bg_connecting: Arc::new(AtomicBool::new(true)),
             shutdown_complete: Arc::new(AtomicBool::new(false)),
             last_client_heartbeat: Arc::new(Mutex::new(Instant::now())),
+            output_history: Arc::new(Mutex::new(String::new())),
         }
     }
 

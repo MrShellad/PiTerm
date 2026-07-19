@@ -127,7 +127,7 @@ export const TerminalSplitLayout = ({ children }: Props) => {
         className={clsx(
           "h-full flex-shrink-0 overflow-hidden",
           // 添加宽度过渡动画
-          "transition-[width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+          "transition-[width] duration-300 ease-in-out",
           monitorPosition === 'left' 
             ? "border-r border-slate-200 dark:border-slate-800" 
             : "border-l border-slate-200 dark:border-slate-800",

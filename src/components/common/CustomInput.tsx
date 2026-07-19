@@ -27,23 +27,17 @@ export const CustomInput = React.forwardRef<HTMLInputElement, CustomInputProps>(
       "backdrop-blur-xl", 
 
       // 2. Default State (默认状态)
-      // Light: 使用白色带高透明度，配合模糊打造磨砂感。边框也稍微透明一点以融合背景。
-      "bg-white/60 border-slate-200/80 text-slate-900 placeholder:text-slate-400",
-      // Dark: 使用深色带透明度。
-      "dark:bg-slate-950/40 dark:border-slate-800/80 dark:text-slate-100 dark:placeholder:text-slate-500",
+      "bg-background/60 border-border/80 text-foreground placeholder:text-muted-foreground",
       
       // 3. Hover State (悬停状态)
-      // 鼠标悬停时，增加不透明度，让玻璃感更“实”一点
-      "hover:bg-white/80 hover:border-slate-300",
-      "dark:hover:bg-slate-900/60 dark:hover:border-slate-700",
+      "hover:bg-background/90 hover:border-border",
 
       // 4. Focus State (聚焦状态)
-      // 聚焦时建议保持纯色或极高不透明度，以保证输入内容清晰，同时保留一点点通透感的高亮边框
-      "focus-visible:bg-white dark:focus-visible:bg-slate-950",
-      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:border-blue-500",
+      "focus-visible:bg-background",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:border-primary",
       
       // 5. Disabled State (禁用状态)
-      "disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-slate-100/50 dark:disabled:bg-slate-900/50",
+      "disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted/50",
       
       // 图标留白
       startIcon && "pl-9",
@@ -53,7 +47,7 @@ export const CustomInput = React.forwardRef<HTMLInputElement, CustomInputProps>(
       "[&::-ms-reveal]:hidden [&::-ms-clear]:hidden"
     );
 
-    const errorInputStyles = error && "border-red-500/80 bg-red-50/40 hover:bg-red-50/60 dark:bg-red-900/20 dark:hover:bg-red-900/30 text-red-900 dark:text-red-100 placeholder:text-red-300 focus-visible:ring-red-500/30 focus-visible:border-red-500";
+    const errorInputStyles = error && "border-destructive/80 bg-destructive/10 text-destructive placeholder:text-destructive/50 focus-visible:ring-destructive/30 focus-visible:border-destructive";
 
     return (
       <div className="space-y-1.5 w-full">
@@ -61,12 +55,12 @@ export const CustomInput = React.forwardRef<HTMLInputElement, CustomInputProps>(
           <Label 
             htmlFor={props.id} 
             className={cn(
-              "text-base font-semibold text-slate-500 uppercase tracking-wider flex items-center transition-colors",
-              error && "text-red-500"
+              "text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center transition-colors",
+              error && "text-destructive"
             )}
           >
             {label}
-            {required && <span className="text-red-500 ml-0.5">*</span>}
+            {required && <span className="text-destructive ml-0.5">*</span>}
           </Label>
         )}
 

@@ -6,6 +6,7 @@ import { ScrollButton } from "./tabs/ScrollButton";
 import { Plus } from "lucide-react";
 import { useTerminalStore } from "@/store/useTerminalStore";
 import { useNavigate } from "react-router-dom";
+import { ThemeSelector } from "./tabs/ThemeSelector";
 
 export const TerminalTabs = () => {
   const {
@@ -43,7 +44,7 @@ export const TerminalTabs = () => {
       `}</style>
 
       <div className={clsx(
-        "flex items-end h-full min-w-0 w-full pr-2",
+        "flex items-center h-full min-w-0 w-full pr-2",
         // 移除了背景色和边框，交给 TitleBar 统一管理，实现整体沉浸感
         "bg-transparent", 
         "transition-colors duration-200 ease-in-out"
@@ -56,7 +57,7 @@ export const TerminalTabs = () => {
         <div 
           ref={scrollContainerRef}
           onScroll={checkScroll}
-          className="hide-scrollbar flex-1 flex items-end overflow-x-auto h-full gap-1 px-1 scroll-smooth"
+          className="hide-scrollbar flex-1 flex items-center overflow-x-auto h-full gap-1.5 px-1 scroll-smooth"
         >
           {tabs.map((tab) => (
             <TerminalTabItem
@@ -77,8 +78,7 @@ export const TerminalTabs = () => {
         {canScrollRight && <ScrollButton dir="right" onClick={() => scroll('right')} />}
 
         {/* [修改] 新建终端按钮 - 移除 Tooltip，优化对齐 */}
-        {/* 使用 mb-1.5 与右侧 ThemeSelector 保持底部对齐高度一致 */}
-        <div className="mb-1.5 pl-1 shrink-0">
+        <div className="pl-1.5 shrink-0 flex items-center">
             <button
             onClick={handleNewTerminal}
             className={clsx(
@@ -93,12 +93,12 @@ export const TerminalTabs = () => {
         </div>
 
         {/* 分隔线 */}
-        <div className="h-4 w-px bg-slate-300 dark:bg-white/10 mx-2 shrink-0 mb-3" />
+        <div className="h-4 w-px bg-slate-300 dark:bg-white/10 mx-2 shrink-0 self-center" />
         
         {/* 配色方案选择器 */}
-        {/* <div className="mb-1.5">
+        <div className="shrink-0 flex items-center pr-1.5">
             <ThemeSelector />
-        </div> */}
+        </div>
 
       </div>
     </>

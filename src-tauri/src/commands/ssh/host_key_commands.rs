@@ -95,6 +95,7 @@ pub async fn check_host_key(
 
     let config = SshConfig {
         id: id.clone(),
+        name: None,
         host: host.clone(),
         port,
         username: "".to_string(),

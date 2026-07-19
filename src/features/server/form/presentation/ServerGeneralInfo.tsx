@@ -33,49 +33,41 @@ export const ServerGeneralInfo = () => {
     <div className="flex flex-col h-full gap-6 pr-2 py-1 pl-1">
       
       {/* ================= SECTION 1: IDENTITY (基础信息) ================= */}
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-4">
         
-        {/* 图标 + 名称 + 服务商 */}
-        <div className="flex gap-4 items-start">
-          {/* 左侧：图标选择器 */}
-          <div className="flex-shrink-0 pt-1">
+        {/* Row 1: 图标选择器 + 服务器名称 */}
+        <div className="flex gap-3 items-end">
+          <div className="shrink-0 pb-0.5">
              <IconPicker value={values.icon} onChange={actions.selectIcon} />
           </div>
           
-          {/* 右侧：表单输入区 */}
-          <div className="flex-1 flex flex-col gap-4">
-            
-            {/* 1. Server Name (必填) */}
-            {/* 🟢 [修改] 使用 CustomInput 替换原生 Input + Label + ErrorMsg 组合 */}
+          <div className="flex-1 min-w-0">
             <CustomInput
               id="name"
               label={t('server.form.name', 'Server Name')}
               {...register("name", { required: true })}
               placeholder={t('server.form.namePlaceholder', '例如：生产环境数据库')}
-              // 统一错误态，并隐藏文字提示
               error={errors.name?.message as string}
               hideErrorMsg
               required
             />
-
-            {/* 2. Provider Picker (服务商) */}
-            <div className="flex items-center gap-3 w-full">
-              <Label className="shrink-0 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                {t('server.form.provider', 'Provider')}
-              </Label>
-              <div className="relative min-w-0 flex-1">
-                <ProviderPicker 
-                  value={values.provider}
-                  suggestions={safeProviderSuggestions}
-                  isOpen={state.openProvider}
-                  onOpenChange={state.setOpenProvider}
-                  onSelect={actions.selectProvider}
-                />
-              </div>
-            </div>
-
           </div>
         </div>
+
+        {/* Row 2: 服务商 (Provider) 独占一行 */}
+        <div className="space-y-1.5 w-full">
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+            {t('server.form.provider', 'Provider')}
+          </Label>
+          <ProviderPicker 
+            value={values.provider}
+            suggestions={safeProviderSuggestions}
+            isOpen={state.openProvider}
+            onOpenChange={state.setOpenProvider}
+            onSelect={actions.selectProvider}
+          />
+        </div>
+
       </div>
 
       <div className="h-px bg-border/50 w-full" /> {/* 分割线 */}
@@ -86,15 +78,15 @@ export const ServerGeneralInfo = () => {
         {/* Tags */}
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
               <Tag className="w-3.5 h-3.5" /> 
               {t('server.form.tags', 'Tags')}
             </Label>
             {/* 计数器 */}
             <span className={cn(
-              "text-[10px] px-1.5 py-0.5 rounded-md font-mono", 
+              "text-xs px-2 py-0.5 rounded-md font-mono font-semibold", 
               safeTags.length >= 2 
-                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" 
+                ? "bg-amber-500/15 text-amber-600 dark:text-amber-400" 
                 : "bg-muted text-muted-foreground"
             )}>
               {safeTags.length}/2
@@ -113,7 +105,7 @@ export const ServerGeneralInfo = () => {
 
         {/* Expiration */}
         <div className="space-y-2">
-          <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
             <CalendarIcon className="w-3.5 h-3.5" /> 
             {t('server.form.enableExpiration', 'Expiration')}
           </Label>

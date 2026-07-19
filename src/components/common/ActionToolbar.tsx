@@ -1,4 +1,4 @@
-import { Search, LayoutGrid, List, Plus } from "lucide-react";
+import { Search, LayoutGrid, List, Plus, Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
@@ -25,6 +25,10 @@ interface ActionToolbarProps {
   cardSize?: CardSize;
   onCardSizeChange?: (size: CardSize) => void;
 
+  // 隐私模式
+  isPrivacyMode?: boolean;
+  onTogglePrivacyMode?: () => void;
+
   // 额外操作区 (用于放置排序下拉框等)
   extraActions?: React.ReactNode;
 
@@ -46,6 +50,8 @@ export const ActionToolbar = ({
   onViewModeChange,
   cardSize,
   onCardSizeChange,
+  isPrivacyMode,
+  onTogglePrivacyMode,
   extraActions,
   onAdd,
   addLabel,
@@ -77,7 +83,28 @@ export const ActionToolbar = ({
           </div>
         )}
 
-        {/* 3. 卡片尺寸切换 (使用 GlassTooltip) */}
+        {/* 3. 隐私模式切换 */}
+        {onTogglePrivacyMode && (
+          <GlassTooltip content={isPrivacyMode ? t('common.privacy_mode_off', 'Disable Privacy Mode') : t('common.privacy_mode_on', 'Enable Privacy Mode')} side="bottom">
+            <button
+              onClick={onTogglePrivacyMode}
+              className={cn(
+                "h-9 px-2.5 rounded-lg border flex items-center justify-center transition-all shrink-0",
+                isPrivacyMode 
+                  ? "bg-amber-500/15 border-amber-500/40 text-amber-500 font-medium" 
+                  : "bg-muted border-border text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {isPrivacyMode ? (
+                <EyeOff className="w-4 h-4" />
+              ) : (
+                <Eye className="w-4 h-4" />
+              )}
+            </button>
+          </GlassTooltip>
+        )}
+
+        {/* 4. 卡片尺寸切换 (使用 GlassTooltip) */}
         {viewMode === 'grid' && onCardSizeChange && cardSize && (
           <div className="flex items-center bg-muted rounded-lg p-1 border border-border h-9 shrink-0">
             {/* Small */}
@@ -127,7 +154,7 @@ export const ActionToolbar = ({
           </div>
         )}
 
-        {/* 4. 视图切换 (为了风格统一，也加上了 Tooltip) */}
+        {/* 5. 视图切换 (为了风格统一，也加上了 Tooltip) */}
         {viewMode && onViewModeChange && (
           <div className="flex items-center bg-muted rounded-lg p-1 border border-border h-9 shrink-0">
             <GlassTooltip content={t('common.grid_view', 'Grid View')} side="bottom">
@@ -160,7 +187,7 @@ export const ActionToolbar = ({
           </div>
         )}
 
-        {/* 5. 添加按钮 */}
+        {/* 6. 添加按钮 */}
         {onAdd && (
           <Button 
             onClick={onAdd} 

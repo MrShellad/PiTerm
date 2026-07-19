@@ -23,9 +23,9 @@ const COMPACT_WIDTHS: Record<CardSize, string> = {
 };
 
 const CARD_DIMENSIONS: Record<CardSize, { width: string; height: string }> = {
-  sm: { width: "220px", height: "170px" },
-  md: { width: "260px", height: "200px" },
-  lg: { width: "320px", height: "210px" }
+  sm: { width: "220px", height: "140px" },
+  md: { width: "260px", height: "165px" },
+  lg: { width: "320px", height: "200px" }
 };
 
 export const ServerGrid = ({ 
@@ -46,7 +46,7 @@ export const ServerGrid = ({
       if (!parentRef.current) return;
       const containerWidth = parentRef.current.getBoundingClientRect().width;
       const cardWidth = cardSize === 'sm' ? 220 : cardSize === 'md' ? 260 : 320;
-      const computed = Math.floor((containerWidth + 16) / (cardWidth + 16));
+      const computed = Math.floor((containerWidth + 20) / (cardWidth + 20));
       setColumns(Math.max(1, computed));
     };
 
@@ -68,7 +68,7 @@ export const ServerGrid = ({
       gridTemplateColumns: `repeat(auto-fill, ${COMPACT_WIDTHS[cardSize]})`
     } as React.CSSProperties;
     return (
-      <div className="grid gap-4 pt-2 pb-2 justify-center content-start overflow-y-auto h-full custom-scrollbar" style={gridStyle}>
+      <div className="grid gap-5 pt-2 pb-2 justify-center content-start overflow-y-auto h-full custom-scrollbar" style={gridStyle}>
         {Array.from({ length: 8 }).map((_, i) => (
           <ServerCardSkeleton key={`skeleton-${i}`} size={cardSize} />
         ))}
@@ -102,11 +102,16 @@ export const ServerGrid = ({
     count: rows.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => {
-      const cardHeight = cardSize === 'sm' ? 170 : cardSize === 'md' ? 200 : 210;
-      return cardHeight + 16; 
+      const cardHeight = cardSize === 'sm' ? 140 : cardSize === 'md' ? 165 : 200;
+      return cardHeight + 20; 
     },
+    getItemKey: (index) => `${cardSize}-${columns}-${index}`,
     overscan: 5,
   });
+
+  useEffect(() => {
+    rowVirtualizer.measure();
+  }, [cardSize, columns, rows.length]);
 
   if (!isLoading && servers.length === 0) {
     return (
@@ -140,13 +145,13 @@ export const ServerGrid = ({
           return (
             <div
               key={virtualRow.key}
-              className="grid gap-4 justify-center"
+              className="grid gap-5 justify-center"
               style={{
                 position: 'absolute',
                 top: 0,
                 left: 0,
                 width: '100%',
-                height: `${virtualRow.size - 16}px`,
+                height: `${virtualRow.size - 20}px`,
                 transform: `translateY(${virtualRow.start}px)`,
                 gridTemplateColumns: `repeat(${columns}, ${COMPACT_WIDTHS[cardSize]})`,
               }}

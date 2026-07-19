@@ -53,36 +53,29 @@ export const TerminalTabItem = ({
           data-tab-id={tab.id}
           onClick={() => onClick(tab.id)}
           className={clsx(
-            "group relative overflow-hidden flex items-center h-9 px-3 min-w-[140px] max-w-[240px] shrink-0 rounded-t-xl cursor-pointer select-none font-medium text-xs transition-colors duration-200",
-            "app-region-no-drag border-t border-x",
+            "group relative overflow-hidden flex items-center h-7 px-3 min-w-[120px] max-w-[200px] shrink-0 rounded-md cursor-pointer select-none font-medium text-xs transition-all duration-200",
+            "app-region-no-drag border",
             isActive 
               ? [
-                  "bg-white dark:bg-[#1e1e1e]", 
-                  "border-slate-200 dark:border-white/10 border-b-transparent", 
-                  "text-blue-600 dark:text-blue-400", 
-                  "mb-[-1px] z-10", 
-                  "shadow-[0_-2px_5px_rgba(0,0,0,0.02)]"
+                  "bg-slate-200/80 dark:bg-white/10", 
+                  "border-slate-300/40 dark:border-white/10", 
+                  "text-slate-800 dark:text-white"
                 ]
               : [
                   "bg-transparent border-transparent",
-                  "text-slate-500 dark:text-slate-500", 
-                  "hover:bg-slate-200/60 dark:hover:bg-white/5",
-                  "hover:text-slate-700 dark:hover:text-slate-300",
-                  "mb-0 opacity-80 hover:opacity-100" 
+                  "text-slate-400 dark:text-slate-500", 
+                  "hover:bg-slate-200/40 dark:hover:bg-white/5",
+                  "hover:text-slate-700 dark:hover:text-slate-300"
                 ]
           )}
         >
-          {isActive && (
-             <div className="absolute top-0 left-0 right-0 h-[2px] bg-blue-500 dark:bg-blue-400" />
-          )}
-
-          <div className="mr-2.5 shrink-0 flex items-center justify-center">
+          <div className="mr-2 shrink-0 flex items-center justify-center">
               {tab.type === 'welcome' ? (
-                  <TerminalSquare className={clsx("w-4 h-4", isActive ? "text-blue-500 dark:text-blue-400" : "text-slate-400")} />
+                  <TerminalSquare className={clsx("w-3.5 h-3.5", isActive ? "text-slate-800 dark:text-white" : "text-slate-400")} />
               ) : (
                   <div className={clsx(
-                    "flex items-center justify-center w-4 h-4 rounded-full transition-colors duration-200", 
-                    isActive ? "bg-blue-50 dark:bg-blue-500/10" : "bg-slate-100 dark:bg-white/5"
+                    "flex items-center justify-center w-3.5 h-3.5 rounded-full transition-colors duration-200", 
+                    isActive ? "bg-slate-300/50 dark:bg-white/10" : "bg-slate-100 dark:bg-white/5"
                   )}>
                       <div className={clsx("w-1.5 h-1.5 rounded-full shadow-sm", statusIndicatorClass)} />
                   </div>
@@ -91,7 +84,7 @@ export const TerminalTabItem = ({
           
           <span className="truncate flex-1 font-medium">{tab.title}</span>
           
-          {isSplit && <SplitSquareHorizontal className="w-3.5 h-3.5 text-slate-400 mr-1.5 opacity-70" />}
+          {isSplit && <SplitSquareHorizontal className="w-3 h-3 text-slate-400 mr-1 opacity-70" />}
 
           <div
             onClick={(e) => {
@@ -101,16 +94,12 @@ export const TerminalTabItem = ({
             className={clsx(
               "p-0.5 rounded-md transition-all duration-200 ml-1 shrink-0",
               isActive 
-                ? "opacity-100 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400 hover:text-red-500" 
+                ? "opacity-100 hover:bg-slate-300/60 dark:hover:bg-white/10 text-slate-400 hover:text-red-500" 
                 : "opacity-0 group-hover:opacity-100 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-400 hover:text-red-500"
             )}
           >
-            <X className="w-3.5 h-3.5" />
+            <X className="w-3 h-3" />
           </div>
-
-          {!isActive && (
-              <div className="absolute right-0 top-3 bottom-3 w-px bg-slate-300/50 dark:bg-white/10 pointer-events-none" />
-          )}
         </div>
       </ContextMenuTrigger>
       

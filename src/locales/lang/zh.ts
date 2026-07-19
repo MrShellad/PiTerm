@@ -184,11 +184,14 @@ export const zh = {
         actions: "操作"
       },
       sort: {
+            custom: "排序权重",
             newest: "创建时间 (最新)",
             oldest: "创建时间 (最早)",
             nameAsc: "名称 (A-Z)",
+            nameDesc: "名称 (Z-A)",
             idDesc: "ID (倒序)",
-            idAsc: "ID (正序)"
+            idAsc: "ID (正序)",
+            lastConnected: "上次连接优先"
       },
       form: {
         titleNew: "新建服务器",

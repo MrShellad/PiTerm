@@ -1,233 +1,345 @@
 /* src/styles/components/common/interactive-card.css */
 
 /* =========================================
-   Interactive Card System (Clean Glass Version)
+   Interactive Card System (Termius Premium Style)
    ========================================= */
 
 /* --- 1. 卡片容器 (.i-card) --- */
 .i-card {
-  /* 颜色定义 */
-  --ic-bg: hsl(var(--card) / 0.7);       /* 背景稍微实一点，减少杂色 */
+  /* 颜色与样式定义 */
+  --ic-bg: hsl(var(--card) / 0.45);
   --ic-fg: hsl(var(--card-foreground));
-  --ic-border: hsl(var(--border) / 0.5); /* 边框 */
-  --ic-radius: var(--radius); 
+  --ic-border: hsl(var(--border) / 0.4);
+  --ic-radius: var(--ct-card-radius);
   
-  /* 阴影 */
-  --ic-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
-  --ic-shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
-  --ic-transition: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* 阴影与渐变 */
+  --ic-shadow: var(--ct-card-shadow);
+  --ic-shadow-hover: 0 12px 30px -4px rgba(0, 0, 0, 0.12), 0 6px 16px -4px rgba(0, 0, 0, 0.06);
+  --ic-transition: var(--pr-easing-standard);
 
   position: relative;
   display: flex;
   flex-direction: column;
-  padding: 1rem;
+  padding: var(--pr-space-4);
   
   background-color: var(--ic-bg);
   color: var(--ic-fg);
   
-  /* 🟢 [修复 1] 毛玻璃滤镜 */
-  backdrop-filter: blur(12px); 
-  -webkit-backdrop-filter: blur(12px);
+  /* 极致毛玻璃效果 */
+  backdrop-filter: blur(20px); 
+  -webkit-backdrop-filter: blur(20px);
 
-  /* 🟢 [修复 2] 边缘锐化处理 */
+  /* 极细微磨砂边框 */
   border: 1px solid var(--ic-border);
   border-radius: var(--ic-radius);
-  background-clip: padding-box; /* 关键：防止背景溢出到边框 */
-  
-  /* 🟢 [修复 3] 使用内阴影代替 ::before 来做顶部高光，边缘更干净 */
-  box-shadow: 
-    var(--ic-shadow),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.1); /* 顶部微弱高光 */
+  background-clip: padding-box;
+  box-shadow: var(--ic-shadow);
 
-  transition: all 0.3s var(--ic-transition);
+  transition: 
+    transform var(--pr-duration-slow) var(--ic-transition),
+    box-shadow var(--pr-duration-slow) var(--ic-transition),
+    background-color var(--pr-duration-normal) var(--ic-transition),
+    border-color var(--pr-duration-normal) var(--ic-transition);
   
-  /* 🟢 [修复 4] 移除可能导致锯齿的 3D 变换 */
-
   overflow: hidden;
 }
 
-/* 悬浮状态 */
+/* 悬浮状态：科技感微动与底部霓虹透光 */
 .i-card:hover,
 .i-card:has([data-state="open"]) {
-  /* 使用 translateY 而不是 scale，减少模糊风险 */
-  transform: none;
-  box-shadow: var(--ic-shadow-hover), inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
-  background-color: hsl(var(--card) / 0.8);
-  border-color: hsl(var(--border) / 0.8);
+  border-color: hsl(var(--primary) / 0.3);
+  box-shadow: 
+    var(--ic-shadow-hover), 
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.1),
+    0 8px 24px -4px hsl(var(--primary) / 0.08); /* 柔和科技发光 */
+  background-color: hsl(var(--card) / 0.6);
   z-index: 5;
 }
 
 /* 选中/置顶状态 */
 .i-card.is-active,
 .i-card.is-pinned {
-  background-color: hsl(var(--primary) / 0.05);
-  border-color: hsl(var(--primary) / 0.3);
+  background-color: hsl(var(--primary) / 0.04);
+  border-color: hsl(var(--primary) / 0.25);
+  box-shadow: 
+    var(--ic-shadow),
+    0 4px 16px -2px hsl(var(--primary) / 0.05);
 }
 
 /* --- 2. 组件部件 --- */
 
 /* [图标盒子] */
 .i-icon {
-  width: 2.5rem;   
-  height: 2.5rem;
-  border-radius: var(--ic-radius);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  
-  background-color: #3C83F6;
-  color: white;
-  border: none;
-  /* 简单的内阴影增加质感 */
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.25);
-  
-  transition: transform 0.3s var(--ic-transition), background-color 0.3s;
-}
-
-.i-card:hover .i-icon {
-  transform: scale(1.05) rotate(-3deg);
-  background-color: #2563eb; 
-}
-
-/* [IP 徽章] */
-.i-badge {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  
-  padding: 0.25rem 0.5rem;
-  border-radius: var(--ic-radius);
-  
-  /* 半透明背景 */
-  background-color: hsl(var(--muted) / 0.5);
-  border: 1px solid transparent; /* 预留边框位，防止 hover 抖动 */
-  color: hsl(var(--muted-foreground));
-  
+  flex-shrink: 0;
+  border-radius: calc(var(--ct-card-radius) - 2px); /* Squircle 圆角 */
+  background: linear-gradient(135deg, hsl(var(--primary) / 0.15) 0%, hsl(var(--primary) / 0.05) 100%);
+  color: hsl(var(--primary));
+  border: 1px solid hsl(var(--primary) / 0.2);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.1), 0 2px 8px -2px rgba(0, 0, 0, 0.05);
+  transition: all var(--pr-duration-slow) var(--ic-transition);
+}
+
+.i-card:hover .i-icon {
+  transform: scale(1.04);
+  background: linear-gradient(135deg, hsl(var(--primary) / 0.25) 0%, hsl(var(--primary) / 0.1) 100%);
+  border-color: hsl(var(--primary) / 0.4);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.15), 0 4px 12px -2px hsl(var(--primary) / 0.15);
+}
+
+/* [连接状态指示灯] */
+.status-dot {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 9px;
+  height: 9px;
+  border-radius: var(--pr-radius-full);
+  border: 1.5px solid hsl(var(--card));
+  z-index: 10;
+  transition: border-color var(--pr-duration-normal) var(--pr-easing-standard);
+}
+.i-card:hover .status-dot {
+  border-color: hsl(var(--card) / 0.6);
+}
+
+.status-dot.connected {
+  background-color: hsl(var(--st-color-success));
+  box-shadow: 0 0 8px hsl(var(--st-color-success));
+  animation: pulse-green 2s infinite;
+}
+.status-dot.connecting {
+  background-color: hsl(var(--primary));
+  box-shadow: 0 0 8px hsl(var(--primary));
+  animation: pulse-blue 1.5s infinite;
+}
+.status-dot.disconnected {
+  background-color: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* [连接串/IP 徽章] */
+.i-badge {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: var(--pr-space-1-5) var(--pr-space-3);
+  padding-right: var(--pr-space-8);
+  border-radius: var(--st-radius-button);
+  background-color: hsl(var(--muted) / 0.35);
+  border: 1px solid hsl(var(--border) / 0.2);
+  color: hsl(var(--muted-foreground) / 0.85);
   font-family: var(--font-mono);
   font-weight: 500;
-  
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--pr-duration-normal) var(--pr-easing-standard);
   flex-shrink: 0;
   user-select: none;
 }
 .i-card:hover .i-badge {
-  background-color: hsl(var(--muted) / 0.7);
+  background-color: hsl(var(--muted) / 0.5);
+  border-color: hsl(var(--border) / 0.3);
+  color: hsl(var(--muted-foreground));
 }
 .i-badge:hover {
-  background-color: hsl(var(--secondary)) !important;
-  color: hsl(var(--foreground));
-  border-color: hsl(var(--border) / 0.5);
+  background-color: hsl(var(--muted) / 0.85) !important;
+  border-color: hsl(var(--primary) / 0.3) !important;
+  color: hsl(var(--foreground)) !important;
 }
 .i-badge.is-highlighted {
-  background-color: rgba(16, 185, 129, 0.15) !important; 
-  color: #047857 !important;
-  border-color: rgba(16, 185, 129, 0.2) !important;
-}
-.dark .i-badge.is-highlighted {
-  color: #34d399 !important;
+  background-color: hsl(var(--primary) / 0.1) !important; 
+  color: hsl(var(--primary)) !important;
+  border-color: hsl(var(--primary) / 0.3) !important;
 }
 
 /* [标签] */
 .i-tag {
   display: inline-flex;
   align-items: center;
-  padding: 0.15rem 0.6rem; 
-  border-radius: 4px;
-  
+  padding: 2px var(--pr-space-2); 
+  border-radius: var(--pr-radius-full); /* 胶囊圆角 */
   font-size: 0.65rem;
   font-weight: 500;
   white-space: nowrap;
-  
-  background-color: hsl(var(--muted) / 0.5);
+  background-color: hsl(var(--muted) / 0.35);
+  color: hsl(var(--muted-foreground) / 0.7);
+  border: 1px solid hsl(var(--border) / 0.2);
+  transition: all var(--pr-duration-normal) var(--pr-easing-standard);
+}
+.i-card:hover .i-tag {
   color: hsl(var(--muted-foreground));
-  border: none;
-  opacity: 1; 
-  
-  flex-shrink: 0;
-  transition: all 0.2s;
+  border-color: hsl(var(--border) / 0.4);
+}
+.i-tag:hover {
+  background-color: hsl(var(--muted) / 0.6);
+  border-color: hsl(var(--muted-foreground) / 0.4);
+  color: hsl(var(--foreground));
 }
 
-/* [连接按钮] */
+/* [连接按钮 i-btn-connect] */
 .i-btn-connect {
-  height: 1.75rem;
-  padding: 0 0.75rem;
+  height: 28px;
+  padding: 0 var(--pr-space-3-5);
   font-size: 0.75rem;
   font-weight: 600;
-  border-radius: var(--ic-radius);
-  
-  /* 默认态 */
-  background-color: hsl(var(--muted) / 0.5);
-  color: hsl(var(--muted-foreground));
-  border: 1px solid transparent;
-  
+  border-radius: var(--pr-radius-full); /* 胶囊圆角 */
+  background-color: hsl(var(--muted) / 0.4);
+  color: hsl(var(--muted-foreground) / 0.9);
+  border: 1px solid hsl(var(--border) / 0.3);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all var(--pr-duration-normal) var(--pr-easing-standard);
   flex-shrink: 0;
 }
 
-/* 卡片悬停 或 按钮悬停 */
+/* 按钮悬停：Termius 风格渐变质感 */
 .i-card:hover .i-btn-connect,
 .i-btn-connect:hover {
-  background-color: hsl(var(--primary)); 
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.8) 100%);
   color: hsl(var(--primary-foreground));
   border-color: transparent;
-  box-shadow: 0 4px 12px hsl(var(--primary) / 0.35); 
+  box-shadow: 0 4px 14px hsl(var(--primary) / 0.25);
 }
 
-/* 仅按钮悬停 */
 .i-btn-connect:hover {
-  transform: scale(1.05);
+  transform: scale(1.03);
 }
 .i-btn-connect:active {
-  transform: scale(0.95);
+  transform: scale(0.97);
 }
 
 /* --- 3. 布局辅助类 --- */
-
 .i-tags-wrapper {
   display: flex;
-  gap: 0.35rem;
+  gap: var(--pr-space-1-5);
   overflow: hidden;
   height: 1.5rem; 
   align-items: center;
   flex: 1;
   min-width: 0;
-  
-  mask-image: linear-gradient(to right, black 85%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
+  mask-image: linear-gradient(to right, black 80%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, black 80%, transparent 100%);
 }
 
 .i-card-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 0.25rem;
+  margin-bottom: var(--pr-space-3);
   flex-shrink: 0;
 }
 
 .i-card-footer {
   margin-top: auto; 
-  padding-top: 0.75rem; 
+  padding-top: var(--pr-space-3); 
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-top: 1px dashed hsl(var(--border) / 0.3);
+  border-top: 1px dashed hsl(var(--border) / 0.25);
   flex-shrink: 0; 
-  gap: 0.5rem;
+  gap: var(--pr-space-2);
 }
 
-/* Dark Mode Enhancements for Readability & Contrast */
+/* Dark Mode obsidian enhancements */
 .dark .i-card {
-  --ic-bg: hsl(var(--card) / 0.88); /* Reduce transparency to prevent background/wallpaper bleed-through */
+  --ic-bg: hsl(var(--card) / 0.35);
+  box-shadow: 
+    var(--ic-shadow),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.03);
 }
 
 .dark .i-card:hover,
 .dark .i-card:has([data-state="open"]) {
-  background-color: hsl(var(--card) / 0.95);
+  background-color: hsl(var(--card) / 0.55);
+  box-shadow: 
+    var(--ic-shadow-hover), 
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.05),
+    0 8px 30px -4px hsl(var(--primary) / 0.12);
+}
+
+/* =========================================
+   Bank Card (Credit Card) Design System
+   ========================================= */
+
+.bank-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  background-clip: padding-box;
+  -webkit-background-clip: padding-box;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), inset 0 1px 1px 0 rgba(255, 255, 255, 0.25);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bank-card:hover {
+  box-shadow: 0 16px 35px -5px rgba(0, 0, 0, 0.4), inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.35);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+/* 光照流闪纹路 */
+.bank-card-shine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 20%, rgba(255, 255, 255, 0.08) 40%, rgba(255, 255, 255, 0.22) 50%, rgba(255, 255, 255, 0.08) 60%, transparent 80%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  z-index: 2;
+}
+
+.bank-card:hover .bank-card-shine {
+  opacity: 1;
+}
+
+/* 银行卡卡号 (IP 地址) 浮雕与发光排版 */
+.bank-card-number {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
+  letter-spacing: 0.15em;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6), 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+/* 标签小字 */
+.bank-card-label {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.65);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+/* 值文字 */
+.bank-card-value {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* 连接弹窗 SVG 数据隧道动画 */
+@keyframes tunnelFlow {
+  0% { stroke-dashoffset: 210; }
+  100% { stroke-dashoffset: 0; }
+}
+.animate-tunnel-flow {
+  animation: tunnelFlow 1.6s linear infinite;
+}
+
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: spinSlow 12s linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
 }

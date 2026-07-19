@@ -39,55 +39,55 @@ export const AdvancedSettings = ({ t, register, errors, watch, setValue }: Advan
     <div className="space-y-4 pt-2">
       
       {/* 1. 连接超时 (Connection Timeout) */}
-      <div className="flex items-center gap-4 p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30">
-            <Timer className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+      <div className="flex items-center gap-4 p-3.5 rounded-xl border border-border/70 bg-card/60 shadow-sm">
+        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-500/10 shrink-0">
+            <Timer className="w-4 h-4 text-amber-500" />
         </div>
-        <div className="flex-1">
-          <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+        <div className="flex-1 min-w-0">
+          <Label className="text-xs font-bold text-foreground block">
             {translate('server.form.timeout', 'Connection Timeout')}
           </Label>
-          <p className="text-[10px] text-slate-500">
+          <p className="text-xs text-muted-foreground mt-0.5">
             {translate('server.form.timeoutDesc', 'Max wait time in seconds (Integer only).')}
           </p>
           {errors.connectTimeout && (
-            <p className="text-[10px] text-red-500 mt-1">{errors.connectTimeout.message}</p>
+            <p className="text-xs text-destructive mt-1 font-medium">{errors.connectTimeout.message}</p>
           )}
         </div>
-        <div className="w-20">
+        <div className="w-20 shrink-0">
           <Input 
             type="number"
-            min={1} // Schema 限制最小为 1
-            step={1} // 限制步长为整数
-            onKeyDown={preventInvalidInput} // 拦截键盘输入
+            min={1} 
+            step={1} 
+            onKeyDown={preventInvalidInput} 
             {...register("connectTimeout", { 
               valueAsNumber: true,
               required: "Required",
               min: { value: 1, message: "Min 1s" }
             })}
-            className="h-8 text-right text-xs bg-white dark:bg-slate-800"
+            className="h-8 text-right text-xs bg-background border-border font-mono"
             placeholder="10"
           />
         </div>
       </div>
 
       {/* 2. 心跳间隔 (Keep-Alive) */}
-      <div className="flex items-center gap-4 p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30">
-            <Activity className="w-4 h-4 text-green-600 dark:text-green-400" />
+      <div className="flex items-center gap-4 p-3.5 rounded-xl border border-border/70 bg-card/60 shadow-sm">
+        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500/10 shrink-0">
+            <Activity className="w-4 h-4 text-emerald-500" />
         </div>
-        <div className="flex-1">
-          <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+        <div className="flex-1 min-w-0">
+          <Label className="text-xs font-bold text-foreground block">
             {translate('server.form.keepalive', 'Keep-Alive Interval')}
           </Label>
-          <p className="text-[10px] text-slate-500">
+          <p className="text-xs text-muted-foreground mt-0.5">
             {translate('server.form.keepaliveDesc', 'Seconds between packets (0 to disable).')}
           </p>
            {errors.keepAliveInterval && (
-            <p className="text-[10px] text-red-500 mt-1">{errors.keepAliveInterval.message}</p>
+            <p className="text-xs text-destructive mt-1 font-medium">{errors.keepAliveInterval.message}</p>
           )}
         </div>
-        <div className="w-20">
+        <div className="w-20 shrink-0">
           <Input 
             type="number" 
             min={0}
@@ -97,48 +97,48 @@ export const AdvancedSettings = ({ t, register, errors, watch, setValue }: Advan
               valueAsNumber: true,
               min: { value: 0, message: "Min 0" }
             })}
-            className="h-8 text-right text-xs bg-white dark:bg-slate-800"
+            className="h-8 text-right text-xs bg-background border-border font-mono"
             placeholder="60"
           />
         </div>
       </div>
 
       {/* 3. 自动重连 (Auto Reconnect) */}
-      <div className="flex items-center gap-4 p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30">
-            <Zap className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+      <div className="flex items-center gap-4 p-3.5 rounded-xl border border-border/70 bg-card/60 shadow-sm">
+        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500/10 shrink-0">
+            <Zap className="w-4 h-4 text-blue-500" />
         </div>
-        <div className="flex-1">
-          <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+        <div className="flex-1 min-w-0">
+          <Label className="text-xs font-bold text-foreground block">
             {translate('server.form.reconnect', 'Auto Reconnect')}
           </Label>
-          <p className="text-[10px] text-slate-500">
+          <p className="text-xs text-muted-foreground mt-0.5">
             {translate('server.form.reconnectDesc', 'Automatically retry if disconnected.')}
           </p>
         </div>
         <Switch 
           checked={!!autoReconnect}
           onCheckedChange={(val) => setValue("autoReconnect", val, { shouldDirty: true })}
-          className="scale-90"
+          className="scale-90 shrink-0"
         />
       </div>
 
       {/* 4. 最大重连次数 (Max Retries) - 仅当开启自动重连时显示 */}
       {autoReconnect && (
-        <div className="flex items-center gap-4 p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 ml-6 border-l-4 border-l-blue-500/20">
-          <RefreshCw className="w-4 h-4 text-slate-400" />
-          <div className="flex-1">
-            <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+        <div className="flex items-center gap-4 p-3.5 rounded-xl border border-border/70 bg-muted/30 ml-4 border-l-4 border-l-blue-500/50 shadow-sm">
+          <RefreshCw className="w-4 h-4 text-muted-foreground shrink-0" />
+          <div className="flex-1 min-w-0">
+            <Label className="text-xs font-bold text-foreground block">
                 {translate('server.form.retries', 'Max Retries')}
             </Label>
-            <p className="text-[10px] text-slate-500">
+            <p className="text-xs text-muted-foreground mt-0.5">
                 {translate('server.form.retriesDesc', 'Maximum attempts (Integer).')}
             </p>
              {errors.maxReconnects && (
-              <p className="text-[10px] text-red-500 mt-1">{errors.maxReconnects.message}</p>
+              <p className="text-xs text-destructive mt-1 font-medium">{errors.maxReconnects.message}</p>
             )}
           </div>
-          <div className="w-20">
+          <div className="w-20 shrink-0">
              <Input 
                 type="number" 
                 min={0}
@@ -148,7 +148,7 @@ export const AdvancedSettings = ({ t, register, errors, watch, setValue }: Advan
                   valueAsNumber: true,
                   min: { value: 0, message: "Min 0" }
                 })}
-                className="h-8 text-right text-xs bg-white dark:bg-slate-800"
+                className="h-8 text-right text-xs bg-background border-border font-mono"
                 placeholder="3"
              />
           </div>

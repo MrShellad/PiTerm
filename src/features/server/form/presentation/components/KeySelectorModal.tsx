@@ -74,7 +74,7 @@ export const KeySelectorModal = ({ open, onOpenChange, onSelect }: KeySelectorMo
                       filteredKeys.map((key: any) => (
                          <TableRow key={key.id} className="group">
                             <TableCell className="font-medium flex items-center gap-2">
-                               <div className="p-1.5 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-600">
+                               <div className="p-1.5 rounded-md bg-primary/10 text-primary">
                                   <KeyRound className="w-4 h-4" />
                                </div>
                                {key.name}

@@ -32,7 +32,6 @@ export const IconPicker = ({
         <Button 
           variant="outline" 
           className={cn(
-            // 🟢 [修改 1] 外框尺寸缩小: w-16 -> w-14
             "w-14 h-14 p-0 rounded-2xl border-2 transition-all duration-300 group shadow-sm",
             hasValue 
               ? "bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/30 hover:bg-blue-100 dark:hover:bg-blue-500/20"
@@ -40,8 +39,7 @@ export const IconPicker = ({
           )}
         >
           <Icon className={cn(
-            // 🟢 [修改 2] 内部图标放大: w-8 -> w-9
-            "w-9 h-9 transition-colors",
+            "w-8 h-8 transition-colors",
             hasValue 
               ? "text-blue-600 dark:text-blue-400" 
               : "text-muted-foreground group-hover:text-blue-500"
@@ -49,7 +47,6 @@ export const IconPicker = ({
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-[320px] p-3">
-        {/* 🟢 [修改 3] 网格改为 5 列 */}
         <div className="grid grid-cols-5 gap-2">
           {Object.keys(ICON_MAP).map(iconKey => {
             const IconComp = ICON_MAP[iconKey];
@@ -98,21 +95,21 @@ export const ProviderPicker = ({
     <Popover open={isOpen} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
         <Button
-          variant="ghost"
+          variant="outline"
           role="combobox"
           size="sm"
-          className="h-7 w-full min-w-0 justify-between px-2 text-xs text-muted-foreground font-normal hover:text-foreground hover:bg-muted/60"
+          className="h-9 w-full min-w-0 justify-between px-3 text-xs bg-background border-border rounded-lg text-muted-foreground font-normal hover:text-foreground hover:bg-muted/60 shadow-sm"
         >
           <span className="flex items-center min-w-0">
-            <Layers className="w-3.5 h-3.5 mr-1.5 opacity-70 shrink-0" />
+            <Layers className="w-3.5 h-3.5 mr-2 opacity-70 shrink-0 text-primary" />
             <span className="truncate text-left">
               {safeValue || t('server.form.selectProvider', 'Select Provider...')}
             </span>
           </span>
-          <ChevronsUpDown className="ml-1 h-3 w-3 opacity-50 shrink-0" />
+          <ChevronsUpDown className="ml-1 h-3.5 w-3.5 opacity-50 shrink-0" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[220px] p-0" align="start">
+      <PopoverContent className="w-[240px] p-0" align="start">
         <Command>
           <CommandInput placeholder={t('common.search', 'Search provider...')} className="h-9 text-xs" />
           <CommandList>

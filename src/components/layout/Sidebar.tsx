@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import { useSettingsStore } from "@/features/settings/application/useSettingsStore";
 import { useServerStore } from "@/features/server/application/useServerStore";
 import clsx from "clsx";
-import { useState } from "react";
 import {
   LayoutDashboard,
   Server,
@@ -13,13 +12,11 @@ import {
   Settings,
   Moon,
   Sun,
-  ChevronLeft,
-  ChevronRight,
   LucideIcon, 
 } from "lucide-react";
+import { GlassTooltip } from "@/components/common/GlassTooltip";
 
-// 引入本地 Logo
-import Logo from "@/assets/logo.png";
+
 
 type MenuItem = {
   path: string;
@@ -28,63 +25,35 @@ type MenuItem = {
   badge?: string | number;
 };
 
-const buttonBaseClass = clsx(
-  "group flex items-center rounded-lg transition-all duration-300",
-  "h-10 w-full px-0 relative overflow-hidden shrink-0",
-  "outline-none justify-start",
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:bg-[hsl(var(--sidebar-item-hover-bg))] focus-visible:text-[hsl(var(--sidebar-item-hover-text))]"
-);
-
-const iconWrapperClass = clsx(
-  "flex items-center justify-center w-11 h-full shrink-0",
-  "transition-transform duration-300"
-);
-
 const FooterButton = ({
   Icon,
   label,
   onClick,
   isActive = false,
-  collapsed,
-  textClassName,
 }: {
   Icon: LucideIcon;
   label: string;
   onClick?: () => void;
   isActive?: boolean;
-  collapsed: boolean;
-  textClassName: string;
 }) => {
   return (
-    <button
-      onClick={onClick}
-      className={clsx(
-        buttonBaseClass,
-        isActive
-          ? `
-            bg-[hsl(var(--sidebar-item-active-bg))]
-            text-[hsl(var(--sidebar-item-active-text))]
-            font-semibold
-          `
-          : `
-            text-[hsl(var(--sidebar-item-text))]
-            hover:bg-[hsl(var(--sidebar-item-hover-bg))]
-            hover:text-[hsl(var(--sidebar-item-hover-text))]
-          `
-      )}
-    >
-      <div className={iconWrapperClass}>
+    <GlassTooltip content={label} side="right">
+      <button
+        onClick={onClick}
+        className={clsx(
+          "flex items-center justify-center w-11 h-11 rounded-lg transition-all duration-300 relative group outline-none focus:outline-none",
+          isActive
+            ? "bg-slate-200/50 text-blue-600 dark:bg-white/10 dark:text-blue-400 font-semibold"
+            : "text-slate-400 hover:bg-slate-200/30 hover:text-slate-800 dark:text-slate-500 dark:hover:bg-white/5 dark:hover:text-slate-200"
+        )}
+      >
         <Icon
           size={20}
           strokeWidth={2}
-          className={clsx(
-            "transition-transform duration-300",
-            !collapsed && "group-hover:scale-110"
-          )}
+          className="transition-transform group-hover:scale-105"
         />
-      </div>
-      <span className={textClassName}>{label}</span>
-    </button>
+      </button>
+    </GlassTooltip>
   );
 };
 
@@ -98,8 +67,6 @@ export const Sidebar = () => {
   const serverCount = useServerStore((s) => 
     s.servers.filter(server => server.provider !== 'QuickConnect').length
   );
-
-  const [collapsed, setCollapsed] = useState(false);
 
   const appTheme = settings['appearance.appTheme'];
   const isVisuallyDark = appTheme === 'dark' || (
@@ -124,57 +91,39 @@ export const Sidebar = () => {
     updateSetting('appearance.appTheme', nextTheme);
   };
 
-  const textAnimation = clsx(
-    "whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out",
-    collapsed
-      ? "max-w-0 opacity-0 -translate-x-4"
-      : "max-w-40 opacity-100 translate-x-0"
-  );
-
   const renderMenuItem = (item: MenuItem) => {
     const isActive = location.pathname === item.path;
 
     return (
-      <div key={item.path} className="w-full">
-        <NavLink
-          to={item.path}
-          className={clsx(
-            buttonBaseClass,
-            isActive
-              ? `
-                bg-[hsl(var(--sidebar-item-active-bg))]
-                text-[hsl(var(--sidebar-item-active-text))]
-              `
-              : `
-                text-[hsl(var(--sidebar-item-text))]
-                hover:bg-[hsl(var(--sidebar-item-hover-bg))]
-                hover:text-[hsl(var(--sidebar-item-hover-text))]
-              `
-          )}
-        >
-          <div className={iconWrapperClass}>
-            <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-          </div>
+      <div key={item.path} className="w-full relative flex justify-center py-0.5 font-sans">
+        {/* Left active line indicator */}
+        {isActive && (
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-blue-500 rounded-r-full shadow-[0_0_8px_rgba(59,130,246,0.5)] animate-pulse" />
+        )}
+        <GlassTooltip content={item.label} side="right">
+          <NavLink
+            to={item.path}
+            className={clsx(
+              "flex items-center justify-center w-11 h-11 rounded-lg transition-all duration-300 relative group",
+              isActive
+                ? "bg-slate-200/50 text-blue-600 dark:bg-white/10 dark:text-blue-400 font-semibold"
+                : "text-slate-400 hover:bg-slate-200/30 hover:text-slate-800 dark:text-slate-500 dark:hover:bg-white/5 dark:hover:text-slate-200"
+            )}
+          >
+            <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} className="transition-transform group-hover:scale-105" />
 
-          <span className={textAnimation}>{item.label}</span>
-
-          {item.badge && (
-            <span
-              className={clsx(
-                "absolute right-2 text-xs font-medium px-1.5 py-0.5 rounded-md transition-all duration-300",
-                `
-                  bg-[hsl(var(--sidebar-badge-bg))]
-                  text-[hsl(var(--sidebar-badge-text))]
-                `,
-                collapsed
-                  ? "opacity-0 translate-x-4 pointer-events-none"
-                  : "opacity-100 translate-x-0"
-              )}
-            >
-              {item.badge}
-            </span>
-          )}
-        </NavLink>
+            {item.badge && (
+              <span
+                className={clsx(
+                  "absolute -top-1 -right-1 text-[9px] font-bold px-1 py-0.2 rounded-full min-w-[14px] h-[14px] flex items-center justify-center",
+                  "bg-blue-500 text-white"
+                )}
+              >
+                {item.badge}
+              </span>
+            )}
+          </NavLink>
+        </GlassTooltip>
       </div>
     );
   };
@@ -182,45 +131,25 @@ export const Sidebar = () => {
   return (
     <aside
       className={clsx(
-        "flex flex-col h-full shrink-0 z-20",
-        "bg-transparent", 
-        "transition-[width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden",
-        collapsed ? "w-[64px]" : "w-60"
+        "flex flex-col h-full shrink-0 z-20 w-[64px] font-sans pt-4",
+        "bg-[#f1f3f5]/90 dark:bg-[#0a0c10]/95 backdrop-blur-xl",
+        "border-r border-slate-200/40 dark:border-white/5",
+        "transition-all duration-300 ease-in-out overflow-hidden"
       )}
     >
-      {/* Header */}
-      <div className={clsx(
-          "flex items-center h-16 mb-2 shrink-0 transition-all duration-300",
-          collapsed ? "px-2.5" : "px-4"
-      )}>
-        <div className="flex items-center font-bold text-lg overflow-hidden w-full">
-          <div className="flex items-center justify-center w-11 h-12 shrink-0">
-            <img src={Logo} alt="Logo" className="w-10 h-10 object-contain" />
-          </div>
-        </div>
-      </div>
-
       {/* Menu */}
-      <div className={clsx(
-          "flex-1 overflow-y-auto py-2 flex flex-col gap-1 custom-scrollbar transition-all duration-300",
-          collapsed ? "px-2" : "px-4"
-      )}>
+      <div className="flex-1 overflow-y-auto py-2 flex flex-col items-center gap-2 custom-scrollbar px-2">
         {menuItems.map(renderMenuItem)}
       </div>
 
       {/* Footer */}
-      <div className={clsx(
-          "p-3 flex flex-col gap-1 shrink-0 transition-all duration-300",
-          collapsed ? "px-2" : "px-4"
-      )}>
-        <NavLink to="/settings" className="w-full">
+      <div className="p-2 pb-4 flex flex-col items-center gap-2 shrink-0">
+        <NavLink to="/settings" className="w-full flex justify-center">
           {({ isActive }) => (
             <FooterButton
               Icon={Settings}
               label={t("menu.settings")}
               isActive={isActive}
-              collapsed={collapsed}
-              textClassName={textAnimation}
             />
           )}
         </NavLink>
@@ -231,16 +160,6 @@ export const Sidebar = () => {
             isVisuallyDark ? t("theme.dark") : t("theme.light")
           }
           onClick={toggleTheme}
-          collapsed={collapsed}
-          textClassName={textAnimation}
-        />
-
-        <FooterButton
-          Icon={collapsed ? ChevronRight : ChevronLeft}
-          label={collapsed ? t("sidebar.expand") : t("sidebar.collapse")}
-          onClick={() => setCollapsed(!collapsed)}
-          collapsed={collapsed}
-          textClassName={textAnimation}
         />
       </div>
     </aside>

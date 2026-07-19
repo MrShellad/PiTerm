@@ -85,9 +85,9 @@ export const useConnectionViewModel = () => {
 
   const handleConnectionTypeChange = (mode: string) => {
     setValue("connectionType", mode as ConnectionType, { shouldDirty: true });
-
-    // 🔴 [修改] 移除了强制清空代理的逻辑
-    // setValue("proxyId", undefined, { shouldDirty: true });
+    if (mode === "direct") {
+      setValue("proxyId", null, { shouldDirty: true });
+    }
   };
 
   const handleProxySelected = (proxyId: string) => {

@@ -15,7 +15,15 @@ export const useServerListLogic = () => {
     fetchServers,
     isInitialized,
     hasVisitedList,
-    markListVisited
+    markListVisited,
+    viewMode,
+    cardSize,
+    sortBy,
+    isPrivacyMode,
+    setViewMode,
+    setCardSize,
+    setSortBy,
+    togglePrivacyMode
   } = useServerStore();
   const { connect } = useServerConnect();
   
@@ -28,13 +36,18 @@ export const useServerListLogic = () => {
   const shouldShowLoading = !hasVisitedList && !isInitialized && servers.length === 0;
   const [isLoading, setIsLoading] = useState(shouldShowLoading);
 
-  const [state, setState] = useState<ServerListState>({
+  const [localState, setLocalState] = useState({
     searchQuery: '',
-    activeTags: [],
-    viewMode: 'grid',
-    cardSize: 'md',
-    sortBy: 'sort_asc'
+    activeTags: [] as string[]
   });
+
+  const state = useMemo<ServerListState>(() => ({
+    searchQuery: localState.searchQuery,
+    activeTags: localState.activeTags,
+    viewMode,
+    cardSize,
+    sortBy
+  }), [localState.searchQuery, localState.activeTags, viewMode, cardSize, sortBy]);
 
   const [deleteModalState, setDeleteModalState] = useState<{
     isOpen: boolean;
@@ -72,8 +85,17 @@ export const useServerListLogic = () => {
 
   const shouldAnimate = !hasVisitedList;
 
-  const updateState = (updates: Partial<ServerListState>) => 
-    setState(prev => ({ ...prev, ...updates }));
+  const updateState = (updates: Partial<ServerListState>) => {
+    if (updates.searchQuery !== undefined || updates.activeTags !== undefined) {
+      setLocalState(prev => ({
+        searchQuery: updates.searchQuery !== undefined ? updates.searchQuery : prev.searchQuery,
+        activeTags: updates.activeTags !== undefined ? updates.activeTags : prev.activeTags
+      }));
+    }
+    if (updates.viewMode !== undefined) setViewMode(updates.viewMode);
+    if (updates.cardSize !== undefined) setCardSize(updates.cardSize);
+    if (updates.sortBy !== undefined) setSortBy(updates.sortBy);
+  };
 
   const processedServers = useMemo(() => {
     let result = servers.filter(s => s.provider !== 'QuickConnect');
@@ -117,6 +139,8 @@ export const useServerListLogic = () => {
           return compareText(b.id, a.id);
         case 'id_asc':
           return compareText(a.id, b.id);
+        case 'last_connected_desc':
+          return compareNumber(b.lastConnectedAt, a.lastConnectedAt) || compareText(a.name, b.name);
         default:
           return 0;
       }
@@ -150,6 +174,8 @@ export const useServerListLogic = () => {
     setViewMode: (mode: ViewMode) => updateState({ viewMode: mode }),
     setSortBy: (sort: SortOption) => updateState({ sortBy: sort }),
     setTags: (tags: string[]) => updateState({ activeTags: tags }),
+    isPrivacyMode,
+    togglePrivacyMode,
     
     handleConnect: (server: Server) => {
       if (!isUnlocked) {

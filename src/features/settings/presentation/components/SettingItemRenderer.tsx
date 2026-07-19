@@ -79,7 +79,7 @@ export const SettingItemRenderer = ({ item, value, onChange }: Props) => {
   }
   if (item.type === 'font-selector') {
       return (
-        <div className={clsx(containerClass, "!items-start")}>
+        <div className={clsx(containerClass, "!items-start relative z-30")}>
             <div className="flex-none mr-4 pt-1.5"> 
                 <div className="text-[1.1rem] font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap">
                     {t(item.labelKey)}

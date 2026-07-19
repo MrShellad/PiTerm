@@ -8,14 +8,14 @@ import { UseFormRegister, FieldErrors, UseFormSetValue } from "react-hook-form";
 
 // 本地小组件：Switch Button
 const AuthTypeSwitcher = ({ value, onChange, t }: { value: string, onChange: (v: any) => void, t: any }) => (
-  <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-lg w-full sm:w-auto">
+  <div className="flex p-1 bg-muted rounded-lg w-full sm:w-auto">
     <button type="button" onClick={() => onChange('password')}
-      className={cn("flex-1 sm:flex-none px-4 py-1.5 text-xs font-medium rounded-md transition-all duration-200 flex items-center justify-center gap-2", value === 'password' ? "bg-white dark:bg-slate-700 text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700 dark:text-slate-400")}
+      className={cn("flex-1 sm:flex-none px-4 py-1.5 text-xs font-medium rounded-md transition-all duration-200 flex items-center justify-center gap-2", value === 'password' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
     >
       <KeyRound className="w-3.5 h-3.5" /> {t('server.form.vault.password', 'Password')}
     </button>
     <button type="button" onClick={() => onChange('key')}
-      className={cn("flex-1 sm:flex-none px-4 py-1.5 text-xs font-medium rounded-md transition-all duration-200 flex items-center justify-center gap-2", value === 'key' ? "bg-white dark:bg-slate-700 text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700 dark:text-slate-400")}
+      className={cn("flex-1 sm:flex-none px-4 py-1.5 text-xs font-medium rounded-md transition-all duration-200 flex items-center justify-center gap-2", value === 'key' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
     >
       <Terminal className="w-3.5 h-3.5" /> {t('server.form.vault.key', 'Private Key')}
     </button>
@@ -51,14 +51,14 @@ export const AuthCredentials = ({
 }: AuthCredentialsProps) => {
   return (
     <div className="pt-2">
-      <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block">
+      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">
         {t('server.form.credentials', 'Credentials')}
       </Label>
-      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+      <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
         {/* Header */}
-        <div className="px-4 py-3 bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-           <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
-             <div className="p-1.5 bg-white dark:bg-slate-800 rounded-md shadow-sm border border-slate-100 dark:border-slate-700"><Shield className="w-4 h-4 text-blue-500" /></div>
+        <div className="px-4 py-3 bg-muted/30 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+           <div className="flex items-center gap-2 text-foreground">
+             <div className="p-1.5 bg-background rounded-md shadow-sm border border-border"><Shield className="w-4 h-4 text-primary" /></div>
              <span className="text-sm font-medium">{t('server.form.authType', 'Auth Type')}</span>
            </div>
            <AuthTypeSwitcher value={authType} onChange={onAuthTypeChange} t={t} />
@@ -68,9 +68,9 @@ export const AuthCredentials = ({
         <div className="p-5 space-y-5">
            {/* Username Field */}
            <div className="space-y-1.5">
-              <Label className="text-xs text-slate-500 ml-1">{t('server.form.username', 'Username')}</Label>
+              <Label className="text-xs text-muted-foreground ml-1">{t('server.form.username', 'Username')}</Label>
               <div className="relative group">
-                 <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
+                 <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
                     <User className="w-4 h-4" />
                  </div>
                  {/* 🟢 [修改] 添加禁止自动填充属性 */}
@@ -81,7 +81,7 @@ export const AuthCredentials = ({
                    autoCorrect="off" 
                    autoCapitalize="off" 
                    spellCheck="false"
-                   className={cn("pl-10 border-slate-200 dark:border-slate-700", errors.username && "border-red-500")} 
+                   className={cn("pl-10 border-border", errors.username && "border-destructive")} 
                  />
               </div>
            </div>

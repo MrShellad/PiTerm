@@ -10,9 +10,10 @@
     "frontendDist": "../dist"
   },
   "app": {
-    "withGlobalTauri": true,
+    "withGlobalTauri": false,
     "windows": [
       {
+        "label": "main",
         "title": "PiTerm",
         "width": 1152,
         "height": 789,
@@ -26,7 +27,7 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; img-src 'self' asset: tauri: https: data: blob:; font-src 'self' asset: tauri: data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' ws: wss: http: https:"
     }
   },
   "bundle": {

@@ -30,6 +30,7 @@ import { motion, Variants } from "framer-motion";
 import { useVirtualizer } from '@tanstack/react-virtual';
 
 import { GlassTooltip } from "@/components/common/GlassTooltip";
+import { useServerStore } from "@/features/server/application/useServerStore";
 import "@/styles/components/server/server-table.css";
 
 interface Props {
@@ -75,6 +76,7 @@ const TableSkeletonRow = () => (
 // --- 独立的 IP 单元格组件 ---
 const IpCell = ({ ip, onCopy }: { ip: string, onCopy: (text: string) => void }) => {
   const { t } = useTranslation();
+  const isPrivacyMode = useServerStore((s) => s.isPrivacyMode);
   const [isCopied, setIsCopied] = useState(false);
 
   const handleCopy = (e: React.MouseEvent) => {
@@ -83,6 +85,8 @@ const IpCell = ({ ip, onCopy }: { ip: string, onCopy: (text: string) => void }) 
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 1500);
   };
+
+  const displayIp = isPrivacyMode ? "***.***.***.***" : ip;
 
   return (
     <GlassTooltip 
@@ -93,8 +97,8 @@ const IpCell = ({ ip, onCopy }: { ip: string, onCopy: (text: string) => void }) 
         onClick={handleCopy}
         className={cn("server-table__ip", isCopied && "is-copied")}
       >
-        <span className={cn("server-table__ip-text truncate", isCopied ? "opacity-0" : "opacity-100")}>
-          {ip}
+        <span className={cn("server-table__ip-text truncate font-mono", isCopied ? "opacity-0" : "opacity-100")}>
+          {displayIp}
         </span>
 
         {/* 居中显示的"已复制"文本 */}

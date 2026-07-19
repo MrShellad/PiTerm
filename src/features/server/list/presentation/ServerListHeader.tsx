@@ -3,6 +3,7 @@ import {
   Calendar, 
   Hash,
   SlidersHorizontal,
+  Clock,
 } from "lucide-react";
 import { ActionToolbar } from "@/components/common/ActionToolbar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -29,6 +30,7 @@ export const ServerListHeader = ({ state, allTags, actions, onAddClick }: Props)
            {state.sortBy.includes('sort') && <SlidersHorizontal className="w-3.5 h-3.5 opacity-70 shrink-0"/>}
            {state.sortBy.includes('id') && <Hash className="w-3.5 h-3.5 opacity-70 shrink-0"/>}
            {state.sortBy.includes('name') && <ArrowDownWideNarrow className="w-3.5 h-3.5 opacity-70 shrink-0"/>}
+           {state.sortBy.includes('connected') && <Clock className="w-3.5 h-3.5 opacity-70 shrink-0"/>}
            <SelectValue />
          </div>
       </SelectTrigger>
@@ -40,6 +42,7 @@ export const ServerListHeader = ({ state, allTags, actions, onAddClick }: Props)
         <SelectItem value="name_desc">{t('server.sort.nameDesc', 'Name (Z-A)')}</SelectItem>
         <SelectItem value="id_desc">{t('server.sort.idDesc', 'ID')}</SelectItem>
         <SelectItem value="id_asc">{t('server.sort.idAsc', 'ID (Ascending)')}</SelectItem>
+        <SelectItem value="last_connected_desc">{t('server.sort.lastConnected', 'Last Connected First')}</SelectItem>
       </SelectContent>
     </Select>
   );
@@ -65,12 +68,15 @@ export const ServerListHeader = ({ state, allTags, actions, onAddClick }: Props)
         activeTag={state.activeTags[0] ?? null} 
         onTagChange={actions.setFilterTag}
 
-        // --- 视图与大小 ---
+        // --- 视图与大小与隐私 ---
         viewMode={state.viewMode}
         onViewModeChange={(mode) => actions.setViewMode(mode)}
         
         cardSize={isGridView ? state.cardSize : undefined}
         onCardSizeChange={isGridView ? (size: CardSize) => actions.setCardSize(size) : undefined}
+
+        isPrivacyMode={actions.isPrivacyMode}
+        onTogglePrivacyMode={actions.togglePrivacyMode}
 
         // --- 新增动作 ---
         onAdd={onAddClick}

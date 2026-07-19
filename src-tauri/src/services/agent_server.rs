@@ -1,4 +1,5 @@
 use crate::commands::ssh::state::{SshState, SshWriteRequest, SshResizeRequest};
+use crate::commands::vault::VaultState;
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -8,11 +9,14 @@ use tokio::net::TcpListener;
 use tokio_tungstenite::accept_hdr_async;
 use tokio_tungstenite::tungstenite::handshake::server::{Request, Response};
 use tokio_tungstenite::tungstenite::protocol::Message;
+use sqlx::Row;
 
 #[derive(Deserialize, Debug)]
 struct AgentRequest {
     action: String,
     session_id: Option<String>,
+    server_id: Option<String>,
+    server_name: Option<String>,
     data: Option<String>,
     cols: Option<u32>,
     rows: Option<u32>,
@@ -21,6 +25,7 @@ struct AgentRequest {
 #[derive(Serialize, Debug)]
 struct SessionInfo {
     id: String,
+    name: String,
     host: String,
     user: String,
 }
@@ -31,6 +36,27 @@ struct AgentResponse {
     action: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     sessions: Option<Vec<SessionInfo>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    error: Option<String>,
+}
+
+#[derive(Serialize, Debug)]
+struct AgentConnectResponse {
+    status: String,
+    action: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    session_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    error: Option<String>,
+}
+
+#[derive(Serialize, Debug)]
+struct AgentTerminalContentResponse {
+    status: String,
+    action: String,
+    session_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    content: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     error: Option<String>,
 }
@@ -65,18 +91,30 @@ fn load_agent_settings(app: &AppHandle) -> (bool, u16) {
                     };
 
                     if let Some(state_obj) = state.and_then(|s| s.as_object()) {
-                        if let Some(enabled_val) = state_obj.get("connection.agentWsEnabled") {
-                            if let Some(b) = enabled_val.as_bool() {
-                                enabled = b;
-                            }
-                        }
-                        if let Some(port_val) = state_obj.get("connection.agentWsPort") {
-                            if let Some(p_str) = port_val.as_str() {
-                                if let Ok(p) = p_str.parse::<u16>() {
-                                    port = p;
+                        let settings_map = state_obj.get("state")
+                            .and_then(|s| s.get("settings"))
+                            .and_then(|s| s.as_object());
+
+                        let target_map = if let Some(m) = settings_map {
+                            Some(m)
+                        } else {
+                            Some(state_obj)
+                        };
+
+                        if let Some(m) = target_map {
+                            if let Some(enabled_val) = m.get("connection.agentWsEnabled") {
+                                if let Some(b) = enabled_val.as_bool() {
+                                    enabled = b;
                                 }
-                            } else if let Some(p_num) = port_val.as_u64() {
-                                port = p_num as u16;
+                            }
+                            if let Some(port_val) = m.get("connection.agentWsPort") {
+                                if let Some(p_str) = port_val.as_str() {
+                                    if let Ok(p) = p_str.parse::<u16>() {
+                                        port = p;
+                                    }
+                                } else if let Some(p_num) = port_val.as_u64() {
+                                    port = p_num as u16;
+                                }
                             }
                         }
                     }
@@ -280,6 +318,7 @@ fn run_server(app: AppHandle, manager: Arc<Mutex<AgentServerManager>>, port: u16
                                     let list: Vec<SessionInfo> = map.iter().map(|(id, conn)| {
                                         SessionInfo {
                                             id: id.clone(),
+                                            name: conn.config.name.clone().unwrap_or_default(),
                                             host: conn.config.host.clone(),
                                             user: conn.config.username.clone(),
                                         }
@@ -303,6 +342,130 @@ fn run_server(app: AppHandle, manager: Arc<Mutex<AgentServerManager>>, port: u16
                                     sessions: None,
                                     error: Some("Failed to lock SSH sessions map".to_string()),
                                 }
+                            };
+
+                            if let Ok(resp_text) = serde_json::to_string(&resp) {
+                                let _ = tx.send(Message::Text(resp_text)).await;
+                            }
+                        }
+                        "connect" => {
+                            let server_id_opt = req.server_id;
+                            let server_name_opt = req.server_name;
+
+                            // Resolve server_id if only server_name is provided
+                            let mut target_server_id = server_id_opt;
+                            if target_server_id.is_none() {
+                                if let Some(ref name) = server_name_opt {
+                                    let app_state = app_handle.state::<crate::state::AppState>();
+                                    let db_pool = &app_state.db;
+                                    let query_res = sqlx::query("SELECT id FROM servers WHERE name = ?")
+                                        .bind(name)
+                                        .fetch_optional(db_pool)
+                                        .await;
+                                    if let Ok(Some(row)) = query_res {
+                                        target_server_id = Some(row.get::<String, _>("id"));
+                                    }
+                                }
+                            }
+
+                            let Some(server_id) = target_server_id else {
+                                let resp = AgentConnectResponse {
+                                    status: "error".to_string(),
+                                    action: "connect".to_string(),
+                                    session_id: None,
+                                    error: Some("Server not found or invalid server_id/server_name".to_string()),
+                                };
+                                if let Ok(resp_text) = serde_json::to_string(&resp) {
+                                    let _ = tx.send(Message::Text(resp_text)).await;
+                                }
+                                continue;
+                            };
+
+                            // Generate new unique session_id
+                            let session_id = uuid::Uuid::new_v4().to_string();
+                            
+                            // Call connect_ssh in background
+                            let app_handle_clone = app_handle.clone();
+                            let session_id_clone = session_id.clone();
+                            let tx_clone = tx.clone();
+
+                             tauri::async_runtime::spawn(async move {
+                                 let app_for_connect = app_handle_clone.clone();
+                                 let ssh_state = app_handle_clone.state::<SshState>();
+                                 let app_state = app_handle_clone.state::<crate::state::AppState>();
+                                 let vault_state = app_handle_clone.state::<VaultState>();
+
+                                 match crate::commands::ssh::connect_ssh(
+                                     app_for_connect,
+                                     ssh_state,
+                                     app_state,
+                                     vault_state,
+                                     server_id,
+                                     session_id_clone.clone(),
+                                 ).await {
+                                    Ok(_) => {
+                                        let resp = AgentConnectResponse {
+                                            status: "success".to_string(),
+                                            action: "connect".to_string(),
+                                            session_id: Some(session_id_clone),
+                                            error: None,
+                                        };
+                                        if let Ok(resp_text) = serde_json::to_string(&resp) {
+                                            let _ = tx_clone.send(Message::Text(resp_text)).await;
+                                        }
+                                    }
+                                    Err(e) => {
+                                        let resp = AgentConnectResponse {
+                                            status: "error".to_string(),
+                                            action: "connect".to_string(),
+                                            session_id: None,
+                                            error: Some(e),
+                                        };
+                                        if let Ok(resp_text) = serde_json::to_string(&resp) {
+                                            let _ = tx_clone.send(Message::Text(resp_text)).await;
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                        "get_terminal_content" => {
+                            let Some(session_id) = req.session_id else {
+                                let resp = AgentTerminalContentResponse {
+                                    status: "error".to_string(),
+                                    action: "get_terminal_content".to_string(),
+                                    session_id: String::new(),
+                                    content: None,
+                                    error: Some("Missing session_id".to_string()),
+                                };
+                                if let Ok(resp_text) = serde_json::to_string(&resp) {
+                                    let _ = tx.send(Message::Text(resp_text)).await;
+                                }
+                                continue;
+                            };
+
+                            let ssh_state = app_handle.state::<SshState>();
+                            let content_res = {
+                                let map = ssh_state.sessions.lock().unwrap();
+                                map.get(&session_id).map(|conn| {
+                                    conn.output_history.lock().map(|h| h.clone()).unwrap_or_default()
+                                })
+                            };
+
+                            let resp = match content_res {
+                                Some(content) => AgentTerminalContentResponse {
+                                    status: "success".to_string(),
+                                    action: "get_terminal_content".to_string(),
+                                    session_id: session_id.clone(),
+                                    content: Some(content),
+                                    error: None,
+                                },
+                                None => AgentTerminalContentResponse {
+                                    status: "error".to_string(),
+                                    action: "get_terminal_content".to_string(),
+                                    session_id: session_id.clone(),
+                                    content: None,
+                                    error: Some("Session not found or not active".to_string()),
+                                },
                             };
 
                             if let Ok(resp_text) = serde_json::to_string(&resp) {

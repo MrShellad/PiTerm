@@ -69,53 +69,53 @@ export const HostKeyVerificationModal = ({ open, data, onConfirm, onCancel }: Pr
         <div className="p-6 space-y-4 font-mono text-xs">
           
           {/* 服务器及指纹整合终端视窗 */}
-          <div className="border border-border rounded-lg bg-black/60 overflow-hidden shadow-inner">
+          <div className="border border-border rounded-lg bg-slate-950 overflow-hidden shadow-inner">
             {/* Terminal Header */}
-            <div className="bg-muted px-3 py-2 border-b border-border flex items-center justify-between text-muted-foreground text-[10px]">
-              <span className="flex items-center gap-1.5">
-                <Terminal className="w-3.5 h-3.5 text-primary" />
+            <div className="bg-slate-900 px-3 py-2 border-b border-border/40 flex items-center justify-between text-slate-400 text-[10px]">
+              <span className="flex items-center gap-1.5 font-semibold">
+                <Terminal className="w-3.5 h-3.5 text-amber-500" />
                 HOST_KEY_VERIFICATION.LOG
               </span>
-              <span className="text-primary/70 font-semibold">SECURE_SHELL v2</span>
+              <span className="text-slate-500 font-semibold">SECURE_SHELL v2</span>
             </div>
 
-            <div className="p-4 space-y-3">
+            <div className="p-4 space-y-3 font-mono">
               {/* Host info */}
-              <div className="grid grid-cols-4 gap-1.5">
-                <span className="text-muted-foreground text-[10px] uppercase font-semibold">host:</span>
-                <span className="col-span-3 text-primary font-semibold truncate">
+              <div className="grid grid-cols-4 gap-1.5 items-center">
+                <span className="text-slate-400 text-[10px] uppercase font-semibold">host:</span>
+                <span className="col-span-3 text-amber-400 font-bold truncate">
                   {data.host}
                 </span>
               </div>
-              <div className="grid grid-cols-4 gap-1.5">
-                <span className="text-muted-foreground text-[10px] uppercase font-semibold">ip_addr:</span>
-                <span className="col-span-3 text-foreground/80">
+              <div className="grid grid-cols-4 gap-1.5 items-center">
+                <span className="text-slate-400 text-[10px] uppercase font-semibold">ip_addr:</span>
+                <span className="col-span-3 text-slate-200">
                   {data.ip}
                 </span>
               </div>
-              <div className="grid grid-cols-4 gap-1.5">
-                <span className="text-muted-foreground text-[10px] uppercase font-semibold">key_type:</span>
-                <span className="col-span-3 text-foreground/80 font-semibold">
+              <div className="grid grid-cols-4 gap-1.5 items-center">
+                <span className="text-slate-400 text-[10px] uppercase font-semibold">key_type:</span>
+                <span className="col-span-3 text-slate-200 font-semibold">
                   {data.keyType}
                 </span>
               </div>
 
               {/* Fingerprint block */}
-              <div className="space-y-1.5 pt-2 border-t border-border/50">
-                <div className="text-muted-foreground text-[10px] uppercase font-semibold">sha256_fingerprint:</div>
+              <div className="space-y-1.5 pt-2.5 border-t border-slate-800/80">
+                <div className="text-slate-400 text-[10px] uppercase font-semibold">sha256_fingerprint:</div>
                 <div 
                   className="relative group cursor-pointer"
                   onClick={handleCopy}
                   title="Click to copy fingerprint"
                 >
-                  <div className="w-full p-2.5 bg-black/40 border border-border rounded-md font-mono text-[11px] leading-relaxed break-all text-primary transition-all group-hover:border-primary/50 group-hover:text-primary/80 pr-8">
+                  <div className="w-full p-2.5 bg-slate-900/60 border border-slate-800 rounded-md font-mono text-[11px] leading-relaxed break-all text-amber-400 transition-all group-hover:border-amber-500/50 group-hover:text-amber-300 pr-8">
                     {data.fingerprint}
                   </div>
                   <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-60 group-hover:opacity-100 transition-opacity">
                     {isCopied ? (
-                      <Check className="w-3.5 h-3.5 text-primary animate-in zoom-in-50" />
+                      <Check className="w-3.5 h-3.5 text-amber-400 animate-in zoom-in-50" />
                     ) : (
-                      <Copy className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary" />
+                      <Copy className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-400" />
                     )}
                   </div>
                 </div>
@@ -124,8 +124,8 @@ export const HostKeyVerificationModal = ({ open, data, onConfirm, onCancel }: Pr
           </div>
 
           {/* 温馨提示 */}
-          <div className="flex gap-2.5 text-[11px] text-yellow-600 dark:text-yellow-400 bg-yellow-500/5 border border-yellow-500/20 p-3 rounded-lg leading-normal">
-            <AlertOctagon className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" />
+          <div className="flex gap-2.5 text-[11px] text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 p-3 rounded-lg leading-normal">
+            <AlertOctagon className="w-4 h-4 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
             <p className="font-sans leading-relaxed">
               {t('server.verify.warning', 'To prevent MITM attacks, please verify that this fingerprint matches the server\'s key.')}
             </p>
