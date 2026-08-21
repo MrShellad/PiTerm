@@ -14,7 +14,7 @@ export const TitleBar = () => {
   // 窗口控制按钮
   const windowControlClass = clsx(
     "h-full w-12 flex items-center justify-center",
-    "transition-colors duration-300",
+    "transition-colors duration-150",
     "text-[hsl(var(--titlebar-text))]",
     "hover:text-[hsl(var(--titlebar-text-hover))]",
     "hover:bg-[hsl(var(--titlebar-btn-hover-bg))]"
@@ -29,8 +29,8 @@ export const TitleBar = () => {
       )}
     >
       {/* Logo 区域 - 宽度与侧栏一致 64px，高度撑满以实现右边框通顶，Logo 居中对齐 */}
-      <div className="w-[64px] h-full flex items-center justify-center shrink-0 border-r border-slate-200/40 dark:border-white/5 select-none pointer-events-none app-region-no-drag">
-        <img src={Logo} alt="Logo" className="w-6 h-6 object-contain" />
+      <div className="w-[64px] h-full flex items-center justify-center shrink-0 border-r border-[hsl(var(--titlebar-border))] select-none pointer-events-none app-region-no-drag">
+        <img src={Logo} alt="Logo" className="w-5 h-5 object-contain" />
       </div>
 
       {/* Tabs 区域 */}
@@ -52,7 +52,7 @@ export const TitleBar = () => {
           onClick={handleClose}
           className={clsx(
             "h-full w-12 flex items-center justify-center",
-            "transition-colors duration-300",
+            "transition-colors duration-150",
             "text-[hsl(var(--titlebar-text))]",
             "hover:bg-[hsl(var(--titlebar-close-hover-bg))]",
             "hover:text-[hsl(var(--titlebar-close-hover-text))]"

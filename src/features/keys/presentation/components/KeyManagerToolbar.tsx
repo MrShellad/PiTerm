@@ -40,10 +40,7 @@ export const KeyManagerToolbar = () => {
 
     return (
         <div className={clsx(
-            "sticky top-2 z-10 p-4 m-2 rounded-xl shadow-sm",
-            "bg-white/60 dark:bg-slate-900/60 backdrop-blur-md",
-            "border border-white/40 dark:border-white/10",
-            "transition-all duration-300"
+            "sticky top-2 z-10 m-2 rounded-lg border border-border/70 bg-card p-3 shadow-sm"
         )}>
             <ActionToolbar
                 searchQuery={searchQuery}
@@ -59,7 +56,7 @@ export const KeyManagerToolbar = () => {
                     <button 
                         onClick={handleExportAll}
                         disabled={keys.length === 0}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700/50 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
                         title={t('common.exportAll', 'Export All')}
                     >
                         <Download className="w-3.5 h-3.5" />

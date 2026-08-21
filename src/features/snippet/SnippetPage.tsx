@@ -72,7 +72,7 @@ export const SnippetPage = () => {
   if (isLoading) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-3">
-         <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+         <Loader2 className="w-8 h-8 animate-spin text-primary" />
          <p className="text-sm font-medium">{t('common.loading', 'Loading library...')}</p>
       </div>
     );
@@ -84,10 +84,7 @@ export const SnippetPage = () => {
       
       {/* Header */}
       <div className={clsx(
-        "sticky top-2 z-10 p-4 mx-2 mb-2 rounded-xl shadow-sm",
-        "bg-white/60 dark:bg-slate-900/60 backdrop-blur-md",
-        "border border-white/40 dark:border-white/10",
-        "transition-all duration-300"
+        "sticky top-2 z-10 mx-2 mb-3 rounded-lg border border-border/70 bg-card p-3 shadow-sm"
       )}>
         <ActionToolbar
           searchQuery={searchQuery}
@@ -109,13 +106,13 @@ export const SnippetPage = () => {
       {/* Content */}
       <div className="flex-1 overflow-y-auto custom-scrollbar">
         {filteredData.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-slate-400">
+          <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
              <Code2 className="w-12 h-12 mb-2 opacity-20" />
              <p>{t('snippet.empty_state', 'No snippets found.')}</p>
              {searchQuery && (
                 <button 
                   onClick={() => setSearchQuery('')}
-                  className="mt-2 text-xs text-indigo-500 hover:underline"
+                  className="mt-2 text-xs text-primary hover:underline"
                 >
                   {t('common.clear_search', 'Clear search')}
                 </button>

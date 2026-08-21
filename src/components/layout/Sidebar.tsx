@@ -41,16 +41,16 @@ const FooterButton = ({
       <button
         onClick={onClick}
         className={clsx(
-          "flex items-center justify-center w-11 h-11 rounded-lg transition-all duration-300 relative group outline-none focus:outline-none",
+          "flex items-center justify-center w-10 h-10 rounded-md transition-colors duration-150 relative group outline-none focus:outline-none",
           isActive
-            ? "bg-slate-200/50 text-blue-600 dark:bg-white/10 dark:text-blue-400 font-semibold"
-            : "text-slate-400 hover:bg-slate-200/30 hover:text-slate-800 dark:text-slate-500 dark:hover:bg-white/5 dark:hover:text-slate-200"
+            ? "bg-[hsl(var(--sidebar-item-active-bg))] text-[hsl(var(--sidebar-item-active-text))] font-semibold"
+            : "text-[hsl(var(--sidebar-item-text))] hover:bg-[hsl(var(--sidebar-item-hover-bg))] hover:text-[hsl(var(--sidebar-item-hover-text))]"
         )}
       >
         <Icon
           size={20}
           strokeWidth={2}
-          className="transition-transform group-hover:scale-105"
+          className="transition-colors"
         />
       </button>
     </GlassTooltip>
@@ -98,19 +98,19 @@ export const Sidebar = () => {
       <div key={item.path} className="w-full relative flex justify-center py-0.5 font-sans">
         {/* Left active line indicator */}
         {isActive && (
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-blue-500 rounded-r-full shadow-[0_0_8px_rgba(59,130,246,0.5)] animate-pulse" />
+          <div className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r-full bg-primary" />
         )}
         <GlassTooltip content={item.label} side="right">
           <NavLink
             to={item.path}
             className={clsx(
-              "flex items-center justify-center w-11 h-11 rounded-lg transition-all duration-300 relative group",
+              "flex items-center justify-center w-10 h-10 rounded-md transition-colors duration-150 relative group",
               isActive
-                ? "bg-slate-200/50 text-blue-600 dark:bg-white/10 dark:text-blue-400 font-semibold"
-                : "text-slate-400 hover:bg-slate-200/30 hover:text-slate-800 dark:text-slate-500 dark:hover:bg-white/5 dark:hover:text-slate-200"
+                ? "bg-[hsl(var(--sidebar-item-active-bg))] text-[hsl(var(--sidebar-item-active-text))] font-semibold"
+                : "text-[hsl(var(--sidebar-item-text))] hover:bg-[hsl(var(--sidebar-item-hover-bg))] hover:text-[hsl(var(--sidebar-item-hover-text))]"
             )}
           >
-            <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} className="transition-transform group-hover:scale-105" />
+            <item.icon size={19} strokeWidth={isActive ? 2.25 : 2} />
 
             {item.badge && (
               <span
@@ -131,10 +131,7 @@ export const Sidebar = () => {
   return (
     <aside
       className={clsx(
-        "flex flex-col h-full shrink-0 z-20 w-[64px] font-sans pt-4",
-        "bg-[#f1f3f5]/90 dark:bg-[#0a0c10]/95 backdrop-blur-xl",
-        "border-r border-slate-200/40 dark:border-white/5",
-        "transition-all duration-300 ease-in-out overflow-hidden"
+        "flex h-full w-[64px] shrink-0 flex-col overflow-hidden border-r border-[hsl(var(--sidebar-border))] bg-[hsl(var(--sidebar-bg))] pt-3 font-sans z-20"
       )}
     >
       {/* Menu */}

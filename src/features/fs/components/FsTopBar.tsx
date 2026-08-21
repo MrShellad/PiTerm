@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
     ArrowLeft, ArrowRight, ArrowUp, RotateCw, 
     Upload, Eye, EyeOff, ArrowRightLeft, 
     CheckCircle2, XCircle, Loader2,
-    ShieldAlert, User, FolderLock,
+    ShieldAlert, User, FolderLock, Folder,
     Magnet // 🟢 新增磁铁图标
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -38,6 +38,7 @@ export const FsTopBar = ({ sessionId, username }: Props) => {
 
   const [inputPath, setInputPath] = useState(currentPath);
   const [isFocused, setIsFocused] = useState(false);
+  const wasSubmitted = useRef(false);
 
   const isSensitive = isSensitivePath(currentPath);
 
@@ -45,8 +46,9 @@ export const FsTopBar = ({ sessionId, username }: Props) => {
     setInputPath(currentPath);
   }, [currentPath]);
 
-const handlePathSubmit = (e: React.KeyboardEvent) => {
+  const handlePathSubmit = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
+      wasSubmitted.current = true;
       // 🟢 增加第三个参数 true，告诉 store 这是手动导航，请关闭跟随
       setPath(sessionId, inputPath, true);
       (e.target as HTMLInputElement).blur();
@@ -105,14 +107,15 @@ const handlePathSubmit = (e: React.KeyboardEvent) => {
       <div className={clsx(
           "flex-1 flex items-center px-3 py-1.5 rounded-md border transition-all duration-300 relative overflow-hidden mx-2",
           isSensitive 
-              ? "bg-red-50/80 dark:bg-red-900/20 border-red-200 dark:border-red-800" 
-              : "bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 focus-within:ring-2 focus-within:ring-blue-500/20"
+              ? "bg-red-50/80 dark:bg-red-900/20 border-red-200 dark:border-red-800 focus-within:ring-2 focus-within:ring-red-500/20 focus-within:border-red-500" 
+              : "bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20"
       )}>
-        {isSensitive && (
-            <div className="mr-2 text-red-500 animate-in fade-in zoom-in duration-300 shrink-0">
-                <FolderLock className="w-4 h-4" />
-            </div>
-        )}
+        <div className={clsx(
+            "mr-2 shrink-0 transition-colors duration-300 flex items-center justify-center",
+            isSensitive ? "text-red-500 animate-in fade-in zoom-in duration-300" : "text-slate-400 dark:text-slate-500"
+        )}>
+            {isSensitive ? <FolderLock className="w-4 h-4" /> : <Folder className="w-4 h-4" />}
+        </div>
 
         <input 
           type="text"
@@ -122,10 +125,14 @@ const handlePathSubmit = (e: React.KeyboardEvent) => {
           onFocus={() => setIsFocused(true)}
           onBlur={() => {
               setIsFocused(false);
-              setInputPath(currentPath);
+              if (wasSubmitted.current) {
+                  wasSubmitted.current = false;
+              } else {
+                  setInputPath(currentPath);
+              }
           }}
           className={clsx(
-              "w-full bg-transparent text-sm outline-none font-mono min-w-0 transition-colors",
+              "w-full bg-transparent text-sm outline-none focus:outline-none focus-visible:outline-none font-mono min-w-0 transition-colors border-none hover:border-none focus:border-none focus:ring-0 focus:shadow-none shadow-none p-0 m-0",
               isSensitive 
                   ? "text-red-700 dark:text-red-200 placeholder:text-red-400 selection:bg-red-200 dark:selection:bg-red-900" 
                   : "text-slate-700 dark:text-slate-200"

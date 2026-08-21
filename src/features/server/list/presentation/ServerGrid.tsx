@@ -14,6 +14,7 @@ interface Props {
   onEdit: (s: Server) => void;
   isLoading?: boolean;
   shouldAnimate?: boolean;
+  topInset?: number;
 }
 
 const COMPACT_WIDTHS: Record<CardSize, string> = {
@@ -34,7 +35,8 @@ export const ServerGrid = ({
   actions, 
   onEdit, 
   isLoading = false,
-  shouldAnimate = true
+  shouldAnimate = true,
+  topInset = 0
 }: Props) => {
   const { t } = useTranslation();
   
@@ -68,7 +70,7 @@ export const ServerGrid = ({
       gridTemplateColumns: `repeat(auto-fill, ${COMPACT_WIDTHS[cardSize]})`
     } as React.CSSProperties;
     return (
-      <div className="grid gap-5 pt-2 pb-2 justify-center content-start overflow-y-auto h-full custom-scrollbar" style={gridStyle}>
+      <div className="grid gap-5 pb-2 justify-center content-start overflow-y-auto h-full custom-scrollbar" style={{ ...gridStyle, paddingTop: topInset }}>
         {Array.from({ length: 8 }).map((_, i) => (
           <ServerCardSkeleton key={`skeleton-${i}`} size={cardSize} />
         ))}
@@ -107,6 +109,7 @@ export const ServerGrid = ({
     },
     getItemKey: (index) => `${cardSize}-${columns}-${index}`,
     overscan: 5,
+    paddingStart: topInset,
   });
 
   useEffect(() => {

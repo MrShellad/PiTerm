@@ -66,9 +66,11 @@ export function useStandaloneWindowPresentation() {
       }
 
       styleTag.innerHTML = `
-        :root { --font-ui: ${safeFont}; }
+        :root {
+          --font-ui: ${safeFont}, "Microsoft YaHei", "微软雅黑", "PingFang SC", "Hiragino Sans GB", "Heiti SC", "WenQuanYi Micro Hei", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
         body, button, input, textarea, select, .font-sans, [class*="sidebar"], [class*="titlebar"], nav, header {
-          font-family: var(--font-ui), "Microsoft YaHei", "微软雅黑", "PingFang SC", "Hiragino Sans GB", "Heiti SC", "WenQuanYi Micro Hei", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+          font-family: var(--font-ui) !important;
         }
       `;
     } else {

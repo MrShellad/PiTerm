@@ -79,14 +79,14 @@
      ========================================================================== */
   :root {
     /* 颜色语义 - 亮色模式 */
-    --st-color-primary: 221.2 83% 53%;
-    --st-color-background: 0 0% 100%;
+    --st-color-primary: 218 88% 55%;
+    --st-color-background: 220 20% 97%;
     --st-color-surface: 0 0% 100%;
-    --st-color-text-primary: 222.2 84% 4.9%;
-    --st-color-text-secondary: 215.4 16.3% 46.9%;
-    --st-color-border: 214.3 31.8% 91.4%;
-    --st-color-muted: 210 40% 96.1%;
-    --st-color-muted-foreground: 215.4 16.3% 46.9%;
+    --st-color-text-primary: 222 24% 15%;
+    --st-color-text-secondary: 218 10% 43%;
+    --st-color-border: 218 18% 88%;
+    --st-color-muted: 220 18% 94%;
+    --st-color-muted-foreground: 218 10% 43%;
     --st-color-success: 142.1 70.6% 45.3%;
     --st-color-warning: 37.9 90.2% 50.2%;
     --st-color-error: 346.8 84.1% 50.2%;
@@ -135,10 +135,10 @@
 
     --layout-text: var(--st-color-text-primary);
     --layout-overlay: 0 0% 100% / 0.1;
-    --titlebar-bg: 0 0% 100% / 0.4;
-    --titlebar-border: 0 0% 100% / 0.2;
-    --sidebar-bg: 20 40% 98% / 0.8;
-    --sidebar-border: 214 50% 91%;
+    --titlebar-bg: 220 18% 96%;
+    --titlebar-border: 218 18% 88%;
+    --sidebar-bg: 220 18% 96%;
+    --sidebar-border: 218 18% 88%;
     --sidebar-item-text: 215 16% 28%;
     --sidebar-item-hover-bg: 221 83% 53% / 0.05;
     --sidebar-item-hover-text: 221 83% 45%;
@@ -158,14 +158,14 @@
 
   .dark {
     /* 颜色语义 - 暗色模式 (严格执行 Termius 标准) */
-    --st-color-primary: 217 91% 60%;          /* HSL for #3b82f6 */
-    --st-color-background: 233 24% 10%;       /* HSL for #13141f */
-    --st-color-surface: 230 18% 13%;          /* HSL for #1a1c26 */
-    --st-color-text-primary: 220 14% 96%;     /* HSL for #f3f4f6 */
-    --st-color-text-secondary: 224 10% 61%;   /* HSL for #8f95a5 */
-    --st-color-border: 230 18% 16%;           /* HSL for #212535 */
-    --st-color-muted: 233 18% 11%;            /* HSL for #171821 */
-    --st-color-muted-foreground: 224 10% 61%;
+    --st-color-primary: 215 92% 62%;
+    --st-color-background: 225 13% 10%;
+    --st-color-surface: 225 12% 13%;
+    --st-color-text-primary: 220 14% 92%;
+    --st-color-text-secondary: 220 8% 61%;
+    --st-color-border: 225 10% 20%;
+    --st-color-muted: 225 11% 16%;
+    --st-color-muted-foreground: 220 8% 61%;
     --st-color-success: 142.1 70.6% 45.3%;
     --st-color-warning: 37.9 90.2% 50.2%;
     --st-color-error: 0 72% 45%;
@@ -208,10 +208,10 @@
 
     --layout-text: var(--st-color-text-primary);
     --layout-overlay: 0 0% 0% / 0.25;
-    --titlebar-bg: 233 24% 7% / 0.95;
-    --titlebar-border: 230 18% 16% / 0.5;
-    --sidebar-bg: 233 24% 7% / 0.95;
-    --sidebar-border: 230 18% 16% / 0.5;
+    --titlebar-bg: 225 14% 8%;
+    --titlebar-border: 225 10% 18%;
+    --sidebar-bg: 225 14% 8%;
+    --sidebar-border: 225 10% 18%;
     --sidebar-item-text: 215 20% 88%;
     --sidebar-item-hover-bg: 217 91% 60% / 0.1;
     --sidebar-item-hover-text: 210 100% 90%;
@@ -429,8 +429,7 @@
   }
 
   *:focus-visible {
-    outline: 2px solid hsl(var(--primary)) !important;
-    outline-offset: 2px !important;
+    @apply outline-2 outline-primary outline-offset-2;
   }
 
   /* 骨架屏加载动画 */

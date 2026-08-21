@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useServerListLogic } from "../application/useServerListLogic";
 import { ServerListHeader } from "./ServerListHeader";
 import { ServerGrid } from "./ServerGrid";
 import { ServerTableView } from "./ServerTableView";
+import { ServerListSkeleton } from "./ServerListSkeleton";
 import { ServerModal } from "./ServerModal";
 import { DeleteServerModal } from "../components/DeleteServerModal"; 
 // 🟢 [新增] 引入验证弹窗和连接 Hook
@@ -52,6 +53,28 @@ export const ServerListPage = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingServer, setEditingServer] = useState<Server | null>(null);
+  const [isPreparingList, setIsPreparingList] = useState(true);
+
+  useEffect(() => {
+    let idleId: number | undefined;
+    let timerId: ReturnType<typeof setTimeout> | undefined;
+
+    const revealList = () => {
+      timerId = globalThis.setTimeout(() => setIsPreparingList(false), 80);
+    };
+
+    const requestIdle = window.requestIdleCallback?.bind(window);
+    if (requestIdle) {
+      idleId = requestIdle(revealList, { timeout: 160 });
+    } else {
+      timerId = globalThis.setTimeout(() => setIsPreparingList(false), 100);
+    }
+
+    return () => {
+      if (idleId !== undefined) window.cancelIdleCallback(idleId);
+      if (timerId !== undefined) globalThis.clearTimeout(timerId);
+    };
+  }, []);
 
   const isUnlocked = useKeyStore((state) => state.status === 'unlocked');
   const openGlobalUnlockModal = useKeyStore((state) => state.openGlobalUnlockModal);
@@ -103,15 +126,22 @@ export const ServerListPage = () => {
 
   return (
     <div className="flex flex-col h-full bg-transparent relative overflow-hidden select-none">
-      <ServerListHeader 
-        state={displayState}
-        allTags={allTags} 
-        actions={displayActions}
-        onAddClick={handleAdd}
-      />
+      <div className="mb-3 pt-2 shrink-0">
+        <ServerListHeader
+          state={displayState}
+          allTags={allTags}
+          actions={displayActions}
+          onAddClick={handleAdd}
+        />
+      </div>
 
-      <div className="flex-1 overflow-hidden relative px-2 pb-2">
-         {viewMode === 'grid' ? (
+      <div className="flex-1 min-h-0 overflow-hidden relative px-2 pb-2">
+         {isLoading || isPreparingList ? (
+           <ServerListSkeleton
+             viewMode={viewMode as ViewMode}
+             cardSize={serverCardSize as CardSize}
+           />
+         ) : viewMode === 'grid' ? (
            <ServerGrid 
              servers={servers} 
              cardSize={serverCardSize as CardSize}

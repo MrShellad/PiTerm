@@ -3,7 +3,7 @@ import { SettingsContent } from "./components/SettingsContent";
 
 export const SettingsPage = () => {
   return (
-    <div className="flex h-full w-full overflow-hidden settings-container">
+    <div className="flex h-full w-full overflow-hidden bg-background/55 settings-container">
       {/* 🟢 [修改说明] 
          删除了 "bg-slate-50 dark:bg-slate-950" 
          现在这个容器是透明的，Sidebar 和 Content 的半透明背景

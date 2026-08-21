@@ -58,7 +58,7 @@ export const KeyManagerPanel = () => {
     });
 
     return (
-        <div className="h-full flex flex-col text-slate-900 dark:text-slate-100 select-none">
+        <div className="h-full flex flex-col text-foreground select-none">
             <KeyVaultGuard>
                 
                 {/* 1. 顶部工具栏 */}
@@ -72,7 +72,7 @@ export const KeyManagerPanel = () => {
                     className="flex-1 overflow-y-auto p-4 custom-scrollbar"
                 >
                     {keys.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center text-slate-400">
+                        <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
                             <p>{t('keys.empty', 'No keys found. Create one to get started.')}</p>
                         </div>
                     ) : (

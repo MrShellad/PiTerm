@@ -1,7 +1,6 @@
 import { useLocation, useOutlet } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
 import clsx from "clsx";
-import { AnimatePresence, motion } from "framer-motion";
 import { TitleBar } from "./TitleBar";
 import { Sidebar } from "./Sidebar";
 import { TerminalLayout } from "@/features/terminal/TerminalLayout";
@@ -98,9 +97,8 @@ export const MainLayout = () => {
     <div
       className={clsx(
         "h-screen w-screen flex overflow-hidden font-sans",
-        "transition-colors duration-300",
         "text-[hsl(var(--layout-text))]",
-        "bg-slate-50 dark:bg-slate-950" // 兜底色
+        "bg-background"
       )}
     >
       {/* --- 全局动态背景层 --- */}
@@ -123,9 +121,6 @@ export const MainLayout = () => {
           }}
         />
         
-        {/* 噪点层 (可选) */}
-        <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay"></div>
-        
         {/* 动态遮罩层 */}
         <div 
             className={clsx(
@@ -145,10 +140,8 @@ export const MainLayout = () => {
         <div
           className={clsx(
             "h-10 w-full shrink-0 z-50",
-            "backdrop-blur-md",
-            "bg-[#f1f3f5]/90 dark:bg-[#0a0c10]/90",
-            "border-b border-slate-200/40 dark:border-white/5", 
-            "transition-all duration-300"
+            "bg-[hsl(var(--titlebar-bg))]",
+            "border-b border-[hsl(var(--titlebar-border))]"
           )}
         >
           <div className="relative w-full h-full">
@@ -166,21 +159,12 @@ export const MainLayout = () => {
             </div>
             <div className={clsx("h-full w-full flex flex-col overflow-hidden bg-transparent", isTerminalPage && "hidden")}>
               <div className="flex-1 overflow-hidden p-0 relative">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={location.pathname}
-                    initial={{ marginTop: "12px" }}
-                    animate={{ marginTop: "0px" }}
-                    exit={{ marginTop: "-12px" }}
-                    transition={{ 
-                      duration: 0.25, 
-                      ease: "linear" 
-                    }}
-                    className="h-full w-full overflow-y-auto overflow-x-hidden"
-                  >
-                    {currentOutlet}
-                  </motion.div>
-                </AnimatePresence>
+                <div
+                  key={location.pathname}
+                  className="page-route-transition h-full w-full overflow-y-auto overflow-x-hidden"
+                >
+                  {currentOutlet}
+                </div>
               </div>
             </div>
           </main>

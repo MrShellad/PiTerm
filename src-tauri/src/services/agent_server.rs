@@ -1,5 +1,6 @@
 use crate::commands::ssh::state::{SshState, SshWriteRequest, SshResizeRequest};
 use crate::commands::vault::VaultState;
+use crate::commands::fs::filesystem::FileEntry;
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -20,6 +21,8 @@ struct AgentRequest {
     data: Option<String>,
     cols: Option<u32>,
     rows: Option<u32>,
+    path: Option<String>,
+    content: Option<String>,
 }
 
 #[derive(Serialize, Debug)]
@@ -31,11 +34,60 @@ struct SessionInfo {
 }
 
 #[derive(Serialize, Debug)]
+struct AgentServerInfo {
+    id: String,
+    name: String,
+    ip: String,
+    port: u16,
+    username: String,
+}
+
+#[derive(Serialize, Debug)]
 struct AgentResponse {
     status: String,
     action: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     sessions: Option<Vec<SessionInfo>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    error: Option<String>,
+}
+
+#[derive(Serialize, Debug)]
+struct AgentServerListResponse {
+    status: String,
+    action: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    servers: Option<Vec<AgentServerInfo>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    error: Option<String>,
+}
+
+#[derive(Serialize, Debug)]
+struct AgentCommandResponse {
+    status: String,
+    action: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    output: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    error: Option<String>,
+}
+
+#[derive(Serialize, Debug)]
+struct AgentFileListResponse {
+    status: String,
+    action: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    files: Option<Vec<FileEntry>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    error: Option<String>,
+}
+
+#[derive(Serialize, Debug)]
+struct AgentVaultStatusResponse {
+    status: String,
+    action: String,
+    is_initialized: bool,
+    is_locked: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     error: Option<String>,
 }
@@ -341,6 +393,343 @@ fn run_server(app: AppHandle, manager: Arc<Mutex<AgentServerManager>>, port: u16
                                     action: "list_sessions".to_string(),
                                     sessions: None,
                                     error: Some("Failed to lock SSH sessions map".to_string()),
+                                }
+                            };
+
+                            if let Ok(resp_text) = serde_json::to_string(&resp) {
+                                let _ = tx.send(Message::Text(resp_text)).await;
+                            }
+                        }
+                        "list_servers" => {
+                            let app_state = app_handle.state::<crate::state::AppState>();
+                            let db_pool = &app_state.db;
+                            let query_res = sqlx::query("SELECT id, name, ip, port, username FROM servers ORDER BY sort ASC")
+                                .fetch_all(db_pool)
+                                .await;
+
+                            let resp = match query_res {
+                                Ok(rows) => {
+                                    let servers_list: Vec<AgentServerInfo> = rows.into_iter().map(|row| {
+                                        AgentServerInfo {
+                                            id: row.try_get("id").unwrap_or_default(),
+                                            name: row.try_get("name").unwrap_or_default(),
+                                            ip: row.try_get("ip").unwrap_or_default(),
+                                            port: row.try_get("port").unwrap_or(22),
+                                            username: row.try_get("username").unwrap_or_default(),
+                                        }
+                                    }).collect();
+                                    AgentServerListResponse {
+                                        status: "success".to_string(),
+                                        action: "list_servers".to_string(),
+                                        servers: Some(servers_list),
+                                        error: None,
+                                    }
+                                }
+                                Err(e) => {
+                                    AgentServerListResponse {
+                                        status: "error".to_string(),
+                                        action: "list_servers".to_string(),
+                                        servers: None,
+                                        error: Some(format!("Database query failed: {:?}", e)),
+                                    }
+                                }
+                            };
+
+                            if let Ok(resp_text) = serde_json::to_string(&resp) {
+                                let _ = tx.send(Message::Text(resp_text)).await;
+                            }
+                        }
+                        "exec_command" => {
+                            let (Some(session_id), Some(command)) = (req.session_id, req.data) else {
+                                let resp = AgentCommandResponse {
+                                    status: "error".to_string(),
+                                    action: "exec_command".to_string(),
+                                    output: None,
+                                    error: Some("Missing session_id or data (command)".to_string()),
+                                };
+                                if let Ok(resp_text) = serde_json::to_string(&resp) {
+                                    let _ = tx.send(Message::Text(resp_text)).await;
+                                }
+                                continue;
+                            };
+
+                            let ssh_state = app_handle.state::<SshState>();
+                            let conn_opt = {
+                                let map = ssh_state.sessions.lock().unwrap();
+                                map.get(&session_id).cloned()
+                            };
+
+                            let resp = match conn_opt {
+                                Some(conn) => {
+                                    conn.touch_client_heartbeat();
+                                    if let Some(bg_sess) = conn.bg_session_arc() {
+                                        match crate::commands::monitor::exec_ssh_command(&bg_sess, &command).await {
+                                            Ok(output) => {
+                                                AgentCommandResponse {
+                                                    status: "success".to_string(),
+                                                    action: "exec_command".to_string(),
+                                                    output: Some(output),
+                                                    error: None,
+                                                }
+                                            }
+                                            Err(e) => {
+                                                AgentCommandResponse {
+                                                    status: "error".to_string(),
+                                                    action: "exec_command".to_string(),
+                                                    output: None,
+                                                    error: Some(format!("Failed to execute command: {}", e)),
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        AgentCommandResponse {
+                                            status: "error".to_string(),
+                                            action: "exec_command".to_string(),
+                                            output: None,
+                                            error: Some("Background SSH session not ready or unavailable".to_string()),
+                                        }
+                                    }
+                                }
+                                None => {
+                                    AgentCommandResponse {
+                                        status: "error".to_string(),
+                                        action: "exec_command".to_string(),
+                                        output: None,
+                                        error: Some("Session not found or not active".to_string()),
+                                    }
+                                }
+                            };
+
+                            if let Ok(resp_text) = serde_json::to_string(&resp) {
+                                let _ = tx.send(Message::Text(resp_text)).await;
+                            }
+                        }
+                        "disconnect" => {
+                            let Some(session_id) = req.session_id else {
+                                let resp = AgentResponse {
+                                    status: "error".to_string(),
+                                    action: "disconnect".to_string(),
+                                    sessions: None,
+                                    error: Some("Missing session_id".to_string()),
+                                };
+                                if let Ok(resp_text) = serde_json::to_string(&resp) {
+                                    let _ = tx.send(Message::Text(resp_text)).await;
+                                }
+                                continue;
+                            };
+
+                            let ssh_state = app_handle.state::<SshState>();
+                            let conn = crate::commands::ssh::remove_ssh_session(&ssh_state.sessions, &session_id);
+
+                            let resp = match conn {
+                                Some(conn) => {
+                                    let _ = conn.shutdown("Agent WS disconnect");
+                                    AgentResponse {
+                                        status: "success".to_string(),
+                                        action: "disconnect".to_string(),
+                                        sessions: None,
+                                        error: None,
+                                    }
+                                }
+                                None => {
+                                    AgentResponse {
+                                        status: "error".to_string(),
+                                        action: "disconnect".to_string(),
+                                        sessions: None,
+                                        error: Some("Session not found or not active".to_string()),
+                                    }
+                                }
+                            };
+
+                            if let Ok(resp_text) = serde_json::to_string(&resp) {
+                                let _ = tx.send(Message::Text(resp_text)).await;
+                            }
+                        }
+                        "sftp_list_dir" => {
+                            let (Some(session_id), Some(path)) = (req.session_id, req.path) else {
+                                let resp = AgentFileListResponse {
+                                    status: "error".to_string(),
+                                    action: "sftp_list_dir".to_string(),
+                                    files: None,
+                                    error: Some("Missing session_id or path".to_string()),
+                                };
+                                if let Ok(resp_text) = serde_json::to_string(&resp) {
+                                    let _ = tx.send(Message::Text(resp_text)).await;
+                                }
+                                continue;
+                            };
+
+                            let ssh_state = app_handle.state::<SshState>();
+                            let resp = match crate::commands::fs::list_ssh_files(ssh_state, session_id, path).await {
+                                Ok(files) => {
+                                    AgentFileListResponse {
+                                        status: "success".to_string(),
+                                        action: "sftp_list_dir".to_string(),
+                                        files: Some(files),
+                                        error: None,
+                                    }
+                                }
+                                Err(e) => {
+                                    AgentFileListResponse {
+                                        status: "error".to_string(),
+                                        action: "sftp_list_dir".to_string(),
+                                        files: None,
+                                        error: Some(e),
+                                    }
+                                }
+                            };
+
+                            if let Ok(resp_text) = serde_json::to_string(&resp) {
+                                let _ = tx.send(Message::Text(resp_text)).await;
+                            }
+                        }
+                        "sftp_read_file" => {
+                            let (Some(session_id), Some(path)) = (req.session_id, req.path) else {
+                                let resp = AgentCommandResponse {
+                                    status: "error".to_string(),
+                                    action: "sftp_read_file".to_string(),
+                                    output: None,
+                                    error: Some("Missing session_id or path".to_string()),
+                                };
+                                if let Ok(resp_text) = serde_json::to_string(&resp) {
+                                    let _ = tx.send(Message::Text(resp_text)).await;
+                                }
+                                continue;
+                            };
+
+                            let ssh_state = app_handle.state::<SshState>();
+                            let resp = match crate::commands::fs::sftp_read_file(ssh_state, session_id, path).await {
+                                Ok(content) => {
+                                    AgentCommandResponse {
+                                        status: "success".to_string(),
+                                        action: "sftp_read_file".to_string(),
+                                        output: Some(content),
+                                        error: None,
+                                    }
+                                }
+                                Err(e) => {
+                                    AgentCommandResponse {
+                                        status: "error".to_string(),
+                                        action: "sftp_read_file".to_string(),
+                                        output: None,
+                                        error: Some(e),
+                                    }
+                                }
+                            };
+
+                            if let Ok(resp_text) = serde_json::to_string(&resp) {
+                                let _ = tx.send(Message::Text(resp_text)).await;
+                            }
+                        }
+                        "sftp_write_file" => {
+                            let (Some(session_id), Some(path), Some(content)) = (req.session_id, req.path, req.content) else {
+                                let resp = AgentResponse {
+                                    status: "error".to_string(),
+                                    action: "sftp_write_file".to_string(),
+                                    sessions: None,
+                                    error: Some("Missing session_id, path, or content".to_string()),
+                                };
+                                if let Ok(resp_text) = serde_json::to_string(&resp) {
+                                    let _ = tx.send(Message::Text(resp_text)).await;
+                                }
+                                continue;
+                            };
+
+                            let ssh_state = app_handle.state::<SshState>();
+                            let resp = match crate::commands::fs::sftp_write_file(ssh_state, session_id, path, content).await {
+                                Ok(_) => {
+                                    AgentResponse {
+                                        status: "success".to_string(),
+                                        action: "sftp_write_file".to_string(),
+                                        sessions: None,
+                                        error: None,
+                                    }
+                                }
+                                Err(e) => {
+                                    AgentResponse {
+                                        status: "error".to_string(),
+                                        action: "sftp_write_file".to_string(),
+                                        sessions: None,
+                                        error: Some(e),
+                                    }
+                                }
+                            };
+
+                            if let Ok(resp_text) = serde_json::to_string(&resp) {
+                                let _ = tx.send(Message::Text(resp_text)).await;
+                            }
+                        }
+                        "get_vault_status" => {
+                            let app_state = app_handle.state::<crate::state::AppState>();
+                            let vault_state = app_handle.state::<VaultState>();
+                            
+                            let resp = match crate::commands::vault::get_vault_status(app_state, vault_state).await {
+                                Ok(status) => {
+                                    AgentVaultStatusResponse {
+                                        status: "success".to_string(),
+                                        action: "get_vault_status".to_string(),
+                                        is_initialized: status.is_initialized,
+                                        is_locked: status.is_locked,
+                                        error: None,
+                                    }
+                                }
+                                Err(e) => {
+                                    AgentVaultStatusResponse {
+                                        status: "error".to_string(),
+                                        action: "get_vault_status".to_string(),
+                                        is_initialized: false,
+                                        is_locked: true,
+                                        error: Some(e),
+                                    }
+                                }
+                            };
+
+                            if let Ok(resp_text) = serde_json::to_string(&resp) {
+                                let _ = tx.send(Message::Text(resp_text)).await;
+                            }
+                        }
+                        "unlock_vault" => {
+                            let Some(password) = req.data else {
+                                let resp = AgentResponse {
+                                    status: "error".to_string(),
+                                    action: "unlock_vault".to_string(),
+                                    sessions: None,
+                                    error: Some("Missing master password in 'data' field".to_string()),
+                                };
+                                if let Ok(resp_text) = serde_json::to_string(&resp) {
+                                    let _ = tx.send(Message::Text(resp_text)).await;
+                                }
+                                continue;
+                            };
+
+                            let app_state = app_handle.state::<crate::state::AppState>();
+                            let vault_state = app_handle.state::<VaultState>();
+
+                            let resp = match crate::commands::vault::unlock_vault(app_state, vault_state, password).await {
+                                Ok(success) => {
+                                    if success {
+                                        AgentResponse {
+                                            status: "success".to_string(),
+                                            action: "unlock_vault".to_string(),
+                                            sessions: None,
+                                            error: None,
+                                        }
+                                    } else {
+                                        AgentResponse {
+                                            status: "error".to_string(),
+                                            action: "unlock_vault".to_string(),
+                                            sessions: None,
+                                            error: Some("Invalid master password".to_string()),
+                                        }
+                                    }
+                                }
+                                Err(e) => {
+                                    AgentResponse {
+                                        status: "error".to_string(),
+                                        action: "unlock_vault".to_string(),
+                                        sessions: None,
+                                        error: Some(e),
+                                    }
                                 }
                             };
 

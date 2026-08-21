@@ -36,17 +36,16 @@ export const SettingsContent = () => {
     <div className={clsx(
         "flex-1 flex flex-col h-full min-w-0 relative select-none",
         // 🟢 [修改] 移除背景色和模糊，改为完全透明
-        "bg-transparent", 
-        "transition-colors duration-300"
+        "bg-background/35"
     )}>
       
       {/* --- Header 区域 --- */}
-      <div className="px-8 py-6 flex items-center justify-between shrink-0 z-20 bg-transparent">
+      <div className="px-8 py-5 flex items-center justify-between shrink-0 z-20 border-b border-border/45 bg-card/35">
         <div className="space-y-1">
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+            <h1 className="text-xl font-semibold text-foreground tracking-tight">
                 {currentTitle}
             </h1>
-            <p className="text-[0.95rem] text-slate-500 dark:text-slate-400 mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
                  {searchQuery 
                     ? t('settings.searchResults', { count: searchResults.length, defaultValue: `${searchResults.length} results` })
                     : t('settings.itemsCount', { 

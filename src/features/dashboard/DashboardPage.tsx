@@ -16,22 +16,22 @@ export const DashboardPage = () => {
   const { settings, updateSettings } = useDashboardStore();
 
   return (
-    <div className="relative w-full h-full flex flex-col overflow-hidden text-slate-900 dark:text-slate-50 font-sans selection:bg-blue-500/30">
+    <div className="relative w-full h-full flex flex-col overflow-hidden text-foreground font-sans selection:bg-primary/25">
       
       <div className="relative z-10 flex flex-col h-full w-full mx-auto">
          
          {/* === 头部区域 === */}
-         <div className="shrink-0 pt-6 pb-2 px-6 md:px-12">
+          <div className="shrink-0 px-6 pb-2 pt-5 md:px-10">
             <div className="max-w-6xl mx-auto w-full">
                 <DashboardHeader />
             </div>
          </div>
 
          {/* === 滚动区域 === */}
-         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar px-6 md:px-12 pt-2 pb-6">
+         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar px-6 md:px-10 pt-2 pb-6">
              
              {/* 居中容器 */}
-             <div className="max-w-4xl mx-auto w-full space-y-12 mt-8">
+             <div className="max-w-4xl mx-auto w-full space-y-8 mt-5">
                  
                  {/* 🟢 [新增] 快速连接区域 (替换了原来的 Beta 警告) */}
                  <section className="w-full">
@@ -50,7 +50,7 @@ export const DashboardPage = () => {
                  <div className="flex items-center justify-center gap-4 pt-10 opacity-30 hover:opacity-100 transition-opacity">
                     <button 
                         onClick={() => updateSettings({ showEmoji: !settings.showEmoji })}
-                        className="text-[10px] uppercase tracking-wider text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                        className="text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground"
                     >
                         {settings.showEmoji ? t('dashboard.hideEmoji', 'Hide Emoji') : t('dashboard.showEmoji', 'Show Emoji')}
                     </button>

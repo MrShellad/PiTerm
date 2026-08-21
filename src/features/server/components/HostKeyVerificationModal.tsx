@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
-  ShieldAlert, 
+  ShieldCheck,
   Copy, 
   Check, 
-  Terminal,
   AlertOctagon
 } from 'lucide-react';
 import {
@@ -44,78 +43,64 @@ export const HostKeyVerificationModal = ({ open, data, onConfirm, onCancel }: Pr
 
   return (
     <AlertDialog open={open} onOpenChange={(val) => !val && onCancel()}>
-      <AlertDialogContent className="max-w-md p-0 gap-0 overflow-hidden bg-background border border-border shadow-xl dark:shadow-[0_0_30px_hsl(var(--primary)/0.15)] rounded-xl">
-        {/* top glow bar */}
-        <div className="h-[2px] w-full bg-gradient-to-r from-primary/70 via-primary to-primary/70 animate-pulse" />
-
+      <AlertDialogContent className="max-w-md gap-0 overflow-hidden rounded-xl border border-border/70 bg-card p-0 text-card-foreground shadow-2xl">
         {/* 头部警告区 */}
-        <div className="p-6 border-b border-border/60 flex flex-col items-center text-center relative overflow-hidden bg-gradient-to-b from-muted/30 to-background">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(var(--primary)/0.04),transparent_70%)] dark:bg-[radial-gradient(ellipse_at_center,hsl(var(--primary)/0.08),transparent_70%)] pointer-events-none" />
-          
-          <div className="w-12 h-12 rounded-full border border-primary/20 bg-primary/10 flex items-center justify-center mb-4 text-primary shadow-[0_0_15px_hsl(var(--primary)/0.15)] animate-pulse">
-            <ShieldAlert className="w-6 h-6" />
+        <div className="flex items-start gap-3 border-b border-border/60 bg-card/80 px-5 py-4">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary">
+            <ShieldCheck className="h-5 w-5" />
           </div>
-          
-          <AlertDialogTitle className="text-sm font-mono tracking-widest text-primary uppercase flex items-center gap-1.5">
-            <span className="text-destructive select-none">🚨</span> {t('server.verify.title', 'Security Handshake')}
-          </AlertDialogTitle>
-          
-          <AlertDialogDescription className="text-xs font-sans text-muted-foreground mt-3 max-w-[90%] leading-relaxed">
-            {t('server.verify.desc', 'The authenticity of host cannot be established. Connecting to this server for the first time.')}
-          </AlertDialogDescription>
+          <div className="min-w-0">
+            <AlertDialogTitle className="text-sm font-semibold text-foreground">
+              {t('server.verify.title', 'Security Handshake')}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              {t('server.verify.desc', 'The authenticity of host cannot be established. Connecting to this server for the first time.')}
+            </AlertDialogDescription>
+          </div>
         </div>
 
         {/* 信息详情区 */}
-        <div className="p-6 space-y-4 font-mono text-xs">
+        <div className="space-y-4 bg-background/35 p-5 text-xs">
           
           {/* 服务器及指纹整合终端视窗 */}
-          <div className="border border-border rounded-lg bg-slate-950 overflow-hidden shadow-inner">
-            {/* Terminal Header */}
-            <div className="bg-slate-900 px-3 py-2 border-b border-border/40 flex items-center justify-between text-slate-400 text-[10px]">
-              <span className="flex items-center gap-1.5 font-semibold">
-                <Terminal className="w-3.5 h-3.5 text-amber-500" />
-                HOST_KEY_VERIFICATION.LOG
-              </span>
-              <span className="text-slate-500 font-semibold">SECURE_SHELL v2</span>
-            </div>
-
-            <div className="p-4 space-y-3 font-mono">
+          <div className="overflow-hidden rounded-lg border border-border/60 bg-muted/20">
+            <div className="space-y-3 p-4 font-mono">
               {/* Host info */}
               <div className="grid grid-cols-4 gap-1.5 items-center">
-                <span className="text-slate-400 text-[10px] uppercase font-semibold">host:</span>
-                <span className="col-span-3 text-amber-400 font-bold truncate">
+                <span className="text-muted-foreground text-[10px] uppercase font-semibold">host:</span>
+                <span className="col-span-3 truncate font-semibold text-foreground">
                   {data.host}
                 </span>
               </div>
               <div className="grid grid-cols-4 gap-1.5 items-center">
-                <span className="text-slate-400 text-[10px] uppercase font-semibold">ip_addr:</span>
-                <span className="col-span-3 text-slate-200">
+                <span className="text-muted-foreground text-[10px] uppercase font-semibold">ip_addr:</span>
+                <span className="col-span-3 text-foreground/80">
                   {data.ip}
                 </span>
               </div>
               <div className="grid grid-cols-4 gap-1.5 items-center">
-                <span className="text-slate-400 text-[10px] uppercase font-semibold">key_type:</span>
-                <span className="col-span-3 text-slate-200 font-semibold">
+                <span className="text-muted-foreground text-[10px] uppercase font-semibold">key_type:</span>
+                <span className="col-span-3 font-semibold text-foreground/80">
                   {data.keyType}
                 </span>
               </div>
 
               {/* Fingerprint block */}
-              <div className="space-y-1.5 pt-2.5 border-t border-slate-800/80">
-                <div className="text-slate-400 text-[10px] uppercase font-semibold">sha256_fingerprint:</div>
+              <div className="space-y-1.5 border-t border-border/60 pt-2.5">
+                <div className="text-muted-foreground text-[10px] uppercase font-semibold">sha256_fingerprint:</div>
                 <div 
                   className="relative group cursor-pointer"
                   onClick={handleCopy}
                   title="Click to copy fingerprint"
                 >
-                  <div className="w-full p-2.5 bg-slate-900/60 border border-slate-800 rounded-md font-mono text-[11px] leading-relaxed break-all text-amber-400 transition-all group-hover:border-amber-500/50 group-hover:text-amber-300 pr-8">
+                  <div className="w-full rounded-md border border-border/70 bg-background/70 p-2.5 pr-8 font-mono text-[11px] leading-relaxed break-all text-primary transition-colors group-hover:border-primary/40">
                     {data.fingerprint}
                   </div>
                   <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-60 group-hover:opacity-100 transition-opacity">
                     {isCopied ? (
-                      <Check className="w-3.5 h-3.5 text-amber-400 animate-in zoom-in-50" />
+                      <Check className="w-3.5 h-3.5 text-primary animate-in zoom-in-50" />
                     ) : (
-                      <Copy className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-400" />
+                      <Copy className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary" />
                     )}
                   </div>
                 </div>
@@ -124,27 +109,27 @@ export const HostKeyVerificationModal = ({ open, data, onConfirm, onCancel }: Pr
           </div>
 
           {/* 温馨提示 */}
-          <div className="flex gap-2.5 text-[11px] text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 p-3 rounded-lg leading-normal">
-            <AlertOctagon className="w-4 h-4 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
-            <p className="font-sans leading-relaxed">
+          <div className="flex gap-2.5 rounded-lg border border-primary/15 bg-primary/5 p-3 text-[11px] leading-normal text-muted-foreground">
+            <AlertOctagon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+            <p className="leading-relaxed">
               {t('server.verify.warning', 'To prevent MITM attacks, please verify that this fingerprint matches the server\'s key.')}
             </p>
           </div>
         </div>
 
         {/* 底部按钮 */}
-        <AlertDialogFooter className="p-4 bg-muted/40 border-t border-border/50 gap-3 font-mono text-xs">
+        <AlertDialogFooter className="gap-2 border-t border-border/60 bg-card/80 p-4 text-xs sm:space-x-0">
           <Button 
             variant="outline" 
             onClick={onCancel} 
-            className="flex-1 bg-transparent hover:bg-accent border-input text-muted-foreground hover:text-foreground transition-colors"
+            className="flex-1 border-border/70 bg-background/50 text-muted-foreground hover:text-foreground"
           >
             {t('common.cancel', 'Cancel')}
           </Button>
           <Button 
             variant="default" 
             onClick={onConfirm} 
-            className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-[0_0_15px_hsl(var(--primary)/0.15)] border-none transition-all uppercase tracking-wider"
+            className="flex-1 font-semibold"
           >
             {t('server.verify.trust', 'Trust & Connect')}
           </Button>

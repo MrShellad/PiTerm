@@ -20,9 +20,9 @@ interface Props {
 
 // 科技感 SVG 数据传输与隧道建立动画组件
 const ConnectingSvgAnimation = ({ isError }: { isError?: boolean }) => (
-  <div className="relative w-full h-24 flex items-center justify-center overflow-hidden bg-slate-950/90 rounded-xl border border-white/10 p-2 shadow-inner my-1">
+  <div className="relative my-1 flex h-24 w-full items-center justify-center overflow-hidden rounded-lg border border-border/60 bg-muted/25 p-2">
     {/* 网格发光背景 */}
-    <svg className="absolute inset-0 w-full h-full opacity-20 pointer-events-none" width="100%" height="100%">
+    <svg className="pointer-events-none absolute inset-0 h-full w-full text-foreground opacity-[0.07]" width="100%" height="100%">
       <defs>
         <pattern id="modal-grid-pattern" width="16" height="16" patternUnits="userSpaceOnUse">
           <path d="M 16 0 L 0 0 0 16" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-primary/40" />
@@ -71,7 +71,7 @@ const ConnectingSvgAnimation = ({ isError }: { isError?: boolean }) => (
 
       {/* --- 左侧节点: Client 客户端 --- */}
       <g transform="translate(60, 40)">
-        <circle r="20" fill="#090d16" stroke={isError ? "#ef4444" : "#3b82f6"} strokeWidth="1.5" />
+        <circle r="20" fill="hsl(var(--card))" stroke={isError ? "#ef4444" : "hsl(var(--primary))"} strokeWidth="1.5" />
         <circle r="24" fill="none" stroke={isError ? "#ef4444" : "#3b82f6"} strokeWidth="1" strokeDasharray="4 4" opacity="0.4">
           <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur="12s" repeatCount="indefinite" />
         </circle>
@@ -91,7 +91,7 @@ const ConnectingSvgAnimation = ({ isError }: { isError?: boolean }) => (
 
       {/* --- 右侧节点: Remote Server 远程服务器 --- */}
       <g transform="translate(300, 40)">
-        <circle r="20" fill="#090d16" stroke={isError ? "#ef4444" : "#3b82f6"} strokeWidth="1.5" />
+        <circle r="20" fill="hsl(var(--card))" stroke={isError ? "#ef4444" : "hsl(var(--primary))"} strokeWidth="1.5" />
         <circle r="24" fill="none" stroke={isError ? "#ef4444" : "#3b82f6"} strokeWidth="1" strokeDasharray="4 4" opacity="0.4">
           <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur="12s" repeatCount="indefinite" />
         </circle>
@@ -122,7 +122,7 @@ export const ConnectionStatusModal = ({ open, logs, serverName, onClose, isError
 
   return (
     <AlertDialog open={open}>
-      <AlertDialogContent className="max-w-[460px] p-0 border border-border bg-background text-foreground shadow-xl dark:shadow-[0_0_30px_hsl(var(--primary)/0.15)] rounded-xl overflow-hidden font-mono select-none">
+      <AlertDialogContent className="max-w-[460px] gap-0 overflow-hidden rounded-xl border border-border/70 bg-card p-0 text-card-foreground shadow-2xl select-none">
         <AlertDialogTitle className="sr-only">
           {isError
             ? t('server.sshlog.failed', 'Connection Failed')
@@ -134,50 +134,39 @@ export const ConnectionStatusModal = ({ open, logs, serverName, onClose, isError
             : t('server.sshlog.descriptionFallback', 'SSH connection log dialog.')}
         </AlertDialogDescription>
         
-        {/* top glow bar */}
-        <div className={cn(
-          "h-[2px] w-full bg-gradient-to-r",
-          isError 
-            ? "from-destructive/80 via-destructive to-destructive/80" 
-            : "from-primary/70 via-primary to-primary/70 animate-pulse"
-        )} />
-
         {/* Header */}
-        <div className="p-4 bg-muted flex items-center justify-between border-b border-border/60">
-          <div className="flex items-center gap-2">
-            {isError ? (
-              <AlertCircle className="w-4 h-4 text-destructive" />
-            ) : (
-              <Terminal className="w-4 h-4 text-primary" />
-            )}
-            <span className={cn(
-              "text-xs font-bold uppercase tracking-widest leading-none",
-              isError ? "text-destructive" : "text-primary"
-            )}>
+        <div className="flex items-center justify-between border-b border-border/60 bg-card/80 px-4 py-3 backdrop-blur-sm">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border", isError ? "border-destructive/20 bg-destructive/10 text-destructive" : "border-primary/20 bg-primary/10 text-primary")}>
+              {isError ? (
+                <AlertCircle className="w-4 h-4 text-destructive" />
+              ) : (
+                <Terminal className="w-4 h-4 text-primary" />
+              )}
+            </div>
+            <div className="min-w-0">
+              <div className="truncate text-sm font-semibold text-foreground">
                 {isError 
                   ? t('server.sshlog.failed', 'Connection Failed') 
                   : t('server.sshlog.connecting', 'Connecting...')}
-            </span>
+              </div>
+              <div className="mt-0.5 truncate text-xs text-muted-foreground">{serverName || 'Remote Server'}</div>
+            </div>
           </div>
           {!isError ? (
             <Loader2 className="w-4 h-4 animate-spin text-primary" />
           ) : (
-            <button onClick={onClose} className="hover:text-foreground transition-colors">
+            <button onClick={onClose} className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" aria-label={t('common.close', 'Close')}>
               <XCircle className="w-4 h-4 text-destructive" />
             </button>
           )}
         </div>
 
         {/* Content */}
-        <div className="p-5 space-y-3 bg-gradient-to-b from-muted/30 to-background">
-          <div className="flex gap-1 flex-col">
-            <div className="text-sm font-bold text-foreground truncate leading-none">
-              {serverName || 'Remote Server'}
-            </div>
-            <div className="text-[10px] text-primary/80 uppercase tracking-widest font-semibold leading-none mt-1.5 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
-              {t('server.sshlog.tunnel', 'Establishing Secure Tunnel')}
-            </div>
+        <div className="space-y-3 bg-background/35 p-4">
+          <div className={cn("flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium", isError ? "border-destructive/20 bg-destructive/5 text-destructive" : "border-primary/20 bg-primary/5 text-primary")}>
+            <span className={cn("h-1.5 w-1.5 rounded-full", isError ? "bg-destructive" : "bg-primary animate-pulse")} />
+            {t('server.sshlog.tunnel', 'Establishing Secure Tunnel')}
           </div>
 
           {/* SVG 科技感数据传输与隧道建立动画 */}
@@ -186,22 +175,22 @@ export const ConnectionStatusModal = ({ open, logs, serverName, onClose, isError
           {/* Terminal log output */}
           <div 
             ref={scrollRef}
-            className="h-44 overflow-y-auto bg-slate-950 rounded-lg p-3 text-[11px] font-mono leading-relaxed custom-scrollbar border border-border/80 space-y-1 shadow-inner"
+            className="custom-scrollbar h-40 space-y-1 overflow-y-auto rounded-lg border border-border/60 bg-muted/25 p-3 font-mono text-[11px] leading-relaxed"
           >
             {logs.map((log, i) => (
               <div key={i} className="flex gap-2 break-all animate-in fade-in slide-in-from-left-1 duration-200">
-                <span className="text-amber-500 shrink-0 select-none font-bold">❯</span>
+                <span className="shrink-0 select-none font-bold text-primary/70">❯</span>
                 <span className={cn(
                   log.toLowerCase().includes('failed') || log.toLowerCase().includes('error') 
-                    ? "text-red-400 font-semibold" 
-                    : "text-slate-200"
+                    ? "text-destructive font-semibold"
+                    : "text-foreground/80"
                 )}>
                   {log}
                 </span>
               </div>
             ))}
             {logs.length === 0 && (
-              <div className="text-slate-400 italic">
+              <div className="text-muted-foreground italic">
                 {t('server.sshlog.init', 'Initializing engine...')}
               </div>
             )}
@@ -211,7 +200,7 @@ export const ConnectionStatusModal = ({ open, logs, serverName, onClose, isError
              <Button 
                variant="destructive"
                onClick={onClose}
-               className="w-full font-mono text-xs font-semibold tracking-wider uppercase shadow-[0_0_10px_hsl(var(--destructive)/0.15)]"
+               className="w-full text-xs font-semibold"
              >
                {t('common.close', 'Close')}
              </Button>
@@ -219,7 +208,7 @@ export const ConnectionStatusModal = ({ open, logs, serverName, onClose, isError
              <Button 
                variant="outline"
                onClick={onClose}
-               className="w-full font-mono text-xs font-semibold tracking-wider uppercase border border-border/50 text-muted-foreground hover:text-foreground"
+               className="w-full border-border/70 bg-background/50 text-xs font-semibold text-muted-foreground hover:text-foreground"
              >
                {t('common.cancel', 'Cancel')}
              </Button>
