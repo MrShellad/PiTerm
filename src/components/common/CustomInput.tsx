@@ -2,48 +2,84 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 
+export type CustomInputSize = "xs" | "sm" | "default" | "lg";
+
 export interface CustomInputProps
-  extends React.InputHTMLAttributes<HTMLInputElement> {
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "size"> {
   label?: string;
   description?: string;
   error?: string | undefined;
   startIcon?: React.ReactNode;
   endIcon?: React.ReactNode;
   hideErrorMsg?: boolean;
+  size?: CustomInputSize;
 }
 
 export const CustomInput = React.forwardRef<HTMLInputElement, CustomInputProps>(
-  ({ className, type, label, description, error, startIcon, endIcon, hideErrorMsg, ...props }, ref) => {
+  ({ className, type, label, description, error, startIcon, endIcon, hideErrorMsg, size = "default", ...props }, ref) => {
     
     const { required, ...restProps } = props;
 
+    const sizeStyles = {
+      xs: "h-7 px-2 py-0.5 text-xs file:text-xs",
+      sm: "h-8 px-2.5 py-1 text-xs file:text-xs",
+      default: "h-9 px-3 py-1 text-sm file:text-sm",
+      lg: "h-10 px-3.5 py-2 text-base file:text-base",
+    }[size || "default"];
+
+    const iconPaddingStyles = {
+      xs: {
+        start: startIcon ? "pl-7" : "",
+        end: endIcon ? "pr-7" : "",
+        startPos: "left-2",
+        endPos: "right-2",
+      },
+      sm: {
+        start: startIcon ? "pl-8" : "",
+        end: endIcon ? "pr-8" : "",
+        startPos: "left-2.5",
+        endPos: "right-2.5",
+      },
+      default: {
+        start: startIcon ? "pl-9" : "",
+        end: endIcon ? "pr-9" : "",
+        startPos: "left-3",
+        endPos: "right-3",
+      },
+      lg: {
+        start: startIcon ? "pl-10" : "",
+        end: endIcon ? "pr-10" : "",
+        startPos: "left-3.5",
+        endPos: "right-3.5",
+      },
+    }[size || "default"];
+
     const baseInputStyles = cn(
       // 基础动画和布局
-      "flex h-9 w-full rounded-md border px-3 py-1 text-base shadow-sm transition-all duration-200 file:border-0 file:bg-transparent file:text-base file:font-medium",
+      "flex w-full rounded-md border shadow-sm transition-all duration-200 file:border-0 file:bg-transparent file:font-medium",
+      sizeStyles,
       
-      // === 🟢 核心修改区域：毛玻璃效果 ===
-      
-      // 1. 全局模糊设置 (浓度高一点)
+      // === 毛玻璃效果 ===
       "backdrop-blur-xl", 
 
-      // 2. Default State (默认状态)
+      // 默认状态
       "bg-background/60 border-border/80 text-foreground placeholder:text-muted-foreground",
       
-      // 3. Hover State (悬停状态)
+      // 悬停状态
       "hover:bg-background/90 hover:border-border",
 
-      // 4. Focus State (聚焦状态)
+      // 聚焦状态
       "focus-visible:bg-background",
-      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:border-primary",
+      "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/50 focus-visible:border-primary",
       
-      // 5. Disabled State (禁用状态)
+      // 禁用状态
       "disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted/50",
       
       // 图标留白
-      startIcon && "pl-9",
-      endIcon && "pr-9",
+      iconPaddingStyles.start,
+      iconPaddingStyles.end,
 
-      // 强制隐藏浏览器原生的小眼睛 (Edge/IE) 和清除按钮
+      // 隐藏浏览器原生的小眼睛和清除按钮
       "[&::-ms-reveal]:hidden [&::-ms-clear]:hidden"
     );
 
@@ -66,7 +102,10 @@ export const CustomInput = React.forwardRef<HTMLInputElement, CustomInputProps>(
 
         <div className="relative group">
           {startIcon && (
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
+            <div className={cn(
+              "absolute top-1/2 -translate-y-1/2 z-10 pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors flex items-center justify-center [&_svg]:size-4",
+              iconPaddingStyles.startPos
+            )}>
               {startIcon}
             </div>
           )}
@@ -82,18 +121,21 @@ export const CustomInput = React.forwardRef<HTMLInputElement, CustomInputProps>(
           />
 
           {endIcon && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10 text-slate-400">
+            <div className={cn(
+              "absolute top-1/2 -translate-y-1/2 z-10 text-slate-400 flex items-center justify-center [&_svg]:size-4",
+              iconPaddingStyles.endPos
+            )}>
               {endIcon}
             </div>
           )}
         </div>
 
         {!hideErrorMsg && error ? (
-          <p className="text-base text-red-500 font-medium animate-in slide-in-from-top-1 fade-in duration-200">
+          <p className="text-xs text-red-500 font-medium animate-in slide-in-from-top-1 fade-in duration-200">
             {error}
           </p>
         ) : description ? (
-          <p className="text-base text-slate-500 dark:text-slate-400">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             {description}
           </p>
         ) : null}

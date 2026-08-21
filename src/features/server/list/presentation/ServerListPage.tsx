@@ -126,7 +126,7 @@ export const ServerListPage = () => {
 
   return (
     <div className="flex flex-col h-full bg-transparent relative overflow-hidden select-none">
-      <div className="mb-3 pt-2 shrink-0">
+      <div className="pt-2 shrink-0">
         <ServerListHeader
           state={displayState}
           allTags={allTags}
@@ -149,6 +149,7 @@ export const ServerListPage = () => {
              onEdit={handleEdit}
              isLoading={isLoading} 
              shouldAnimate={shouldAnimate}
+             topInset={10}
            />
          ) : (
            <ServerTableView 

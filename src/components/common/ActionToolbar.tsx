@@ -72,7 +72,7 @@ export const ActionToolbar = ({
             placeholder={searchPlaceholder || t('common.search', 'Search...')}
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-9 h-9 w-full bg-transparent border-border focus-visible:ring-primary"
+            className="pl-9 w-full bg-transparent border-border focus-visible:ring-primary"
           />
         </div>
 
@@ -89,7 +89,7 @@ export const ActionToolbar = ({
             <button
               onClick={onTogglePrivacyMode}
               className={cn(
-                "h-9 px-2.5 rounded-lg border flex items-center justify-center transition-all shrink-0",
+                "h-9 px-2.5 rounded-lg border flex items-center justify-center transition-all shrink-0 cursor-pointer",
                 isPrivacyMode 
                   ? "bg-amber-500/15 border-amber-500/40 text-amber-500 font-medium" 
                   : "bg-muted border-border text-muted-foreground hover:text-foreground"
@@ -112,7 +112,7 @@ export const ActionToolbar = ({
               <button
                 onClick={() => onCardSizeChange('sm')}
                 className={cn(
-                  "w-8 rounded-md transition-all h-full flex items-center justify-center text-xs font-bold",
+                  "w-8 rounded-md transition-all h-full flex items-center justify-center text-xs font-bold cursor-pointer",
                   cardSize === 'sm' 
                     ? "bg-background text-primary shadow-sm" 
                     : "text-muted-foreground hover:text-foreground"
@@ -127,7 +127,7 @@ export const ActionToolbar = ({
               <button
                 onClick={() => onCardSizeChange('md')}
                 className={cn(
-                  "w-8 rounded-md transition-all h-full flex items-center justify-center text-xs font-bold",
+                  "w-8 rounded-md transition-all h-full flex items-center justify-center text-xs font-bold cursor-pointer",
                   cardSize === 'md' 
                     ? "bg-background text-primary shadow-sm" 
                     : "text-muted-foreground hover:text-foreground"
@@ -142,7 +142,7 @@ export const ActionToolbar = ({
               <button
                 onClick={() => onCardSizeChange('lg')}
                 className={cn(
-                  "w-8 rounded-md transition-all h-full flex items-center justify-center text-xs font-bold",
+                  "w-8 rounded-md transition-all h-full flex items-center justify-center text-xs font-bold cursor-pointer",
                   cardSize === 'lg' 
                     ? "bg-background text-primary shadow-sm" 
                     : "text-muted-foreground hover:text-foreground"
@@ -161,7 +161,7 @@ export const ActionToolbar = ({
               <button
                 onClick={() => onViewModeChange('grid')}
                 className={cn(
-                  "p-1.5 rounded-md transition-all h-full aspect-square flex items-center justify-center",
+                  "p-1.5 rounded-md transition-all h-full aspect-square flex items-center justify-center cursor-pointer",
                   viewMode === 'grid' 
                     ? "bg-background text-primary shadow-sm" 
                     : "text-muted-foreground hover:text-foreground"
@@ -175,7 +175,7 @@ export const ActionToolbar = ({
               <button
                 onClick={() => onViewModeChange('list')}
                 className={cn(
-                  "p-1.5 rounded-md transition-all h-full aspect-square flex items-center justify-center",
+                  "p-1.5 rounded-md transition-all h-full aspect-square flex items-center justify-center cursor-pointer",
                   viewMode === 'list' 
                     ? "bg-background text-primary shadow-sm" 
                     : "text-muted-foreground hover:text-foreground"
@@ -191,8 +191,8 @@ export const ActionToolbar = ({
         {onAdd && (
           <Button 
             onClick={onAdd} 
-            size="sm" 
-            className="h-9 gap-2 shadow-sm px-4 shrink-0 rounded-lg"
+            size="default" 
+            className="gap-2 shadow-sm px-4 shrink-0 rounded-lg"
           >
             <Plus className="w-4 h-4" />
             {addLabel || t('common.add', 'Add')}

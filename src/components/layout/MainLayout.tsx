@@ -153,19 +153,18 @@ export const MainLayout = () => {
         <div className="flex-1 flex w-full min-h-0 relative">
           <Sidebar />
 
-          <main className="flex-1 overflow-hidden relative bg-transparent">
+          <main className="flex-1 min-h-0 overflow-hidden relative bg-transparent">
             <div className={clsx("w-full h-full bg-transparent", !isTerminalPage && "hidden")}>
               <TerminalLayout />
             </div>
-            <div className={clsx("h-full w-full flex flex-col overflow-hidden bg-transparent", isTerminalPage && "hidden")}>
-              <div className="flex-1 overflow-hidden p-0 relative">
-                <div
-                  key={location.pathname}
-                  className="page-route-transition h-full w-full overflow-y-auto overflow-x-hidden"
-                >
-                  {currentOutlet}
-                </div>
-              </div>
+            <div
+              key={location.pathname}
+              className={clsx(
+                "page-route-transition h-full w-full overflow-hidden bg-transparent",
+                isTerminalPage && "hidden"
+              )}
+            >
+              {currentOutlet}
             </div>
           </main>
         </div>

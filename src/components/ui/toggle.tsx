@@ -14,9 +14,10 @@ const toggleVariants = cva(
           "border border-input bg-transparent shadow-sm hover:bg-accent hover:text-accent-foreground",
       },
       size: {
-        default: "h-9 px-2 min-w-9",
-        sm: "h-8 px-1.5 min-w-8",
-        lg: "h-10 px-2.5 min-w-10",
+        xs: "h-7 px-2 min-w-7 text-xs [&_svg]:size-3.5 gap-1.5",
+        sm: "h-8 px-2.5 min-w-8 text-xs [&_svg]:size-3.5 gap-1.5",
+        default: "h-9 px-3 min-w-9 text-sm [&_svg]:size-4 gap-2",
+        lg: "h-10 px-3.5 min-w-10 text-base [&_svg]:size-4.5 gap-2",
       },
     },
     defaultVariants: {

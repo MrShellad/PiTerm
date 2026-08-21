@@ -24,7 +24,7 @@ export const ServerListHeader = ({ state, allTags, actions, onAddClick }: Props)
   // 1. 排序组件
   const SortAction = (
     <Select value={state.sortBy} onValueChange={(v) => actions.setSortBy(v as SortOption)}>
-      <SelectTrigger className="h-9 w-[140px] border-border bg-muted/60 text-xs focus:ring-0 sm:w-[170px]">
+      <SelectTrigger size="default" className="w-[140px] border-border bg-muted/60 text-xs focus:ring-0 sm:w-[170px]">
          <div className="flex items-center gap-2 truncate text-muted-foreground">
            {state.sortBy.includes('created') && <Calendar className="w-3.5 h-3.5 opacity-70 shrink-0"/>}
            {state.sortBy.includes('sort') && <SlidersHorizontal className="w-3.5 h-3.5 opacity-70 shrink-0"/>}
