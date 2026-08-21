@@ -76,6 +76,7 @@ export const useServerStore = create<ServerState>()(
           // 2. 映射数据结构 (保持你原有的逻辑不变)
           const mappedServers: Server[] = backendServers.map((s: any) => ({
             ...s,
+            theme: s.theme || 'sapphire',
             ip: s.ip || s.host || '',
             authType: s.authType || s.auth_type || 'password',
             passwordId: s.passwordId || s.password_id,
@@ -145,6 +146,7 @@ export const useServerStore = create<ServerState>()(
             port: serverData.port ?? existingServer?.port ?? 22,
             username: serverData.username ?? existingServer?.username ?? 'root',
             icon: serverData.icon ?? existingServer?.icon ?? 'server',
+            theme: serverData.theme ?? existingServer?.theme ?? 'sapphire',
             provider: serverData.provider?.trim() ?? existingServer?.provider ?? '',
             sort: serverData.sort ?? existingServer?.sort ?? 0,
             tags: serverData.tags ?? existingServer?.tags ?? [],

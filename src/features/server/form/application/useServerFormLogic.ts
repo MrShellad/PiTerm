@@ -12,6 +12,7 @@ interface UseServerFormLogicProps {
     passwordId?: string | null;
     keyId?: string | null;
     provider?: string;
+    theme?: string;
     auth_type?: string;
     password_id?: string;
     key_id?: string;
@@ -44,6 +45,7 @@ export const useServerFormLogic = ({ initialData, onClose }: UseServerFormLogicP
       name: d.name ?? "",
       host: d.host ?? "",
       username: d.username ?? "",
+      theme: d.theme || DEFAULT_SERVER_FORM_VALUES.theme || 'sapphire',
       
       authType: rawAuthType === 'privateKey' ? 'key' : rawAuthType,
       passwordId: rawPasswordId,

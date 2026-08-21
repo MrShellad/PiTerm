@@ -19,6 +19,7 @@ export const useFormSubmit = (onSuccess?: () => void) => {
         port: data.port,
         username: data.username,
         provider: data.provider?.trim() || "",
+        theme: data.theme || "sapphire",
         
         authType: data.authType, 
         os: data.os,

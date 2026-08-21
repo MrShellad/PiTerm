@@ -15,6 +15,7 @@ export const serverFormSchema = z.object({
   icon: z.string(), 
   os: z.string(),
   provider: z.string().optional(),
+  theme: z.string().optional(),
   sort: z.number(),
 
   // [新增] 数据库字段：是否置顶/收藏

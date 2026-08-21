@@ -18,15 +18,15 @@ interface Props {
 }
 
 const COMPACT_WIDTHS: Record<CardSize, string> = {
-  sm: "220px", 
-  md: "260px",
-  lg: "320px"
+  sm: "290px", 
+  md: "350px",
+  lg: "410px"
 };
 
 const CARD_DIMENSIONS: Record<CardSize, { width: string; height: string }> = {
-  sm: { width: "220px", height: "140px" },
-  md: { width: "260px", height: "165px" },
-  lg: { width: "320px", height: "200px" }
+  sm: { width: "290px", height: "195px" },
+  md: { width: "350px", height: "230px" },
+  lg: { width: "410px", height: "260px" }
 };
 
 export const ServerGrid = ({ 
@@ -47,7 +47,7 @@ export const ServerGrid = ({
     const updateColumns = () => {
       if (!parentRef.current) return;
       const containerWidth = parentRef.current.getBoundingClientRect().width;
-      const cardWidth = cardSize === 'sm' ? 220 : cardSize === 'md' ? 260 : 320;
+      const cardWidth = cardSize === 'sm' ? 290 : cardSize === 'md' ? 350 : 410;
       const computed = Math.floor((containerWidth + 20) / (cardWidth + 20));
       setColumns(Math.max(1, computed));
     };
@@ -104,7 +104,7 @@ export const ServerGrid = ({
     count: rows.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => {
-      const cardHeight = cardSize === 'sm' ? 140 : cardSize === 'md' ? 165 : 200;
+      const cardHeight = cardSize === 'sm' ? 195 : cardSize === 'md' ? 230 : 260;
       return cardHeight + 20; 
     },
     getItemKey: (index) => `${cardSize}-${columns}-${index}`,

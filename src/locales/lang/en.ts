@@ -199,6 +199,7 @@ export const en = {
         name: "Server Name",
         namePlaceholder: "e.g. Production Database",
         icon: "Icon",
+        theme: "Card Color",
         provider: "Provider",
         selectProvider: "Select provider...",
         tags: "Tags",

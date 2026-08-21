@@ -52,6 +52,9 @@ pub struct ServerConfig {
     pub provider: String,
 
     #[serde(default)]
+    pub theme: Option<String>,
+
+    #[serde(default)]
     pub sort: i32,
 
     pub ip: String,

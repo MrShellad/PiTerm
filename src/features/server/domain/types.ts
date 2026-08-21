@@ -7,6 +7,7 @@ export interface Server {
   name: string;
   provider?: string;
   status?: ServerStatus;
+  theme?: string; // 卡片专属配色主题
   
   ip: string;
   port: number;

@@ -41,6 +41,7 @@ export const ServerModal = ({ open, onOpenChange, initialData, onClose }: Server
       port: initialData.port,
       username: initialData.username,
       icon: initialData.icon,
+      theme: initialData.theme || "sapphire",
       os: initialData.os,
       
       connectionType: initialData.connectionType ?? "direct",

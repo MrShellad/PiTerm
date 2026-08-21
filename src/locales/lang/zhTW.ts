@@ -185,6 +185,7 @@ export const zhTW = {
         name: "伺服器名稱",
         namePlaceholder: "例如：正式環境資料庫",
         icon: "圖示",
+        theme: "卡片配色",
         provider: "服務供應商",
         selectProvider: "選擇服務供應商...",
         tags: "標籤",

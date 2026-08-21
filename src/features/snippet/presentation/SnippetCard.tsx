@@ -52,19 +52,17 @@ export const SnippetCard = ({ data, onEdit, onDelete }: Props) => {
   return (
     <InteractiveCard className="group h-full flex flex-col">
       {/* Header */}
-      <InteractiveCardHeader>
-        {/* 🟢 [修改 2] 强制图标尺寸为 3rem (48px) 以匹配 ServerCard 的 md 尺寸 */}
-        <InteractiveCardIcon style={{ width: '2.5rem', height: '2.5rem' }}>
-           {/* 内部图标设置为 50% 大小，居中显示 */}
+      <InteractiveCardHeader className="gap-3 mb-3">
+        {/* 图标尺寸 */}
+        <InteractiveCardIcon style={{ width: '2.75rem', height: '2.75rem' }}>
            <LanguageIcon lang={data.language} className="w-1/2 h-1/2" />
         </InteractiveCardIcon>
 
-        <div className="flex flex-col min-w-0 flex-1 ml-3 mr-2 justify-center">
-          {/* 微调标题字号以匹配更大的图标 */}
-          <h3 className="font-semibold text-slate-800 dark:text-slate-100 truncate text-base leading-tight">
+        <div className="flex flex-col min-w-0 flex-1 justify-center">
+          <h3 className="font-bold text-slate-800 dark:text-slate-100 truncate text-[18px] sm:text-[19px] leading-tight tracking-tight">
             {data.title}
           </h3>
-          <span className="text-xs text-slate-400 truncate font-mono mt-0.5 opacity-80">
+          <span className="text-[13px] text-slate-400 dark:text-slate-400 truncate font-mono mt-0.5 opacity-80 font-medium uppercase">
             {data.language}
           </span>
         </div>
@@ -73,7 +71,7 @@ export const SnippetCard = ({ data, onEdit, onDelete }: Props) => {
           <DropdownMenuTrigger asChild>
              <button 
                 className={clsx(
-                  "p-1.5 rounded-md transition-all duration-200 outline-none",
+                  "p-1.5 rounded-md transition-all duration-200 outline-none cursor-pointer",
                   "opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100",
                   "text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 data-[state=open]:bg-slate-100 dark:data-[state=open]:bg-slate-800"
                 )}
@@ -96,45 +94,45 @@ export const SnippetCard = ({ data, onEdit, onDelete }: Props) => {
         </DropdownMenu>
       </InteractiveCardHeader>
 
-      {/* Body: Code Preview */}
-      <InteractiveCardBody className="relative mt-1">
+      {/* Body: Code Preview (13-14px) */}
+      <InteractiveCardBody className="relative my-auto">
         <GlassTooltip content={isCopied ? t('common.copied', 'Copied!') : t('snippet.copy_hint', 'Click to copy')} side="top">
           <div 
             className={clsx(
-              "relative w-full h-full min-h-[100px] rounded-md overflow-hidden cursor-pointer group/code",
-              "bg-slate-50 dark:bg-black/20 border border-slate-100 dark:border-white/5",
+              "relative w-full h-full min-h-[105px] rounded-lg overflow-hidden cursor-pointer group/code",
+              "bg-slate-50 dark:bg-black/25 border border-slate-200/60 dark:border-white/10 shadow-sm",
               "transition-colors hover:bg-slate-100 dark:hover:bg-black/40",
-              "p-3"
+              "p-3.5"
             )}
             onClick={handleCopy}
           >
-            <code className="block font-mono text-[10px] leading-relaxed text-slate-600 dark:text-slate-400 whitespace-pre-wrap break-all opacity-90">
+            <code className="block font-mono text-[13px] sm:text-sm leading-relaxed text-slate-700 dark:text-slate-300 whitespace-pre-wrap break-all opacity-95">
               {data.code.slice(0, 300)}
             </code>
             
-            <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-slate-50 dark:from-slate-900/10 to-transparent pointer-events-none" />
+            <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-slate-50 dark:from-slate-900/20 to-transparent pointer-events-none" />
             
-            <div className="absolute top-2 right-2 p-1.5 rounded-md bg-white/90 dark:bg-slate-800/90 backdrop-blur shadow-sm border border-slate-200 dark:border-slate-700 opacity-0 group-hover/code:opacity-100 transition-all scale-90 group-hover/code:scale-100">
-              {isCopied ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3 text-slate-500" />}
+            <div className="absolute top-2.5 right-2.5 p-1.5 rounded-md bg-white/90 dark:bg-slate-800/90 backdrop-blur shadow-sm border border-slate-200 dark:border-slate-700 opacity-0 group-hover/code:opacity-100 transition-all scale-90 group-hover/code:scale-100">
+              {isCopied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
             </div>
           </div>
         </GlassTooltip>
       </InteractiveCardBody>
 
-      {/* Footer: Tags */}
-      <InteractiveCardFooter>
-        <InteractiveCardTagsWrapper>
+      {/* Footer: Tags (12-13px) */}
+      <InteractiveCardFooter className="pt-3">
+        <InteractiveCardTagsWrapper className="gap-2">
           {data.tags.length > 0 ? (
             <>
               {data.tags.slice(0, 4).map(tag => (
-                <InteractiveCardTag key={tag}>{tag}</InteractiveCardTag>
+                <InteractiveCardTag key={tag} className="text-xs px-2.5 py-0.5 font-medium">{tag}</InteractiveCardTag>
               ))}
               {data.tags.length > 4 && (
-                <InteractiveCardTag>+{data.tags.length - 4}</InteractiveCardTag>
+                <InteractiveCardTag className="text-xs px-2 py-0.5 font-medium">+{data.tags.length - 4}</InteractiveCardTag>
               )}
             </>
           ) : (
-            <span className="text-[10px] text-slate-300 dark:text-slate-600 italic">
+            <span className="text-xs text-slate-400 dark:text-slate-500 italic">
                {t('snippet.no_tags', 'No tags')}
             </span>
           )}

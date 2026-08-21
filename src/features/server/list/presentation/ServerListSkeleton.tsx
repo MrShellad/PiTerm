@@ -2,9 +2,9 @@ import { CardSize, ViewMode } from "../domain/types";
 import { ServerCardSkeleton } from "./ServerCardSkeleton";
 
 const CARD_WIDTHS: Record<CardSize, string> = {
-  sm: "220px",
-  md: "260px",
-  lg: "320px",
+  sm: "290px",
+  md: "350px",
+  lg: "410px",
 };
 
 interface Props {

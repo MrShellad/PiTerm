@@ -9,6 +9,7 @@ export const useServerGeneralLogic = () => {
 
   // --- 1. 监听表单字段 ---
   const currentIcon = watch("icon");
+  const currentTheme = watch("theme") || "sapphire";
   const currentProvider = watch("provider");
   const tags = watch("tags") || [];
   const enableExpiration = watch("enableExpiration");
@@ -59,6 +60,10 @@ export const useServerGeneralLogic = () => {
     setValue("icon", iconKey);
   };
 
+  const handleThemeSelect = (themeKey: string) => {
+    setValue("theme", themeKey, { shouldDirty: true });
+  };
+
   const handleExpirationToggle = (checked: boolean) => {
     setValue("enableExpiration", checked);
   };
@@ -73,6 +78,7 @@ export const useServerGeneralLogic = () => {
     setValue, // 🟢 [修复] 必须将 setValue 暴露出去，ServerGeneralInfo 才能解构使用
     values: {
       icon: currentIcon,
+      theme: currentTheme,
       provider: currentProvider,
       tags,
       enableExpiration,
@@ -95,6 +101,7 @@ export const useServerGeneralLogic = () => {
       removeTag: handleRemoveTag,
       selectProvider: handleProviderSelect,
       selectIcon: handleIconSelect,
+      selectTheme: handleThemeSelect,
       toggleExpiration: handleExpirationToggle,
       selectDate: handleDateSelect
     }

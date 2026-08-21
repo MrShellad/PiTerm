@@ -199,6 +199,7 @@ export const zh = {
         name: "服务器名称",
         namePlaceholder: "例如：生产环境数据库",
         icon: "图标",
+        theme: "卡片配色",
         provider: "服务商",
         selectProvider: "选择服务商...",
         tags: "标签",

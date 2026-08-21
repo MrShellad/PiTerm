@@ -73,6 +73,7 @@ pub async fn init_db(app: &AppHandle) -> Result<Pool<Sqlite>, String> {
             name TEXT NOT NULL,
             icon TEXT,
             provider TEXT,
+            theme TEXT,
             sort INTEGER,
             ip TEXT NOT NULL,
             port INTEGER,
@@ -105,6 +106,9 @@ pub async fn init_db(app: &AppHandle) -> Result<Pool<Sqlite>, String> {
     .execute(&pool)
     .await
     .map_err(|e| e.to_string())?;
+
+    // 尝试为旧版数据库迁移新增 theme 列 (忽略已存在错误)
+    let _ = sqlx::query("ALTER TABLE servers ADD COLUMN theme TEXT;").execute(&pool).await;
 
     // --- [新增] 3. Snippets 表 ---
     sqlx::query(

@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import { Tag, CalendarIcon, ArrowUpNarrowWide } from "lucide-react";
+import { Tag, CalendarIcon, ArrowUpNarrowWide, Palette } from "lucide-react";
 
 // Components & Logic
 import { Label } from "@/components/ui/label";
@@ -11,8 +11,8 @@ import {
   ExpirationPicker 
 } from "../components/ServerGeneralInputs"; 
 import { CommonTagSelector } from "@/components/common/CommonTagSelector"; 
-// 🟢 [新增] 引入 CustomInput
 import { CustomInput } from "@/components/common/CustomInput";
+import { CARD_THEMES_LIST } from "@/features/server/domain/constants";
 
 export const ServerGeneralInfo = () => {
   const { t } = useTranslation();
@@ -66,6 +66,38 @@ export const ServerGeneralInfo = () => {
             onOpenChange={state.setOpenProvider}
             onSelect={actions.selectProvider}
           />
+        </div>
+
+        {/* Row 3: 卡片配色方案 (Card Color Theme) */}
+        <div className="space-y-1.5 w-full">
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <Palette className="w-3.5 h-3.5" />
+            {t('server.form.theme', 'Card Color')}
+          </Label>
+          <div className="grid grid-cols-6 gap-2 pt-1">
+            {CARD_THEMES_LIST.map((theme) => {
+              const isSelected = (values.theme || "sapphire") === theme.id;
+              return (
+                <button
+                  key={theme.id}
+                  type="button"
+                  onClick={() => actions.selectTheme(theme.id)}
+                  title={theme.name}
+                  className={cn(
+                    "h-7 rounded-lg bg-gradient-to-br transition-all duration-150 cursor-pointer flex items-center justify-center border",
+                    theme.gradientPreview,
+                    isSelected 
+                      ? "ring-2 ring-primary ring-offset-2 ring-offset-background scale-105 border-white/60 shadow-sm" 
+                      : "border-transparent opacity-75 hover:opacity-100"
+                  )}
+                >
+                  {isSelected && (
+                    <div className="w-2 h-2 rounded-full bg-white shadow-sm" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
       </div>

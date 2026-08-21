@@ -30,6 +30,7 @@ pub async fn list_servers(state: State<'_, AppState>) -> Result<Vec<ServerConfig
             name: row.try_get("name").unwrap_or_default(),
             icon: row.try_get("icon").unwrap_or_default(),
             provider: row.try_get("provider").unwrap_or_default(),
+            theme: row.try_get("theme").ok(),
             sort: row.try_get("sort").unwrap_or_default(),
             ip: row.try_get("ip").unwrap_or_default(),
             port: row.try_get("port").unwrap_or_default(),
@@ -307,7 +308,7 @@ pub async fn save_server(
     sqlx::query(
         r#"
         INSERT OR REPLACE INTO servers (
-            id, name, icon, provider, sort, ip, port, tags, 
+            id, name, icon, provider, theme, sort, ip, port, tags, 
             connection_type, proxy_id, auth_type, username, 
             password, private_key, passphrase, 
             password_id, password_source, key_id, key_source, private_key_remark,
@@ -315,7 +316,7 @@ pub async fn save_server(
             created_at, updated_at, last_connected_at,
             connect_timeout, keep_alive_interval, auto_reconnect, max_reconnects
         ) VALUES (
-            ?, ?, ?, ?, ?, ?, ?, ?, 
+            ?, ?, ?, ?, ?, ?, ?, ?, ?, 
             ?, ?, ?, ?, 
             ?, ?, ?, 
             ?, ?, ?, ?, ?,
@@ -329,6 +330,7 @@ pub async fn save_server(
     .bind(server.name)
     .bind(server.icon)
     .bind(server.provider)
+    .bind(server.theme)
     .bind(server.sort)
     .bind(server.ip)
     .bind(server.port)

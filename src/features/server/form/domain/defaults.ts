@@ -4,6 +4,7 @@ export const DEFAULT_SERVER_FORM_VALUES: Partial<ServerFormValues> = {
   port: 22,
   os: "linux",
   icon: "server",
+  theme: "sapphire",
   connectionType: "direct",
   authType: "password",
   passwordSource: "manual",
